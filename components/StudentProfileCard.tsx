@@ -1,6 +1,5 @@
 import React from 'react';
 import { LeaderboardEntry, Page, UserProfile } from '../types';
-import { TrophyIcon } from './icons';
 import PerformanceChart from './PerformanceChart';
 import DynamicIcon from './DynamicIcon';
 
@@ -132,7 +131,7 @@ const StudentProfileCard: React.FC<StudentProfileCardProps> = ({ user, navigateT
 
           <div>
             <h3 className="text-sm font-semibold text-gray-500 dark:text-gray-400 mb-2 flex items-center">
-                <TrophyIcon className="h-5 w-5 mr-2" />
+                <DynamicIcon svgString={appAssets['badge_trophy']} className="h-5 w-5 mr-2" />
                 Leaderboard
             </h3>
             <div className="flex gap-4">

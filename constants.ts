@@ -1,6 +1,5 @@
 import React from 'react';
-import { Page, TestCardData, Question, RoadSign, RoadSignCategory, TestAttempt, LeaderboardEntry } from './types';
-import { SwordsIcon, ClockIcon, ClipboardIcon, ConstructionIcon, TrophyIcon, FireIcon, SnowflakeIcon, CheckCircleIcon, StarIcon, BadgeIcon, RoadSignIcon, ChartBarIcon, CalendarIcon, LightbulbIcon, BookmarkIcon, BookOpenIcon, DocumentTextIcon } from './components/icons';
+import { Page, TestCardData, Question, RoadSignCategory, TestAttempt, LeaderboardEntry } from './types';
 
 // This file will now primarily hold static configuration data.
 // Dynamic data like questions and user profiles are fetched from Supabase.
@@ -134,25 +133,6 @@ export const OPPONENT_CHAT_MESSAGES = {
   lose: ["Good game!", "Rematch anytime!"],
   draw: ["Wow, a draw! Well played."],
 };
-
-export const ROAD_SIGN_CATEGORIES: RoadSignCategory[] = [
-  { id: 'warning', name: 'Warning' },
-  { id: 'regulatory', name: 'Regulatory' },
-  { id: 'informatory', name: 'Informatory' },
-];
-
-export const MOCK_ROAD_SIGNS: RoadSign[] = [
-  { 
-    id: '1', 
-    name: 'Stop and give way', 
-    description: 'You must stop behind the line at junctions and give way to traffic on the major road.',
-    category: 'regulatory',
-    svg: React.createElement('svg', { viewBox: "0 0 100 100" }, 
-        React.createElement('polygon', { points: "50,5 95,27.5 95,72.5 50,95 5,72.5 5,27.5", fill: "#DC2626" }),
-        React.createElement('text', { x: "50", y: "62", textAnchor: "middle", fill: "white", fontSize: "30", fontWeight: "bold" }, 'STOP')
-    )
-  },
-];
 
 // Fallback questions if the database is unavailable or empty.
 export const MOCK_QUESTIONS: Question[] = [

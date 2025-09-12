@@ -24,6 +24,9 @@ export enum Page {
   Admin,
 }
 
+export type AdminTab = 'questions' | 'assets' | 'hazard' | 'road_signs';
+
+
 export interface TestCardData {
   id: string;
   title: string;
@@ -115,7 +118,7 @@ export interface RoadSign {
   name: string;
   description: string;
   category: string;
-  svg: ReactNode;
+  svg_code: string;
 }
 
 export interface RoadSignCategory {

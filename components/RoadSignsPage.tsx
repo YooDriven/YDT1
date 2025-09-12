@@ -1,26 +1,59 @@
-import React, { useState, useMemo } from 'react';
-import { Page, RoadSign } from '../types';
+import React, { useState, useMemo, useEffect } from 'react';
+import { Page, RoadSign, RoadSignCategory } from '../types';
 import { ChevronLeftIcon } from './icons';
-import { MOCK_ROAD_SIGNS, ROAD_SIGN_CATEGORIES } from '../constants';
+import { supabase } from '../lib/supabaseClient';
+import DynamicIcon from './DynamicIcon';
 
 interface RoadSignsPageProps {
   navigateTo: (page: Page) => void;
 }
 
 const RoadSignsPage: React.FC<RoadSignsPageProps> = ({ navigateTo }) => {
+  const [signs, setSigns] = useState<RoadSign[]>([]);
+  const [categories, setCategories] = useState<RoadSignCategory[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
   const [searchTerm, setSearchTerm] = useState('');
   const [activeCategory, setActiveCategory] = useState('all');
   const [flippedSignId, setFlippedSignId] = useState<string | null>(null);
 
+  useEffect(() => {
+    const fetchData = async () => {
+      setLoading(true);
+      setError(null);
+      try {
+        const signsPromise = supabase!.from('road_signs').select('*');
+        const categoriesPromise = supabase!.from('road_sign_categories').select('*');
+
+        const [{ data: signsData, error: signsError }, { data: categoriesData, error: categoriesError }] = await Promise.all([signsPromise, categoriesPromise]);
+
+        if (signsError) throw signsError;
+        if (categoriesError) throw categoriesError;
+
+        setSigns(signsData as RoadSign[]);
+        setCategories(categoriesData as RoadSignCategory[]);
+      } catch (err: any) {
+        setError(err.message);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchData();
+  }, []);
+
   const filteredSigns = useMemo(() => {
-    return MOCK_ROAD_SIGNS.filter(sign => {
+    return signs.filter(sign => {
       const matchesCategory = activeCategory === 'all' || sign.category === activeCategory;
-      const matchesSearch = searchTerm === '' || 
+      const matchesSearch = searchTerm === '' ||
         sign.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
         sign.description.toLowerCase().includes(searchTerm.toLowerCase());
       return matchesCategory && matchesSearch;
     });
-  }, [searchTerm, activeCategory]);
+  }, [searchTerm, activeCategory, signs]);
+
+  if (loading) return <div className="p-8 text-center text-gray-500 dark:text-gray-400">Loading Road Signs...</div>;
+  if (error) return <div className="p-8 text-center text-red-500">Error: {error}</div>;
 
   return (
     <div className="p-4 sm:p-6 lg:p-8 max-w-7xl mx-auto">
@@ -54,7 +87,7 @@ const RoadSignsPage: React.FC<RoadSignsPageProps> = ({ navigateTo }) => {
               >
                 All
               </button>
-              {ROAD_SIGN_CATEGORIES.map(category => (
+              {categories.map(category => (
                 <button 
                   key={category.id} 
                   onClick={() => setActiveCategory(category.id)}
@@ -81,7 +114,7 @@ const RoadSignsPage: React.FC<RoadSignsPageProps> = ({ navigateTo }) => {
             >
               <div className={`card-inner ${flippedSignId === sign.id ? 'is-flipped' : ''}`}>
                 <div className="card-face w-full h-full p-4 bg-white dark:bg-slate-800 rounded-lg flex items-center justify-center shadow-md shadow-gray-200/50 dark:shadow-black/20 border border-gray-200 dark:border-slate-700">
-                  {sign.svg}
+                   <DynamicIcon svgString={sign.svg_code} className="w-full h-full" />
                 </div>
                 <div className="card-face card-back w-full h-full p-4 bg-slate-800 rounded-lg flex flex-col justify-center text-center border border-slate-700">
                   <h3 className="font-bold text-white text-sm">{sign.name}</h3>
