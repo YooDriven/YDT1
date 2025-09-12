@@ -24,40 +24,79 @@ import { getDailyChallengeQuestions } from './utils';
 import { supabase, isSupabaseConfigured } from './lib/supabaseClient';
 import { isGeminiConfigured } from './lib/gemini';
 
-const ConfigurationError = ({ missingKeys }: { missingKeys: string[] }) => (
+// Define the states for our application's loading lifecycle
+type AppState =
+  | 'CONFIG_CHECKING'
+  | 'CONFIG_ERROR'
+  | 'INITIALIZING'
+  | 'AUTH_CHECKING'
+  | 'UNAUTHENTICATED'
+  | 'FETCHING_PROFILE'
+  | 'FETCHING_QUESTIONS'
+  | 'READY'
+  | 'ERROR';
+
+const AppLoadingIndicator: React.FC<{ state: AppState }> = ({ state }) => {
+  const messages: Record<AppState, string> = {
+    CONFIG_CHECKING: 'Verifying configuration...',
+    CONFIG_ERROR: 'Configuration error.',
+    INITIALIZING: 'Initializing application...',
+    AUTH_CHECKING: 'Securing connection...',
+    UNAUTHENTICATED: 'Redirecting to login...',
+    FETCHING_PROFILE: 'Loading your profile...',
+    FETCHING_QUESTIONS: 'Preparing questions...',
+    READY: 'Ready!',
+    ERROR: 'An error occurred.'
+  };
+
+  return (
+    <div className="flex items-center justify-center h-screen bg-slate-900">
+      <div className="text-center">
+        <p className="text-gray-400">{messages[state] || 'Loading application...'}</p>
+        <div className="w-32 h-1 bg-slate-700 rounded-full overflow-hidden mt-4 mx-auto">
+          <div className="h-1 bg-teal-400 animate-pulse" style={{ width: '100%' }}></div>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+const AppError: React.FC<{ message: string; details?: string[] }> = ({ message, details }) => (
   <div className="min-h-screen bg-slate-900 flex items-center justify-center p-4 text-gray-300">
     <div className="max-w-2xl w-full bg-slate-800 border border-red-500/50 rounded-2xl p-8 shadow-2xl shadow-red-500/10">
       <div className="text-center">
-        <h1 className="text-3xl font-bold text-red-400 mb-4">Application Configuration Error</h1>
-        <p className="text-lg text-slate-400 mb-6">
-          The application is missing essential configuration details required to connect to backend services.
-        </p>
-        <p className="text-slate-400 mb-8">
-          Please ensure the following environment variables are correctly set in your project's secrets or configuration settings:
-        </p>
-        <div className="flex flex-col items-center space-y-2">
-            {missingKeys.map(key => (
+        <h1 className="text-3xl font-bold text-red-400 mb-4">{message}</h1>
+        {details && details.length > 0 && (
+          <>
+            <p className="text-slate-400 mb-8">
+              Please ensure the following environment variables are correctly set:
+            </p>
+            <div className="flex flex-col items-center space-y-2">
+              {details.map(key => (
                 <code key={key} className="bg-slate-700 text-amber-400 font-mono p-2 rounded">{key}</code>
-            ))}
-        </div>
+              ))}
+            </div>
+          </>
+        )}
       </div>
-      <p className="text-center mt-8 text-sm text-slate-500">
-        The application cannot start until these values are provided.
-      </p>
     </div>
   </div>
 );
+
 
 const App: React.FC = () => {
   const [theme, setTheme] = useState<Theme>(
     () => (document.documentElement.classList.contains('dark') ? 'dark' : 'light')
   );
+  const [appState, setAppState] = useState<AppState>('CONFIG_CHECKING');
+  const [missingKeys, setMissingKeys] = useState<string[]>([]);
+  const [errorMessage, setErrorMessage] = useState<string>('');
+  
   const [session, setSession] = useState<Session | null>(null);
   const [currentPage, setCurrentPage] = useState<Page>(Page.Dashboard);
   const [animationKey, setAnimationKey] = useState<number>(0);
   const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
   const [allQuestions, setAllQuestions] = useState<Question[]>([]);
-  const [loading, setLoading] = useState(true);
 
   const [testResult, setTestResult] = useState<{ score: number, total: number }>({ score: 0, total: 0 });
   const [reviewData, setReviewData] = useState<{ questions: Question[], userAnswers: (number | null)[] }>({ questions: [], userAnswers: [] });
@@ -69,16 +108,19 @@ const App: React.FC = () => {
   const [currentMode, setCurrentMode] = useState<'test' | 'study'>('test');
   const [duelOpponent, setDuelOpponent] = useState<LeaderboardEntry | null>(null);
 
-  if (!isSupabaseConfigured || !isGeminiConfigured) {
-    const missingKeys: string[] = [];
-    if (!isSupabaseConfigured) {
-        missingKeys.push('VITE_SUPABASE_URL', 'VITE_SUPABASE_ANON_KEY');
+  useEffect(() => {
+    // 1. Configuration Check
+    const keys: string[] = [];
+    if (!isSupabaseConfigured) keys.push('VITE_SUPABASE_URL', 'VITE_SUPABASE_ANON_KEY');
+    if (!isGeminiConfigured) keys.push('VITE_GEMINI_API_KEY');
+    
+    if (keys.length > 0) {
+      setMissingKeys(keys);
+      setAppState('CONFIG_ERROR');
+    } else {
+      setAppState('INITIALIZING');
     }
-    if (!isGeminiConfigured) {
-        missingKeys.push('VITE_GEMINI_API_KEY');
-    }
-    return <ConfigurationError missingKeys={missingKeys} />;
-  }
+  }, []);
 
   useEffect(() => {
     if (theme === 'dark') {
@@ -90,108 +132,87 @@ const App: React.FC = () => {
   }, [theme]);
 
   useEffect(() => {
+    if (appState !== 'INITIALIZING') return;
+    
+    // 2. Auth State Subscription
+    setAppState('AUTH_CHECKING');
     supabase!.auth.getSession().then(({ data: { session } }) => {
       setSession(session);
+      setAppState(session ? 'FETCHING_PROFILE' : 'UNAUTHENTICATED');
     });
 
     const { data: { subscription } } = supabase!.auth.onAuthStateChange((_event, session) => {
       setSession(session);
       if (_event === 'SIGNED_OUT') {
         setUserProfile(null);
+        setAllQuestions([]);
         setCurrentPage(Page.Dashboard);
+        setAppState('UNAUTHENTICATED');
+      } else if (_event === 'SIGNED_IN') {
+        setAppState('FETCHING_PROFILE');
       }
     });
 
     return () => subscription.unsubscribe();
-  }, []);
+  }, [appState]);
 
   useEffect(() => {
-    const fetchDataAndProfile = async () => {
+    const fetchProfile = async () => {
+      if (appState !== 'FETCHING_PROFILE' || !session) return;
       try {
-        if (!session) {
-          return;
-        }
-        setLoading(true);
-
         const { data: { user } } = await supabase!.auth.getUser();
-        if (!user) { return; }
+        if (!user) throw new Error("User not found despite session.");
 
-        let { data: profileData } = await supabase!.from('profiles').select('*').eq('id', user.id).single();
-        
+        let { data: profileData, error: profileError } = await supabase!.from('profiles').select('*').eq('id', user.id).single();
+        if (profileError && profileError.code !== 'PGRST116') { // Ignore 'exact one row' error
+           throw profileError;
+        }
+
         if (!profileData) {
           const newUserProfileData = {
             name: user.user_metadata?.full_name || user.email?.split('@')[0] || 'New User',
             avatarUrl: user.user_metadata?.avatar_url || `https://api.dicebear.com/8.x/initials/svg?seed=${user.email}`,
-            avgScore: 0,
-            testsTaken: 0,
-            timeSpent: '0m',
-            streak: 0,
-            freezes: 0,
-            badges: [],
-            testHistory: [],
-            dailyGoalProgress: 0,
-            dailyGoalTarget: DAILY_GOAL_TARGET,
-            lastDailyChallengeDate: null,
-            bookmarked_questions: [],
+            avgScore: 0, testsTaken: 0, timeSpent: '0m', streak: 0, freezes: 0, badges: [], testHistory: [],
+            dailyGoalProgress: 0, dailyGoalTarget: DAILY_GOAL_TARGET, lastDailyChallengeDate: null, bookmarked_questions: [],
           };
-          const { data: newProfile, error } = await supabase!
-            .from('profiles')
-            .insert({ id: user.id, ...newUserProfileData })
-            .select()
-            .single();
-          if (error) {
-            console.error('Error creating profile:', error);
-            throw error;
-          }
+          const { data: newProfile, error } = await supabase!.from('profiles').insert({ id: user.id, ...newUserProfileData }).select().single();
+          if (error) throw error;
           profileData = newProfile;
         }
-
-        if (profileData) {
-            const { data: testHistoryData, error: testHistoryError } = await supabase!
-                .from('test_attempts')
-                .select('*')
-                .eq('user_id', user.id);
-
-            if (testHistoryError) {
-                console.error("Error fetching test history:", testHistoryError);
-                profileData.testHistory = [];
-            } else {
-                profileData.testHistory = testHistoryData.map((attempt: any): TestAttempt => ({
-                    userId: attempt.user_id,
-                    topic: attempt.topic,
-                    score: attempt.score,
-                    total: attempt.total,
-                    questionIds: attempt.question_ids,
-                    userAnswers: attempt.user_answers,
-                }));
-            }
-            profileData.bookmarkedQuestions = profileData.bookmarked_questions || [];
-        } else {
-           throw new Error("User profile could not be fetched or created.");
-        }
         
+        const { data: testHistoryData } = await supabase!.from('test_attempts').select('*').eq('user_id', user.id);
+        profileData.testHistory = (testHistoryData || []).map((a: any) => ({...a, userId: a.user_id, questionIds: a.question_ids, userAnswers: a.user_answers }));
+        profileData.bookmarkedQuestions = profileData.bookmarked_questions || [];
+
         setUserProfile(profileData);
-
-        const { data: questionsData, error: questionsError } = await supabase!.from('questions').select('*');
-        if (questionsError) {
-          console.error('Error fetching questions:', questionsError);
-          setAllQuestions(MOCK_QUESTIONS);
-        } else {
-          setAllQuestions(questionsData && questionsData.length > 0 ? questionsData : MOCK_QUESTIONS);
-        }
-
-      } catch (error) {
-        console.error("Failed to load application data:", error);
-        // An error here might mean the user needs to log in again.
-        // Clearing the session or showing an error message could be options.
-        // For now, we'll just log it and stop loading, which will likely show the login page.
-      } finally {
-        setLoading(false);
+        setAppState('FETCHING_QUESTIONS');
+      } catch (error: any) {
+        console.error("Error fetching profile:", error);
+        setErrorMessage(`Could not load your profile. Please try logging in again. [${error.message}]`);
+        setAppState('ERROR');
       }
     };
+    fetchProfile();
+  }, [appState, session]);
+  
+  useEffect(() => {
+    const fetchQuestions = async () => {
+        if (appState !== 'FETCHING_QUESTIONS') return;
+        try {
+            const { data, error } = await supabase!.from('questions').select('*');
+            if (error) throw error;
+            setAllQuestions(data && data.length > 0 ? data : MOCK_QUESTIONS);
+            setAppState('READY');
+        } catch (error: any) {
+            console.error("Error fetching questions, using mock data:", error);
+            setAllQuestions(MOCK_QUESTIONS);
+            // Non-critical failure, app can proceed with mock data.
+            setAppState('READY');
+        }
+    };
+    fetchQuestions();
+  }, [appState]);
 
-    fetchDataAndProfile();
-  }, [session]);
 
   const navigateTo = useCallback((page: Page) => {
     if (page === Page.Dashboard) {
@@ -234,49 +255,24 @@ const App: React.FC = () => {
     const isDailyChallenge = testId === 'daily-challenge';
     const todayStr = new Date().toISOString().split('T')[0];
     
-    // Persist test attempt to Supabase
-    const { error } = await supabase!.from('test_attempts').insert({
-        user_id: userProfile.id,
-        topic: topic || (testId === 'daily-challenge' ? 'Daily Challenge' : 'Mock Test'),
-        score: score,
-        total: questions.length,
-        question_ids: questions.map(q => q.id),
-        user_answers: userAnswers,
-    });
-    if (error) console.error('Error saving test attempt:', error);
+    supabase!.from('test_attempts').insert({
+        user_id: userProfile.id, topic: topic || (testId === 'daily-challenge' ? 'Daily Challenge' : 'Mock Test'),
+        score: score, total: questions.length, question_ids: questions.map(q => q.id), user_answers: userAnswers,
+    }).then(({error}) => error && console.error('Error saving test attempt:', error));
     
-    // Update profile stats in Supabase
-    const { error: profileUpdateError } = await supabase!
-        .from('profiles')
-        .update({ 
-            testsTaken: userProfile.testsTaken + 1,
-            dailyGoalProgress: userProfile.dailyGoalProgress + score,
-            lastDailyChallengeDate: isDailyChallenge ? todayStr : userProfile.lastDailyChallengeDate,
-        })
-        .eq('id', userProfile.id);
-
-    if(profileUpdateError) console.error("Error updating profile stats:", profileUpdateError);
+    supabase!.from('profiles').update({ 
+        testsTaken: userProfile.testsTaken + 1, dailyGoalProgress: userProfile.dailyGoalProgress + score,
+        lastDailyChallengeDate: isDailyChallenge ? todayStr : userProfile.lastDailyChallengeDate,
+    }).eq('id', userProfile.id).then(({error}) => error && console.error("Error updating profile stats:", error));
     
-    // Optimistically update local state. A more robust solution would handle DB errors in the UI.
     const newAttempt: TestAttempt = {
-      userId: userProfile.id,
-      topic: topic || (testId === 'daily-challenge' ? 'Daily Challenge' : 'Mock Test'),
-      score: score,
-      total: questions.length,
-      questionIds: questions.map(q => q.id),
-      userAnswers: userAnswers,
+      userId: userProfile.id, topic: topic || (testId === 'daily-challenge' ? 'Daily Challenge' : 'Mock Test'), score: score,
+      total: questions.length, questionIds: questions.map(q => q.id), userAnswers: userAnswers,
     };
     
-    setUserProfile(prev => {
-        if (!prev) return null;
-        return {
-            ...prev,
-            testsTaken: prev.testsTaken + 1,
-            dailyGoalProgress: prev.dailyGoalProgress + score,
-            lastDailyChallengeDate: isDailyChallenge ? todayStr : prev.lastDailyChallengeDate,
-            testHistory: [...prev.testHistory, newAttempt],
-        }
-    });
+    setUserProfile(prev => prev ? { ...prev, testsTaken: prev.testsTaken + 1, dailyGoalProgress: prev.dailyGoalProgress + score,
+        lastDailyChallengeDate: isDailyChallenge ? todayStr : prev.lastDailyChallengeDate, testHistory: [...prev.testHistory, newAttempt],
+    } : null);
     
     setTestResult({ score, total: questions.length });
     setReviewData({ questions, userAnswers });
@@ -284,11 +280,7 @@ const App: React.FC = () => {
   }, [navigateTo, userProfile]);
 
   const handleBattleComplete = useCallback((playerScore: number, opponentScore: number, total: number, opponentName: string) => {
-    setUserProfile(prev => prev ? ({
-        ...prev,
-        testsTaken: prev.testsTaken + 1,
-        dailyGoalProgress: prev.dailyGoalProgress + playerScore,
-    }) : null);
+    setUserProfile(prev => prev ? ({ ...prev, testsTaken: prev.testsTaken + 1, dailyGoalProgress: prev.dailyGoalProgress + playerScore }) : null);
     setBattleResult({ playerScore, opponentScore, total, opponentName });
     navigateTo(Page.BattleResults);
   }, [navigateTo]);
@@ -307,29 +299,16 @@ const App: React.FC = () => {
 
   const handleToggleBookmark = async (questionId: string) => {
     if (!userProfile) return;
-
     const currentBookmarks = userProfile.bookmarkedQuestions || [];
     const isBookmarked = currentBookmarks.includes(questionId);
-    const newBookmarks = isBookmarked
-        ? currentBookmarks.filter(id => id !== questionId)
-        : [...currentBookmarks, questionId];
-
-    // Optimistically update local state
+    const newBookmarks = isBookmarked ? currentBookmarks.filter(id => id !== questionId) : [...currentBookmarks, questionId];
     setUserProfile(prev => prev ? { ...prev, bookmarkedQuestions: newBookmarks } : null);
-
-    // Update database
-    const { error } = await supabase!
-        .from('profiles')
-        .update({ bookmarked_questions: newBookmarks })
-        .eq('id', userProfile.id);
-
+    const { error } = await supabase!.from('profiles').update({ bookmarked_questions: newBookmarks }).eq('id', userProfile.id);
     if (error) {
         console.error('Error updating bookmarks:', error);
-        // Revert optimistic update on error
         setUserProfile(prev => prev ? { ...prev, bookmarkedQuestions: currentBookmarks } : null);
     }
   };
-
 
   const renderCurrentPage = () => {
     switch (currentPage) {
@@ -368,17 +347,18 @@ const App: React.FC = () => {
         return <Dashboard onCardClick={handleCardClick} userProfile={userProfile!} navigateTo={navigateTo} handleDuel={handleDuel} />;
     }
   };
-  
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center h-screen bg-slate-900">
-        <p className="text-gray-400">Loading application...</p>
-      </div>
-    );
-  }
 
-  if (!session || !userProfile) {
+  if (appState === 'CONFIG_ERROR') {
+    return <AppError message="Application Configuration Error" details={missingKeys} />;
+  }
+  if (appState === 'ERROR') {
+    return <AppError message={errorMessage || "An Unexpected Error Occurred"} />;
+  }
+  if (appState === 'UNAUTHENTICATED') {
     return <LoginPage />;
+  }
+  if (appState !== 'READY' || !userProfile) {
+    return <AppLoadingIndicator state={appState} />;
   }
 
   return (
