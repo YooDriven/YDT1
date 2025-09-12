@@ -18,32 +18,42 @@ const LoginPage: React.FC<LoginPageProps> = ({ appAssets }) => {
         setError(null);
         setMessage(null);
 
-        // --- Test sign-on logic ---
+        const isDevLogin = !isSignUp && (email.toLowerCase() === 'k' || email.toLowerCase() === 'admin');
         let authEmail = email;
         let authPassword = password;
-        if (!isSignUp && email.toLowerCase() === 'k') {
-            // Standard test user
-            authEmail = 'test@drivetheory.pro';
-            authPassword = 'password123';
-        } else if (!isSignUp && email.toLowerCase() === 'admin') {
-            // Admin test user
-            authEmail = 'admin@drivetheory.pro';
-            authPassword = 'password123';
-        }
-        // --- End of test sign-on logic ---
         
-        const authMethod = isSignUp 
-            ? supabase!.auth.signUp 
-            : supabase!.auth.signInWithPassword;
-            
-        const { error } = await authMethod({ email: authEmail, password: authPassword });
-
-        if (error) {
-            setError(error.message);
-        } else if (isSignUp && authEmail === email) { // Only show signup message for actual signups
-            setMessage('Check your email for the confirmation link!');
+        if (isDevLogin) {
+            if (email.toLowerCase() === 'k') {
+                authEmail = 'test@drivetheory.pro';
+                authPassword = 'password123';
+            } else if (email.toLowerCase() === 'admin') {
+                authEmail = 'admin@drivetheory.pro';
+                authPassword = 'password123';
+            }
         }
-        // On successful login, the onAuthStateChange in App.tsx will take over.
+        
+        if (isSignUp) {
+            const { data, error } = await supabase!.auth.signUp({ email: authEmail, password: authPassword });
+            if (error) {
+                setError(error.message);
+            } else if (data.user && data.user.identities && data.user.identities.length === 0) {
+                // This is a Supabase nuance: a successful call with an existing user returns a user with no identities.
+                setError("User with this email already exists. Please sign in.");
+            } else {
+                setMessage('Check your email for the confirmation link!');
+            }
+        } else {
+            const { error } = await supabase!.auth.signInWithPassword({ email: authEmail, password: authPassword });
+            if (error) {
+                if (isDevLogin) {
+                    setError("Invalid credentials. Please ensure the developer account is correctly set up in your Supabase project.");
+                } else {
+                    setError(error.message);
+                }
+            }
+            // On successful login, onAuthStateChange in App.tsx takes over.
+        }
+
         setLoading(false);
     };
 
