@@ -1,19 +1,24 @@
-import React from 'react';
-import { Page } from '../types';
-import { TOPICS } from '../constants';
+import React, { useMemo } from 'react';
+import { Page, Question } from '../types';
 import { ChevronLeftIcon } from './icons';
 
 interface TopicSelectionPageProps {
     navigateTo: (page: Page) => void;
     onTopicSelect: (topic: string) => void;
     mode: 'test' | 'study';
+    allQuestions: Question[];
 }
 
-const TopicSelectionPage: React.FC<TopicSelectionPageProps> = ({ navigateTo, onTopicSelect, mode }) => {
+const TopicSelectionPage: React.FC<TopicSelectionPageProps> = ({ navigateTo, onTopicSelect, mode, allQuestions }) => {
     const title = mode === 'test' ? 'Topic Tests' : 'Study Mode';
     const description = mode === 'test' 
         ? 'Choose a topic to start a focused quiz.' 
         : 'Choose a topic to review questions and answers.';
+
+    const topics = useMemo(() => {
+        const uniqueTopics = new Set(allQuestions.map(q => q.category));
+        return Array.from(uniqueTopics).sort();
+    }, [allQuestions]);
 
   return (
     <div className="p-4 sm:p-6 lg:p-8 max-w-4xl mx-auto">
@@ -29,7 +34,7 @@ const TopicSelectionPage: React.FC<TopicSelectionPageProps> = ({ navigateTo, onT
       </header>
 
       <main className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-        {TOPICS.map((topic, index) => (
+        {topics.map((topic, index) => (
             <button
                 key={topic}
                 onClick={() => onTopicSelect(topic)}

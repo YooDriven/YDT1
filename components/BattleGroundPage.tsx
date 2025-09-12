@@ -1,12 +1,13 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { Page, Question, ChatMessage, LeaderboardEntry } from '../types';
 import { ChevronLeftIcon } from './icons';
-import { MOCK_QUESTIONS, OPPONENT_CHAT_MESSAGES } from '../constants';
+import { OPPONENT_CHAT_MESSAGES } from '../constants';
+import { getAiOpponentAnswer, isGeminiConfigured } from '../lib/gemini';
 
 interface BattleGroundPageProps {
   navigateTo: (page: Page) => void;
   onBattleComplete: (playerScore: number, opponentScore: number, total: number, opponentName: string) => void;
-  totalQuestions: number;
+  allQuestions: Question[];
   opponent?: LeaderboardEntry | null;
 }
 
@@ -44,7 +45,7 @@ const AnimatedScore: React.FC<{ score: number; isAnimating: boolean }> = ({ scor
 };
 
 
-const BattleGroundPage: React.FC<BattleGroundPageProps> = ({ navigateTo, onBattleComplete, totalQuestions, opponent }) => {
+const BattleGroundPage: React.FC<BattleGroundPageProps> = ({ navigateTo, onBattleComplete, opponent, allQuestions }) => {
     const [questions, setQuestions] = useState<Question[]>([]);
     const [opponentName, setOpponentName] = useState('');
     const [opponentAvatar, setOpponentAvatar] = useState('');
@@ -70,7 +71,9 @@ const BattleGroundPage: React.FC<BattleGroundPageProps> = ({ navigateTo, onBattl
     }, [opponentName]);
 
     useEffect(() => {
-        const shuffled = [...MOCK_QUESTIONS].sort(() => 0.5 - Math.random());
+        if (!allQuestions || allQuestions.length === 0) return;
+        
+        const shuffled = [...allQuestions].sort(() => 0.5 - Math.random());
         let newOpponentName;
         let newOpponentAvatar;
 
@@ -79,7 +82,7 @@ const BattleGroundPage: React.FC<BattleGroundPageProps> = ({ navigateTo, onBattl
             newOpponentAvatar = opponent.avatarUrl;
         } else {
             newOpponentName = opponentNames[Math.floor(Math.random() * opponentNames.length)];
-            newOpponentAvatar = `https://picsum.photos/seed/${newOpponentName}/100`;
+            newOpponentAvatar = `https://api.dicebear.com/8.x/bottts/svg?seed=${newOpponentName}`;
         }
         
         setQuestions(shuffled.slice(0, 10)); // Battles are 10 questions
@@ -97,7 +100,7 @@ const BattleGroundPage: React.FC<BattleGroundPageProps> = ({ navigateTo, onBattl
             setChatMessages([{ author: newOpponentName, text: getRandomMessage('greetings') }]);
         }, 1500);
 
-    }, [totalQuestions, getRandomMessage, opponent]);
+    }, [allQuestions, getRandomMessage, opponent]);
 
     const handleNextRound = useCallback(() => {
         setRoundResult(null);
@@ -128,15 +131,39 @@ const BattleGroundPage: React.FC<BattleGroundPageProps> = ({ navigateTo, onBattl
 
     useEffect(() => {
         if (playerAnswer !== null && opponentAnswer === null) {
-            const opponentThinkingTime = Math.random() * 2000 + 1000;
-            const timer = setTimeout(() => {
+            const getOpponentResponse = async () => {
                 const question = questions[currentQuestionIndex];
-                const isOpponentCorrect = Math.random() > 0.25;
-                const opponentChoice = isOpponentCorrect 
-                    ? question.correctAnswer 
-                    : [0,1,2,3].filter(i => i !== question.correctAnswer)[Math.floor(Math.random() * 3)];
+                if (!question) return;
+
+                let opponentChoice: number;
+                try {
+                    if (isGeminiConfigured) {
+                        opponentChoice = await getAiOpponentAnswer(question);
+                    } else {
+                        throw new Error("Gemini AI is not configured. Using fallback logic.");
+                    }
+                } catch (error) {
+                    console.error("AI Opponent Error:", error);
+                    // Fallback to the original random logic if the API call fails or is not configured.
+                    const isOpponentCorrect = Math.random() > 0.25; // 75% chance to be correct
+                    if (isOpponentCorrect) {
+                        opponentChoice = question.correctAnswer;
+                    } else {
+                        const incorrectOptionIndices = Array.from(Array(question.options.length).keys())
+                            .filter(i => i !== question.correctAnswer);
+                        if (incorrectOptionIndices.length > 0) {
+                            opponentChoice = incorrectOptionIndices[Math.floor(Math.random() * incorrectOptionIndices.length)];
+                        } else {
+                            opponentChoice = question.correctAnswer; 
+                        }
+                    }
+                }
+                
                 setOpponentAnswer(opponentChoice);
-            }, opponentThinkingTime);
+            };
+
+            const thinkingDelay = 500 + Math.random() * 1000;
+            const timer = setTimeout(getOpponentResponse, thinkingDelay);
             return () => clearTimeout(timer);
         }
     }, [playerAnswer, opponentAnswer, currentQuestionIndex, questions]);
@@ -190,7 +217,7 @@ const BattleGroundPage: React.FC<BattleGroundPageProps> = ({ navigateTo, onBattl
                 <div className="bg-white dark:bg-slate-800/50 p-4 rounded-xl border border-gray-200 dark:border-slate-700">
                     <div className="flex justify-between items-center text-center">
                         <div className="w-1/3 flex flex-col items-center">
-                            <img src="https://picsum.photos/seed/student/100" alt="Player" className="h-12 w-12 rounded-full border-2 border-teal-400 mb-2"/>
+                            <img src="https://api.dicebear.com/8.x/initials/svg?seed=You" alt="Player" className="h-12 w-12 rounded-full border-2 border-teal-400 mb-2"/>
                             <div className="relative h-8 flex items-center justify-center">
                                 <AnimatedScore score={playerScore} isAnimating={!!roundResult?.player} />
                                 {roundResult?.player && (

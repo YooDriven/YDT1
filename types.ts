@@ -110,6 +110,7 @@ export interface UserProfile {
   dailyGoalProgress: number;
   dailyGoalTarget: number;
   lastDailyChallengeDate: string | null;
+  bookmarkedQuestions: string[];
 }
 
 export interface RoadSign {

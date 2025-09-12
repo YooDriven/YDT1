@@ -94,6 +94,15 @@ export const STUDY_CARDS: TestCardData[] = [
     page: Page.TopicSelection,
     mode: 'study',
   },
+  {
+    id: 'bookmarked-questions',
+    title: 'Bookmarked Questions',
+    description: 'Review questions you have saved for later.',
+    icon: BookmarkIcon,
+    color: 'text-yellow-500',
+    hoverColor: '',
+    page: Page.BookmarkedQuestions,
+  },
    {
     id: 'road-signs',
     title: 'Road Signs',
@@ -161,12 +170,72 @@ export const MOCK_ROAD_SIGNS: RoadSign[] = [
   },
 ];
 
-// Re-add a simplified MOCK_QUESTIONS to derive topics, until topics are also fetched from DB
+// Fallback questions if the database is unavailable or empty.
 export const MOCK_QUESTIONS: Question[] = [
-  { id: 'q1', question: 'Q1', options: [], correctAnswer: 0, category: 'Vulnerable Road Users', explanation: '' },
-  { id: 'q2', question: 'Q2', options: [], correctAnswer: 0, category: 'Road and Traffic Signs', explanation: '' },
-  { id: 'q3', question: 'Q3', options: [], correctAnswer: 0, category: 'Alertness', explanation: '' },
-  { id: 'q4', question: 'Q4', options: [], correctAnswer: 0, category: 'Attitude', explanation: '' },
-  { id: 'q5', question: 'Q5', options: [], correctAnswer: 0, category: 'Safety Margins', explanation: '' },
+  {
+    id: 'mq1',
+    question: 'What is the national speed limit on a single carriageway road for a car?',
+    options: [
+      { text: '50 mph' },
+      { text: '60 mph' },
+      { text: '70 mph' },
+      { text: '40 mph' },
+    ],
+    correctAnswer: 1,
+    category: 'Alertness',
+    explanation: 'The national speed limit for a car on a single carriageway is 60 mph, unless signs indicate otherwise.',
+  },
+  {
+    id: 'mq2',
+    question: 'When can you overtake on the left?',
+    options: [
+        { text: 'When the vehicle in front is signalling to turn right' },
+        { text: 'On a one-way street' },
+        { text: 'In slow-moving traffic queues, when traffic in the right-hand lane is moving more slowly' },
+        { text: 'All of the above' },
+    ],
+    correctAnswer: 3,
+    category: 'Attitude',
+    explanation: 'You can overtake on the left when the vehicle in front is signalling to turn right, on a one-way street, or in slow-moving traffic queues where the right lane is slower. So all options are correct.',
+  },
+  {
+    id: 'mq3',
+    question: 'You are on a motorway. What does this sign mean?',
+    questionImage: 'https://www.safedrivingforlife.info/sites/default/files/styles/image_style_20_10_landscape/public/2022-03/traffic-sign-2915.webp?itok=fT_fE609',
+    options: [
+      { text: 'Start of motorway regulations' },
+      { text: 'Motorway services ahead' },
+      { text: 'End of motorway' },
+      { text: 'No entry to motorway' },
+    ],
+    correctAnswer: 2,
+    category: 'Road and Traffic Signs',
+    explanation: 'This sign indicates the end of motorway regulations. Be prepared for changes in speed limits and road conditions.',
+  },
+  {
+    id: 'mq4',
+    question: 'Why are motorcyclists considered vulnerable road users?',
+    options: [
+        { text: 'They are difficult to see' },
+        { text: 'They can be unstable' },
+        { text: 'They offer little protection in a crash' },
+        { text: 'All of the above' },
+    ],
+    correctAnswer: 3,
+    category: 'Vulnerable Road Users',
+    explanation: 'Motorcyclists are considered vulnerable because they are harder to see, can be unstable (especially in poor weather), and their vehicle offers no protection in a collision.',
+  },
+  {
+    id: 'mq5',
+    question: 'What is the minimum legal tread depth for car tyres in the UK?',
+    options: [
+        { text: '1.0 mm' },
+        { text: '1.6 mm' },
+        { text: '2.0 mm' },
+        { text: '2.5 mm' },
+    ],
+    correctAnswer: 1,
+    category: 'Safety Margins',
+    explanation: 'The legal minimum tread depth for car tyres in the UK is 1.6 mm across the central three-quarters of the tread and around the entire circumference.',
+  },
 ];
-export const TOPICS = [...new Set(MOCK_QUESTIONS.map(q => q.category))];

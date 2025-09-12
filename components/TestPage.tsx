@@ -11,9 +11,11 @@ interface TestPageProps {
   testId?: string;
   timeLimit?: number;
   topic?: string;
+  bookmarkedQuestions: string[];
+  onToggleBookmark: (questionId: string) => void;
 }
 
-const TestPage: React.FC<TestPageProps> = ({ navigateTo, onTestComplete, totalQuestions, allQuestions, customQuestions, testId, timeLimit = 3570, topic }) => {
+const TestPage: React.FC<TestPageProps> = ({ navigateTo, onTestComplete, totalQuestions, allQuestions, customQuestions, testId, timeLimit = 3570, topic, bookmarkedQuestions, onToggleBookmark }) => {
     const [questions, setQuestions] = useState<Question[]>([]);
     const [userAnswers, setUserAnswers] = useState<(number | null)[]>([]);
     const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
@@ -84,6 +86,7 @@ const TestPage: React.FC<TestPageProps> = ({ navigateTo, onTestComplete, totalQu
     
     const currentQuestion = questions[currentQuestionIndex];
     const selectedAnswer = userAnswers[currentQuestionIndex];
+    const isBookmarked = currentQuestion && bookmarkedQuestions.includes(currentQuestion.id);
 
     return (
         <div className="max-w-4xl mx-auto px-4 py-8">
@@ -109,8 +112,12 @@ const TestPage: React.FC<TestPageProps> = ({ navigateTo, onTestComplete, totalQu
                          Previous
                     </button>
                     <div className="font-bold text-lg text-gray-900 dark:text-white">{currentQuestionIndex + 1} of {questions.length}</div>
-                    <button className="hover:text-gray-900 dark:hover:text-white">
-                        <FlagIcon className="h-5 w-5" />
+                    <button 
+                        onClick={() => onToggleBookmark(currentQuestion.id)}
+                        className={`transition-colors ${isBookmarked ? 'text-teal-500' : 'text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white'}`}
+                        aria-label={isBookmarked ? 'Remove bookmark' : 'Add bookmark'}
+                    >
+                        <FlagIcon className="h-5 w-5" fill={isBookmarked ? 'currentColor' : 'none'} />
                     </button>
                 </div>
                 

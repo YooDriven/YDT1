@@ -2,6 +2,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import { Page, UserProfile, Theme } from '../types';
 import { YooDriveLogo } from './icons';
 import ThemeToggle from './ThemeToggle';
+import { supabase } from '../lib/supabaseClient';
 
 interface HeaderProps {
     user: UserProfile;
@@ -23,6 +24,11 @@ const Header: React.FC<HeaderProps> = ({ user, navigateTo, theme, setTheme }) =>
         document.addEventListener('mousedown', handleClickOutside);
         return () => document.removeEventListener('mousedown', handleClickOutside);
     }, []);
+
+    const handleLogout = async () => {
+        setIsMenuOpen(false);
+        await supabase!.auth.signOut();
+    };
 
 
     return (
@@ -55,7 +61,7 @@ const Header: React.FC<HeaderProps> = ({ user, navigateTo, theme, setTheme }) =>
                                         <button className="w-full text-left px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-slate-700">Settings</button>
                                     </li>
                                     <li>
-                                        <button className="w-full text-left px-4 py-2 text-sm text-red-600 dark:text-red-400 hover:bg-gray-100 dark:hover:bg-slate-700">Logout</button>
+                                        <button onClick={handleLogout} className="w-full text-left px-4 py-2 text-sm text-red-600 dark:text-red-400 hover:bg-gray-100 dark:hover:bg-slate-700">Logout</button>
                                     </li>
                                 </ul>
                             </div>
