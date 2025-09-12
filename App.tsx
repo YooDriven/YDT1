@@ -1,4 +1,5 @@
 
+
 import React, { useState, useEffect, useCallback } from 'react';
 import { Session } from 'https://esm.sh/@supabase/supabase-js@2';
 import { Page, Question, TestCardData, UserProfile, Theme, LeaderboardEntry, TestAttempt } from './types';
@@ -110,9 +111,17 @@ const App: React.FC = () => {
   const [duelOpponent, setDuelOpponent] = useState<LeaderboardEntry | null>(null);
 
   useEffect(() => {
-    // This single effect handles the entire app initialization and auth lifecycle.
-    // It runs only once on component mount due to the empty dependency array.
+    // Apply theme class to HTML element whenever theme state changes
+    if (theme === 'dark') {
+      document.documentElement.classList.add('dark');
+    } else {
+      document.documentElement.classList.remove('dark');
+    }
+    localStorage.setItem('theme', theme);
+  }, [theme]);
 
+  // Main application lifecycle effect
+  useEffect(() => {
     // 1. Configuration Check
     const keys: string[] = [];
     if (!isSupabaseConfigured) keys.push('VITE_SUPABASE_URL', 'VITE_SUPABASE_ANON_KEY');
@@ -124,91 +133,68 @@ const App: React.FC = () => {
       return;
     }
 
-    // 2. Auth State Subscription
     setAppState('AUTH_CHECKING');
-    const { data: { subscription } } = supabase!.auth.onAuthStateChange((_event, session) => {
-      setSession(session);
-      if (session) {
-        // Handles both initial session and subsequent sign-ins
-        setAppState('FETCHING_PROFILE');
-      } else {
-        // Handles no initial session and sign-outs
+
+    // 2. Auth Listener and Data Fetching Logic
+    const { data: { subscription } } = supabase!.auth.onAuthStateChange(async (event, session) => {
+      if (event === 'SIGNED_OUT' || !session) {
+        setSession(null);
         setUserProfile(null);
-        setAllQuestions([]);
-        setCurrentPage(Page.Dashboard);
         setAppState('UNAUTHENTICATED');
+        setCurrentPage(Page.Dashboard); // Reset page on logout
+        return;
+      }
+
+      // Only fetch data on initial load or sign-in to avoid re-fetching on token refresh
+      if (event === 'INITIAL_SESSION' || event === 'SIGNED_IN') {
+        setSession(session);
+        try {
+          setAppState('FETCHING_PROFILE');
+          
+          // Fetch profile and related data
+          let { data: profileData, error: profileError } = await supabase!.from('profiles').select('*').eq('id', session.user.id).single();
+          if (profileError && profileError.code !== 'PGRST116') throw profileError;
+
+          if (!profileData) {
+            const newUserProfileData = {
+              name: session.user.user_metadata?.full_name || session.user.email?.split('@')[0] || 'New User',
+              avatarUrl: session.user.user_metadata?.avatar_url || `https://api.dicebear.com/8.x/initials/svg?seed=${session.user.email}`,
+              avgScore: 0, testsTaken: 0, timeSpent: '0m', streak: 0, freezes: 0, badges: [],
+              dailyGoalProgress: 0, dailyGoalTarget: DAILY_GOAL_TARGET, lastDailyChallengeDate: null, bookmarked_questions: [],
+            };
+            const { data: newProfile, error } = await supabase!.from('profiles').insert({ id: session.user.id, ...newUserProfileData }).select().single();
+            if (error) throw error;
+            profileData = newProfile;
+          }
+          
+          const { data: testHistoryData } = await supabase!.from('test_attempts').select('*').eq('user_id', session.user.id);
+          profileData.testHistory = (testHistoryData || []).map((a: any) => ({...a, userId: a.user_id, questionIds: a.question_ids, userAnswers: a.user_answers }));
+          profileData.bookmarkedQuestions = profileData.bookmarked_questions || [];
+          setUserProfile(profileData);
+
+          // Fetch questions
+          setAppState('FETCHING_QUESTIONS');
+          const { data: questionsData, error: questionsError } = await supabase!.from('questions').select('*');
+          if (questionsError) throw questionsError;
+
+          setAllQuestions(questionsData && questionsData.length > 0 ? questionsData : MOCK_QUESTIONS);
+          setAppState('READY');
+
+        } catch (error: any) {
+          console.error("Error during session initialization:", error);
+          setErrorMessage(`Could not load your data. Please try logging in again. [${error.message}]`);
+          setAppState('ERROR');
+        }
+      } else if (event === 'TOKEN_REFRESHED') {
+          // Just update the session object; no need to refetch everything
+          setSession(session);
       }
     });
 
-    return () => subscription.unsubscribe();
-  }, []);
-
-  useEffect(() => {
-    if (theme === 'dark') {
-      document.documentElement.classList.add('dark');
-    } else {
-      document.documentElement.classList.remove('dark');
-    }
-    localStorage.setItem('theme', theme);
-  }, [theme]);
-
-  useEffect(() => {
-    const fetchProfile = async () => {
-      if (appState !== 'FETCHING_PROFILE' || !session) return;
-      try {
-        const { data: { user } } = await supabase!.auth.getUser();
-        if (!user) throw new Error("User not found despite session.");
-
-        let { data: profileData, error: profileError } = await supabase!.from('profiles').select('*').eq('id', user.id).single();
-        if (profileError && profileError.code !== 'PGRST116') { // Ignore 'exact one row' error
-           throw profileError;
-        }
-
-        if (!profileData) {
-          const newUserProfileData = {
-            name: user.user_metadata?.full_name || user.email?.split('@')[0] || 'New User',
-            avatarUrl: user.user_metadata?.avatar_url || `https://api.dicebear.com/8.x/initials/svg?seed=${user.email}`,
-            avgScore: 0, testsTaken: 0, timeSpent: '0m', streak: 0, freezes: 0, badges: [],
-            dailyGoalProgress: 0, dailyGoalTarget: DAILY_GOAL_TARGET, lastDailyChallengeDate: null, bookmarked_questions: [],
-          };
-          const { data: newProfile, error } = await supabase!.from('profiles').insert({ id: user.id, ...newUserProfileData }).select().single();
-          if (error) throw error;
-          if (!newProfile) throw new Error("Profile creation failed: no data returned.");
-          profileData = newProfile;
-        }
-        
-        const { data: testHistoryData } = await supabase!.from('test_attempts').select('*').eq('user_id', user.id);
-        profileData.testHistory = (testHistoryData || []).map((a: any) => ({...a, userId: a.user_id, questionIds: a.question_ids, userAnswers: a.user_answers }));
-        profileData.bookmarkedQuestions = profileData.bookmarked_questions || [];
-
-        setUserProfile(profileData);
-        setAppState('FETCHING_QUESTIONS');
-      } catch (error: any) {
-        console.error("Error fetching profile:", error);
-        setErrorMessage(`Could not load your profile. Please try logging in again. [${error.message}]`);
-        setAppState('ERROR');
-      }
+    return () => {
+      subscription.unsubscribe();
     };
-    fetchProfile();
-  }, [appState, session]);
-  
-  useEffect(() => {
-    const fetchQuestions = async () => {
-        if (appState !== 'FETCHING_QUESTIONS') return;
-        try {
-            const { data, error } = await supabase!.from('questions').select('*');
-            if (error) throw error;
-            setAllQuestions(data && data.length > 0 ? data : MOCK_QUESTIONS);
-            setAppState('READY');
-        } catch (error: any) {
-            console.error("Error fetching questions, using mock data:", error);
-            setAllQuestions(MOCK_QUESTIONS);
-            // Non-critical failure, app can proceed with mock data.
-            setAppState('READY');
-        }
-    };
-    fetchQuestions();
-  }, [appState]);
+  }, []); // This effect runs only once on mount.
 
 
   const navigateTo = useCallback((page: Page) => {
