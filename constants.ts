@@ -120,6 +120,24 @@ export const STUDY_CARDS: TestCardData[] = [
     hoverColor: '',
     page: Page.HazardPerception,
   },
+  {
+    id: 'highway-code',
+    title: 'Highway Code',
+    description: 'Read and search the official UK Highway Code.',
+    icon: 'icon_lightbulb', // Using an existing icon, editable in Admin Panel
+    color: 'text-green-500',
+    hoverColor: '',
+    page: Page.HighwayCode,
+  },
+  {
+    id: 'case-studies',
+    title: 'Case Studies',
+    description: 'Practice with scenario-based question sets.',
+    icon: 'icon_clipboard', // Using an existing icon, editable in Admin Panel
+    color: 'text-cyan-500',
+    hoverColor: '',
+    page: Page.CaseStudySelection,
+  },
 ];
 
 export const HAZARD_PERCEPTION_PASS_MARK = 15; // Official test is 44/75. We'll use a proportional value.

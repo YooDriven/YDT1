@@ -29,8 +29,17 @@ const HazardPerceptionPage: React.FC<HazardPerceptionPageProps> = ({ navigateTo,
       if (error) {
         setError(error.message);
       } else if (data) {
+        // FIX: Map database snake_case columns to application camelCase properties
+        const mappedClips = data.map(clip => ({
+          id: clip.id,
+          description: clip.description,
+          duration: clip.duration,
+          videoUrl: clip.video_url,
+          hazardWindowStart: clip.hazard_window_start,
+          hazardWindowEnd: clip.hazard_window_end,
+        }));
         // Shuffle clips for variety
-        setClips(data.sort(() => 0.5 - Math.random()));
+        setClips(mappedClips.sort(() => 0.5 - Math.random()));
         setClipState('ready');
       }
       setLoading(false);
@@ -76,7 +85,7 @@ const HazardPerceptionPage: React.FC<HazardPerceptionPageProps> = ({ navigateTo,
   }, [clicks, currentClip, scores, currentClipIndex, onTestComplete, clips.length]);
 
   const calculateScore = () => {
-    if (clicks.length === 0 || clicks.length > 2) return 0;
+    if (!currentClip || clicks.length === 0 || clicks.length > 2) return 0;
 
     const clickProgress = clicks[0];
     const { hazardWindowStart, hazardWindowEnd } = currentClip;

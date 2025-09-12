@@ -24,7 +24,8 @@ export enum Page {
   Admin,
 }
 
-export type AdminTab = 'questions' | 'assets' | 'hazard' | 'road_signs';
+export type AdminSection = 'content' | 'appearance';
+export type ContentTab = 'questions' | 'hazard' | 'road_signs' | 'highway_code' | 'case_studies';
 
 
 export interface TestCardData {

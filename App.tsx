@@ -90,20 +90,25 @@ const AppError: React.FC<{ message: string; details?: string[] }> = ({ message, 
 
 // Timeout utility to prevent the app from getting stuck on loading
 const TIMEOUT_DURATION = 15000; // 15 seconds
-// FIX: Changed promise parameter from Promise<T> to PromiseLike<T>.
-// Supabase client methods return a PromiseLike object (PostgrestFilterBuilder),
-// and this change allows TypeScript to correctly infer the response type,
-// which includes 'data' and 'error' properties. This resolves multiple type errors.
-const withTimeout = <T,>(promise: PromiseLike<T>, ms: number, customError?: string): Promise<T> => {
+// FIX: The generic type inference for withTimeout was failing with Supabase's PromiseLike objects,
+// causing destructuring errors. The function signature has been updated to use `any` to work around this
+// issue, ensuring compilation while preserving the timeout functionality.
+const withTimeout = (promise: PromiseLike<any>, ms: number, customError?: string): Promise<any> => {
   return new Promise((resolve, reject) => {
     const timer = setTimeout(() => {
       reject(new Error(customError || 'Request timed out. Please check your network or database configuration.'));
     }, ms);
 
-    promise
-      .then(resolve)
-      .catch(reject)
-      .finally(() => clearTimeout(timer));
+    promise.then(
+      (value) => {
+        clearTimeout(timer);
+        resolve(value);
+      },
+      (error) => {
+        clearTimeout(timer);
+        reject(error);
+      }
+    );
   });
 };
 
@@ -187,7 +192,8 @@ const App: React.FC = () => {
             }
             
             const testHistoryPromise = supabase!.from('test_attempts').select('*').eq('user_id', session.user.id);
-            const { data: testHistoryData } = await withTimeout(testHistoryPromise, TIMEOUT_DURATION, 'Could not load your test history.');
+            const { data: testHistoryData, error: testHistoryError } = await withTimeout(testHistoryPromise, TIMEOUT_DURATION, 'Could not load your test history.');
+            if (testHistoryError) throw testHistoryError;
             profileData.testHistory = (testHistoryData || []).map((a: any) => ({...a, userId: a.user_id, questionIds: a.question_ids, userAnswers: a.user_answers }));
             profileData.bookmarkedQuestions = profileData.bookmarked_questions || [];
             setUserProfile(profileData);
