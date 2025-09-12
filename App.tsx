@@ -69,7 +69,7 @@ const AppError: React.FC<{ message: string; details?: string[] }> = ({ message, 
     <div className="max-w-2xl w-full bg-slate-800 border border-red-500/50 rounded-2xl p-8 shadow-2xl shadow-red-500/10">
       <div className="text-center">
         <h1 className="text-3xl font-bold text-red-400 mb-4">{message}</h1>
-        {details && details.length > 0 && (
+        {details && details.length > 0 ? (
           <>
             <p className="text-slate-400 mb-8">
               Please ensure the following environment variables are correctly set:
@@ -80,11 +80,32 @@ const AppError: React.FC<{ message: string; details?: string[] }> = ({ message, 
               ))}
             </div>
           </>
+        ) : (
+          <p className="text-slate-400">{message.includes('timeout') && 'This can happen if the database is unreachable or if Row Level Security (RLS) policies are missing or incorrect for a table.'}</p>
         )}
       </div>
     </div>
   </div>
 );
+
+// Timeout utility to prevent the app from getting stuck on loading
+const TIMEOUT_DURATION = 15000; // 15 seconds
+// FIX: Changed promise parameter from Promise<T> to PromiseLike<T>.
+// Supabase client methods return a PromiseLike object (PostgrestFilterBuilder),
+// and this change allows TypeScript to correctly infer the response type,
+// which includes 'data' and 'error' properties. This resolves multiple type errors.
+const withTimeout = <T,>(promise: PromiseLike<T>, ms: number, customError?: string): Promise<T> => {
+  return new Promise((resolve, reject) => {
+    const timer = setTimeout(() => {
+      reject(new Error(customError || 'Request timed out. Please check your network or database configuration.'));
+    }, ms);
+
+    promise
+      .then(resolve)
+      .catch(reject)
+      .finally(() => clearTimeout(timer));
+  });
+};
 
 
 const App: React.FC = () => {
@@ -113,7 +134,6 @@ const App: React.FC = () => {
   const [duelOpponent, setDuelOpponent] = useState<LeaderboardEntry | null>(null);
 
   useEffect(() => {
-    // Apply theme class to HTML element whenever theme state changes
     if (theme === 'dark') {
       document.documentElement.classList.add('dark');
     } else {
@@ -121,18 +141,6 @@ const App: React.FC = () => {
     }
     localStorage.setItem('theme', theme);
   }, [theme]);
-
-  const fetchAssets = useCallback(async () => {
-      setAppState('FETCHING_ASSETS');
-      const { data: assetsData, error: assetsError } = await supabase!.from('app_assets').select('asset_key, asset_value');
-      if (assetsError) throw assetsError;
-
-      const assetsMap = assetsData.reduce((acc: Record<string, string>, asset) => {
-        acc[asset.asset_key] = asset.asset_value;
-        return acc;
-      }, {});
-      setAppAssets(assetsMap);
-  }, []);
 
   // Main application lifecycle effect
   useEffect(() => {
@@ -148,74 +156,78 @@ const App: React.FC = () => {
     }
 
     setAppState('AUTH_CHECKING');
+    
+    // Unified data loading function with timeouts
+    const loadInitialData = async (session: Session) => {
+        try {
+            // Fetch assets
+            setAppState('FETCHING_ASSETS');
+            const assetsPromise = supabase!.from('app_assets').select('asset_key, asset_value');
+            const { data: assetsData, error: assetsError } = await withTimeout(assetsPromise, TIMEOUT_DURATION, 'Could not load visual assets. Please check the `app_assets` table and its RLS policies.');
+            if (assetsError) throw assetsError;
+            const assetsMap = assetsData.reduce((acc: Record<string, string>, asset) => {
+                acc[asset.asset_key] = asset.asset_value;
+                return acc;
+            }, {});
+            setAppAssets(assetsMap);
 
-    // 2. Auth Listener and Data Fetching Logic
-    const { data: { subscription } } = supabase!.auth.onAuthStateChange(async (event, session) => {
+            // Fetch profile
+            setAppState('FETCHING_PROFILE');
+            const profilePromise = supabase!.from('profiles').select('*').eq('id', session.user.id).single();
+            let { data: profileData, error: profileError } = await withTimeout(profilePromise, TIMEOUT_DURATION, 'Could not load your profile. Please check the `profiles` table and its RLS policies.');
+
+            if (profileError && profileError.code !== 'PGRST116') throw profileError;
+      
+            if (!profileData) {
+                const mockBadges: Badge[] = [{ name: '5-Day Streak', icon: 'badge_fire', color: 'text-orange-500' }, { name: 'Top 10 Finisher', icon: 'badge_trophy', color: 'text-yellow-500' }];
+                const newUserProfileData = { name: session.user.user_metadata?.full_name || session.user.email?.split('@')[0] || 'New User', avatarUrl: session.user.user_metadata?.avatar_url || `https://api.dicebear.com/8.x/initials/svg?seed=${session.user.email}`, avgScore: 0, testsTaken: 0, timeSpent: '0m', streak: 0, freezes: 0, badges: mockBadges, dailyGoalProgress: 0, dailyGoalTarget: DAILY_GOAL_TARGET, lastDailyChallengeDate: null, bookmarked_questions: [], role: 'user' };
+                const { data: newProfile, error } = await supabase!.from('profiles').insert({ id: session.user.id, ...newUserProfileData }).select().single();
+                if (error) throw error;
+                profileData = newProfile;
+            }
+            
+            const testHistoryPromise = supabase!.from('test_attempts').select('*').eq('user_id', session.user.id);
+            const { data: testHistoryData } = await withTimeout(testHistoryPromise, TIMEOUT_DURATION, 'Could not load your test history.');
+            profileData.testHistory = (testHistoryData || []).map((a: any) => ({...a, userId: a.user_id, questionIds: a.question_ids, userAnswers: a.user_answers }));
+            profileData.bookmarkedQuestions = profileData.bookmarked_questions || [];
+            setUserProfile(profileData);
+
+            // Fetch questions
+            setAppState('FETCHING_QUESTIONS');
+            const questionsPromise = supabase!.from('questions').select('*');
+            const { data: questionsData, error: questionsError } = await withTimeout(questionsPromise, TIMEOUT_DURATION, 'Could not load questions. Please check the `questions` table and its RLS policies.');
+            if (questionsError) throw questionsError;
+
+            setAllQuestions(questionsData && questionsData.length > 0 ? questionsData : MOCK_QUESTIONS);
+            setAppState('READY');
+        } catch (error: any) {
+            console.error("Error during data initialization:", error);
+            setErrorMessage(error.message || 'An unknown error occurred during startup.');
+            setAppState('ERROR');
+        }
+    };
+
+    // 2. Auth Listener
+    const { data: { subscription } } = supabase!.auth.onAuthStateChange((event, session) => {
       if (event === 'SIGNED_OUT' || !session) {
         setSession(null);
         setUserProfile(null);
         setAppState('UNAUTHENTICATED');
-        setCurrentPage(Page.Dashboard); // Reset page on logout
+        setCurrentPage(Page.Dashboard);
         return;
       }
-
-      // Only fetch data on initial load or sign-in to avoid re-fetching on token refresh
+      
+      setSession(session);
+      // Load data only once when the first valid session is detected.
       if (event === 'INITIAL_SESSION' || event === 'SIGNED_IN') {
-        setSession(session);
-        try {
-          await fetchAssets();
-          
-          setAppState('FETCHING_PROFILE');
-          
-          // Fetch profile and related data
-          let { data: profileData, error: profileError } = await supabase!.from('profiles').select('*').eq('id', session.user.id).single();
-          if (profileError && profileError.code !== 'PGRST116') throw profileError;
-          
-          if (!profileData) {
-            const mockBadges: Badge[] = [
-                { name: '5-Day Streak', icon: 'badge_fire', color: 'text-orange-500' },
-                { name: 'Top 10 Finisher', icon: 'badge_trophy', color: 'text-yellow-500' },
-            ];
-            const newUserProfileData = {
-              name: session.user.user_metadata?.full_name || session.user.email?.split('@')[0] || 'New User',
-              avatarUrl: session.user.user_metadata?.avatar_url || `https://api.dicebear.com/8.x/initials/svg?seed=${session.user.email}`,
-              avgScore: 0, testsTaken: 0, timeSpent: '0m', streak: 0, freezes: 0, badges: mockBadges,
-              dailyGoalProgress: 0, dailyGoalTarget: DAILY_GOAL_TARGET, lastDailyChallengeDate: null, bookmarked_questions: [],
-              role: 'user',
-            };
-            const { data: newProfile, error } = await supabase!.from('profiles').insert({ id: session.user.id, ...newUserProfileData }).select().single();
-            if (error) throw error;
-            profileData = newProfile;
-          }
-          
-          const { data: testHistoryData } = await supabase!.from('test_attempts').select('*').eq('user_id', session.user.id);
-          profileData.testHistory = (testHistoryData || []).map((a: any) => ({...a, userId: a.user_id, questionIds: a.question_ids, userAnswers: a.user_answers }));
-          profileData.bookmarkedQuestions = profileData.bookmarked_questions || [];
-          setUserProfile(profileData);
-
-          // Fetch questions
-          setAppState('FETCHING_QUESTIONS');
-          const { data: questionsData, error: questionsError } = await supabase!.from('questions').select('*');
-          if (questionsError) throw questionsError;
-
-          setAllQuestions(questionsData && questionsData.length > 0 ? questionsData : MOCK_QUESTIONS);
-          setAppState('READY');
-
-        } catch (error: any) {
-          console.error("Error during session initialization:", error);
-          setErrorMessage(`Could not load your data. Please try logging in again. [${error.message}]`);
-          setAppState('ERROR');
-        }
-      } else if (event === 'TOKEN_REFRESHED') {
-          // Just update the session object; no need to refetch everything
-          setSession(session);
+          loadInitialData(session);
       }
     });
 
     return () => {
       subscription.unsubscribe();
     };
-  }, [fetchAssets]); // This effect runs only once on mount.
+  }, []); // Empty dependency array ensures this runs only once.
 
 
   const navigateTo = useCallback((page: Page) => {
@@ -256,7 +268,6 @@ const App: React.FC = () => {
   const handleTestComplete = useCallback(async (score: number, questions: Question[], userAnswers: (number | null)[], topic?: string, testId?: string) => {
     if (!userProfile) return;
 
-    // 1. Create the new test attempt object
     const newAttempt: TestAttempt = {
         userId: userProfile.id,
         topic: topic || (testId === 'daily-challenge' ? 'Daily Challenge' : 'Mock Test'),
@@ -266,15 +277,11 @@ const App: React.FC = () => {
         userAnswers: userAnswers,
     };
 
-    // 2. Update the test history for calculation
     const updatedTestHistory = [...userProfile.testHistory, newAttempt];
-
-    // 3. Recalculate the average score
     const totalScoreSum = updatedTestHistory.reduce((sum, attempt) => sum + attempt.score, 0);
     const totalQuestionsSum = updatedTestHistory.reduce((sum, attempt) => sum + attempt.total, 0);
     const newAvgScore = totalQuestionsSum > 0 ? Math.round((totalScoreSum / totalQuestionsSum) * 100) : 0;
     
-    // 4. Save the new attempt to the database
     supabase!.from('test_attempts').insert({
         user_id: newAttempt.userId, topic: newAttempt.topic,
         score: newAttempt.score, total: newAttempt.total,
@@ -284,7 +291,6 @@ const App: React.FC = () => {
     const isDailyChallenge = testId === 'daily-challenge';
     const todayStr = new Date().toISOString().split('T')[0];
 
-    // 5. Update the user's profile in the database with the new average score
     supabase!.from('profiles').update({ 
         testsTaken: userProfile.testsTaken + 1,
         dailyGoalProgress: userProfile.dailyGoalProgress + score,
@@ -292,7 +298,6 @@ const App: React.FC = () => {
         avgScore: newAvgScore,
     }).eq('id', userProfile.id).then(({error}) => error && console.error("Error updating profile stats:", error));
     
-    // 6. Update the local user profile state
     setUserProfile(prev => prev ? { 
       ...prev,
       testsTaken: prev.testsTaken + 1,
@@ -338,6 +343,19 @@ const App: React.FC = () => {
     }
   };
 
+  const onAssetsUpdate = useCallback(async () => {
+    const { data, error } = await supabase!.from('app_assets').select('asset_key, asset_value');
+    if (error) {
+      console.error("Failed to refresh assets:", error);
+      return;
+    }
+    const assetsMap = data.reduce((acc: Record<string, string>, asset) => {
+        acc[asset.asset_key] = asset.asset_value;
+        return acc;
+    }, {});
+    setAppAssets(assetsMap);
+  }, []);
+
   const renderCurrentPage = () => {
     switch (currentPage) {
       case Page.Test:
@@ -375,7 +393,7 @@ const App: React.FC = () => {
       case Page.Settings:
         return <SettingsPage user={userProfile!} session={session} navigateTo={navigateTo} theme={theme} setTheme={setTheme} />;
       case Page.Admin:
-        return <AdminPage navigateTo={navigateTo} appAssets={appAssets} onAssetsUpdate={fetchAssets} />;
+        return <AdminPage navigateTo={navigateTo} appAssets={appAssets} onAssetsUpdate={onAssetsUpdate} />;
       case Page.Dashboard:
       default:
         return <Dashboard onCardClick={handleCardClick} userProfile={userProfile!} navigateTo={navigateTo} handleDuel={handleDuel} appAssets={appAssets} />;
@@ -386,7 +404,7 @@ const App: React.FC = () => {
     return <AppError message="Application Configuration Error" details={missingKeys} />;
   }
   if (appState === 'ERROR') {
-    return <AppError message={errorMessage || "An Unexpected Error Occurred"} />;
+    return <AppError message={errorMessage} />;
   }
   if (appState === 'UNAUTHENTICATED') {
     return <LoginPage appAssets={appAssets} />;
