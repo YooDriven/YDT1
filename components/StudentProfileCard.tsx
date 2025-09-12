@@ -1,7 +1,8 @@
 import React from 'react';
 import { LeaderboardEntry, Page, UserProfile } from '../types';
-import { FireIcon, SnowflakeIcon, TrophyIcon, BadgeIcon, ChartBarIcon, SwordsIcon } from './icons';
+import { TrophyIcon } from './icons';
 import PerformanceChart from './PerformanceChart';
+import DynamicIcon from './DynamicIcon';
 
 interface StudentProfileCardProps {
   user: UserProfile;
@@ -9,9 +10,10 @@ interface StudentProfileCardProps {
   nationalLeaderboard: LeaderboardEntry[];
   regionalLeaderboard: LeaderboardEntry[];
   handleDuel: (opponent: LeaderboardEntry) => void;
+  appAssets: Record<string, string>;
 }
 
-const StudentProfileCard: React.FC<StudentProfileCardProps> = ({ user, navigateTo, nationalLeaderboard, regionalLeaderboard, handleDuel }) => {
+const StudentProfileCard: React.FC<StudentProfileCardProps> = ({ user, navigateTo, nationalLeaderboard, regionalLeaderboard, handleDuel, appAssets }) => {
   const dailyGoalProgressPercent = Math.min((user.dailyGoalProgress / user.dailyGoalTarget) * 100, 100);
 
   const renderLeaderboard = (leaderboard: LeaderboardEntry[], title: string) => {
@@ -34,7 +36,7 @@ const StudentProfileCard: React.FC<StudentProfileCardProps> = ({ user, navigateT
               <span className="text-xs font-bold text-gray-900 dark:text-white mr-2">{player.score}%</span>
               {!player.isUser && (
                 <button onClick={() => handleDuel(player)} className="p-1 rounded-md bg-red-500/10 dark:bg-red-500/20 text-red-500 hover:bg-red-500/20 dark:hover:bg-red-500/30 transition-colors">
-                  <SwordsIcon className="h-4 w-4" />
+                  <DynamicIcon svgString={appAssets['icon_swords']} className="h-4 w-4" />
                 </button>
               )}
             </div>
@@ -82,7 +84,7 @@ const StudentProfileCard: React.FC<StudentProfileCardProps> = ({ user, navigateT
             <p className="text-xs text-gray-500 dark:text-gray-400 mt-1 leading-tight">Avg. Score</p>
             <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 w-72 p-4 bg-white dark:bg-slate-800 border border-gray-200 dark:border-slate-700 rounded-lg shadow-xl opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none group-hover:pointer-events-auto z-20">
               <h3 className="text-sm font-semibold text-gray-500 dark:text-gray-400 mb-2 flex items-center text-left">
-                  <ChartBarIcon className="h-5 w-5 mr-2" />
+                  <DynamicIcon svgString={appAssets['icon_chart_bar']} className="h-5 w-5 mr-2" />
                   Topic Performance
               </h3>
               <PerformanceChart attempts={user.testHistory} />
@@ -97,14 +99,14 @@ const StudentProfileCard: React.FC<StudentProfileCardProps> = ({ user, navigateT
 
         {/* Streak */}
         <div className="flex flex-col items-center justify-center text-center p-2 rounded-lg bg-gray-100 dark:bg-slate-700/50 aspect-square">
-            <FireIcon className="h-6 w-6 text-orange-400" />
+            <DynamicIcon svgString={appAssets['badge_fire']} className="h-6 w-6 text-orange-400" />
             <p className="text-xl font-bold text-gray-900 dark:text-white mt-1">{user.streak}</p>
             <p className="text-xs text-gray-500 dark:text-gray-400 leading-tight">Streak</p>
         </div>
 
         {/* Freezes */}
         <div className="flex flex-col items-center justify-center text-center p-2 rounded-lg bg-gray-100 dark:bg-slate-700/50 aspect-square">
-            <SnowflakeIcon className="h-6 w-6 text-sky-400" />
+            <DynamicIcon svgString={appAssets['badge_snowflake']} className="h-6 w-6 text-sky-400" />
             <p className="text-xl font-bold text-gray-900 dark:text-white mt-1">{user.freezes}</p>
             <p className="text-xs text-gray-500 dark:text-gray-400 leading-tight">Freezes</p>
         </div>
@@ -113,15 +115,14 @@ const StudentProfileCard: React.FC<StudentProfileCardProps> = ({ user, navigateT
       <div className="flex-grow space-y-4">          
           <div>
             <h3 className="text-sm font-semibold text-gray-500 dark:text-gray-400 mb-2 flex items-center">
-                <BadgeIcon className="h-5 w-5 mr-2" />
+                <DynamicIcon svgString={appAssets['badge_generic']} className="h-5 w-5 mr-2" />
                 Badges
             </h3>
             <div className="grid grid-cols-2 gap-2">
                 {user.badges.map((badge) => {
-                    const Icon = badge.icon;
                     return (
                         <div key={badge.name} className="flex items-center bg-gray-100 dark:bg-slate-700/50 p-1 rounded-md">
-                            <Icon className={`h-4 w-4 mr-1.5 ${badge.color}`} />
+                            <DynamicIcon svgString={appAssets[badge.icon]} className={`h-4 w-4 mr-1.5 ${badge.color}`} />
                             <span className="text-xs font-medium text-gray-600 dark:text-gray-300 leading-tight">{badge.name}</span>
                         </div>
                     );

@@ -21,13 +21,14 @@ export enum Page {
   CaseStudySelection,
   Profile,
   Settings,
+  Admin,
 }
 
 export interface TestCardData {
   id: string;
   title: string;
   description: string;
-  icon: FC<SVGProps<SVGSVGElement>>;
+  icon: string; // Changed from FC to string (asset key)
   color: string;
   hoverColor: string;
   duration?: string;
@@ -62,20 +63,13 @@ export interface LeaderboardEntry {
   avatarUrl: string;
 }
 
-export interface Hazard {
-  icon: string;
-  animationClass: string;
-  positionClass: string;
-}
-
 export interface HazardPerceptionClip {
   id: number;
   description: string;
-  duration: number; // in milliseconds
+  duration: number; // in seconds
+  videoUrl: string;
   hazardWindowStart: number; // percentage of duration
-  hazardWindowEnd: number; // percentage of duration
-  backgroundUrl: string;
-  hazard: Hazard;
+  hazardWindowEnd: number; // percentage of duration;
 }
 
 export interface ChatMessage {
@@ -85,7 +79,7 @@ export interface ChatMessage {
 
 export interface Badge {
   name: string;
-  icon: FC<SVGProps<SVGSVGElement>>;
+  icon: string; // Changed from FC to string (asset key)
   color: string;
 }
 

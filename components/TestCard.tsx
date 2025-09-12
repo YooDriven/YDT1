@@ -1,16 +1,18 @@
 import React from 'react';
 import type { TestCardData } from '../types';
 import { CheckCircleIcon } from './icons';
+import DynamicIcon from './DynamicIcon';
 
 interface TestCardProps {
   card: TestCardData;
   index: number;
   onClick: (card: TestCardData) => void;
   completed?: boolean;
+  appAssets: Record<string, string>;
 }
 
-const TestCard: React.FC<TestCardProps> = ({ card, index, onClick, completed }) => {
-  const { title, description, icon: Icon, color, duration, comingSoon } = card;
+const TestCard: React.FC<TestCardProps> = ({ card, index, onClick, completed, appAssets }) => {
+  const { title, description, icon: iconKey, color, duration, comingSoon } = card;
 
   return (
     <div
@@ -35,7 +37,7 @@ const TestCard: React.FC<TestCardProps> = ({ card, index, onClick, completed }) 
         )}
         <div className="flex flex-col h-full items-center">
           <div className="mb-4">
-            <Icon className={`h-10 w-10 ${color} transition-colors`} />
+            <DynamicIcon svgString={appAssets[iconKey]} className={`h-10 w-10 ${color} transition-colors`} />
           </div>
           <h3 className="text-xl font-bold leading-tight text-gray-900 dark:text-white">{title}</h3>
           <p className="text-gray-500 dark:text-gray-400 mt-2 flex-grow leading-relaxed">{description}</p>

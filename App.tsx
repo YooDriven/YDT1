@@ -1,8 +1,6 @@
-
-
 import React, { useState, useEffect, useCallback } from 'react';
 import { Session } from 'https://esm.sh/@supabase/supabase-js@2';
-import { Page, Question, TestCardData, UserProfile, Theme, LeaderboardEntry, TestAttempt } from './types';
+import { Page, Question, TestCardData, UserProfile, Theme, LeaderboardEntry, TestAttempt, Badge } from './types';
 import Dashboard from './components/Dashboard';
 import TestPage from './components/TestPage';
 import ResultsPage from './components/ResultsPage';
@@ -23,7 +21,8 @@ import Header from './components/Header';
 import LoginPage from './components/LoginPage';
 import ProfilePage from './components/ProfilePage';
 import SettingsPage from './components/SettingsPage';
-import { TOTAL_QUESTIONS, MOCK_HAZARD_CLIPS, DAILY_GOAL_TARGET, MOCK_QUESTIONS } from './constants';
+import AdminPage from './components/AdminPage';
+import { TOTAL_QUESTIONS, DAILY_GOAL_TARGET, MOCK_QUESTIONS, MAX_SCORE_PER_CLIP } from './constants';
 import { getDailyChallengeQuestions } from './utils';
 import { supabase, isSupabaseConfigured } from './lib/supabaseClient';
 import { isGeminiConfigured } from './lib/gemini';
@@ -35,6 +34,7 @@ type AppState =
   | 'AUTH_CHECKING'
   | 'UNAUTHENTICATED'
   | 'FETCHING_PROFILE'
+  | 'FETCHING_ASSETS'
   | 'FETCHING_QUESTIONS'
   | 'READY'
   | 'ERROR';
@@ -46,6 +46,7 @@ const AppLoadingIndicator: React.FC<{ state: AppState }> = ({ state }) => {
     AUTH_CHECKING: 'Securing connection...',
     UNAUTHENTICATED: 'Redirecting to login...',
     FETCHING_PROFILE: 'Loading your profile...',
+    FETCHING_ASSETS: 'Loading visual assets...',
     FETCHING_QUESTIONS: 'Preparing questions...',
     READY: 'Ready!',
     ERROR: 'An error occurred.'
@@ -99,6 +100,7 @@ const App: React.FC = () => {
   const [animationKey, setAnimationKey] = useState<number>(0);
   const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
   const [allQuestions, setAllQuestions] = useState<Question[]>([]);
+  const [appAssets, setAppAssets] = useState<Record<string, string>>({});
 
   const [testResult, setTestResult] = useState<{ score: number, total: number }>({ score: 0, total: 0 });
   const [reviewData, setReviewData] = useState<{ questions: Question[], userAnswers: (number | null)[] }>({ questions: [], userAnswers: [] });
@@ -119,6 +121,18 @@ const App: React.FC = () => {
     }
     localStorage.setItem('theme', theme);
   }, [theme]);
+
+  const fetchAssets = useCallback(async () => {
+      setAppState('FETCHING_ASSETS');
+      const { data: assetsData, error: assetsError } = await supabase!.from('app_assets').select('asset_key, asset_value');
+      if (assetsError) throw assetsError;
+
+      const assetsMap = assetsData.reduce((acc: Record<string, string>, asset) => {
+        acc[asset.asset_key] = asset.asset_value;
+        return acc;
+      }, {});
+      setAppAssets(assetsMap);
+  }, []);
 
   // Main application lifecycle effect
   useEffect(() => {
@@ -149,17 +163,23 @@ const App: React.FC = () => {
       if (event === 'INITIAL_SESSION' || event === 'SIGNED_IN') {
         setSession(session);
         try {
+          await fetchAssets();
+          
           setAppState('FETCHING_PROFILE');
           
           // Fetch profile and related data
           let { data: profileData, error: profileError } = await supabase!.from('profiles').select('*').eq('id', session.user.id).single();
           if (profileError && profileError.code !== 'PGRST116') throw profileError;
-
+          
           if (!profileData) {
+            const mockBadges: Badge[] = [
+                { name: '5-Day Streak', icon: 'badge_fire', color: 'text-orange-500' },
+                { name: 'Top 10 Finisher', icon: 'badge_trophy', color: 'text-yellow-500' },
+            ];
             const newUserProfileData = {
               name: session.user.user_metadata?.full_name || session.user.email?.split('@')[0] || 'New User',
               avatarUrl: session.user.user_metadata?.avatar_url || `https://api.dicebear.com/8.x/initials/svg?seed=${session.user.email}`,
-              avgScore: 0, testsTaken: 0, timeSpent: '0m', streak: 0, freezes: 0, badges: [],
+              avgScore: 0, testsTaken: 0, timeSpent: '0m', streak: 0, freezes: 0, badges: mockBadges,
               dailyGoalProgress: 0, dailyGoalTarget: DAILY_GOAL_TARGET, lastDailyChallengeDate: null, bookmarked_questions: [],
               role: 'user',
             };
@@ -195,7 +215,7 @@ const App: React.FC = () => {
     return () => {
       subscription.unsubscribe();
     };
-  }, []); // This effect runs only once on mount.
+  }, [fetchAssets]); // This effect runs only once on mount.
 
 
   const navigateTo = useCallback((page: Page) => {
@@ -293,9 +313,9 @@ const App: React.FC = () => {
     navigateTo(Page.BattleResults);
   }, [navigateTo]);
 
-  const handleHazardPerceptionComplete = useCallback((scores: number[]) => {
+  const handleHazardPerceptionComplete = useCallback((scores: number[], totalClips: number) => {
     const totalScore = scores.reduce((acc, s) => acc + s, 0);
-    const maxScore = MOCK_HAZARD_CLIPS.length * 5;
+    const maxScore = totalClips * MAX_SCORE_PER_CLIP;
     setHazardPerceptionResult({ scores, totalScore, maxScore });
     navigateTo(Page.HazardPerceptionResults);
   }, [navigateTo]);
@@ -339,7 +359,7 @@ const App: React.FC = () => {
       case Page.HazardPerceptionResults:
         return <HazardPerceptionResultsPage navigateTo={navigateTo} {...hazardPerceptionResult} />;
       case Page.StudyHub:
-        return <StudyHubPage navigateTo={navigateTo} onCardClick={handleCardClick} />;
+        return <StudyHubPage navigateTo={navigateTo} onCardClick={handleCardClick} appAssets={appAssets} />;
       case Page.TopicSelection:
         return <TopicSelectionPage navigateTo={navigateTo} onTopicSelect={handleTopicSelect} mode={currentMode} allQuestions={allQuestions} />;
       case Page.Study:
@@ -351,12 +371,14 @@ const App: React.FC = () => {
       case Page.CaseStudySelection:
         return <CaseStudySelectionPage navigateTo={navigateTo} />;
       case Page.Profile:
-        return <ProfilePage user={userProfile!} navigateTo={navigateTo} />;
+        return <ProfilePage user={userProfile!} navigateTo={navigateTo} appAssets={appAssets} />;
       case Page.Settings:
         return <SettingsPage user={userProfile!} session={session} navigateTo={navigateTo} theme={theme} setTheme={setTheme} />;
+      case Page.Admin:
+        return <AdminPage navigateTo={navigateTo} appAssets={appAssets} onAssetsUpdate={fetchAssets} />;
       case Page.Dashboard:
       default:
-        return <Dashboard onCardClick={handleCardClick} userProfile={userProfile!} navigateTo={navigateTo} handleDuel={handleDuel} />;
+        return <Dashboard onCardClick={handleCardClick} userProfile={userProfile!} navigateTo={navigateTo} handleDuel={handleDuel} appAssets={appAssets} />;
     }
   };
 
@@ -367,7 +389,7 @@ const App: React.FC = () => {
     return <AppError message={errorMessage || "An Unexpected Error Occurred"} />;
   }
   if (appState === 'UNAUTHENTICATED') {
-    return <LoginPage />;
+    return <LoginPage appAssets={appAssets} />;
   }
   if (appState !== 'READY' || !userProfile) {
     return <AppLoadingIndicator state={appState} />;
@@ -375,7 +397,7 @@ const App: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-[#f7f7f7] dark:bg-slate-900">
-      <Header user={userProfile} navigateTo={navigateTo} theme={theme} setTheme={setTheme} />
+      <Header user={userProfile} navigateTo={navigateTo} theme={theme} setTheme={setTheme} appAssets={appAssets} />
       <main key={animationKey} className="animate-fadeInUp">
         {renderCurrentPage()}
       </main>

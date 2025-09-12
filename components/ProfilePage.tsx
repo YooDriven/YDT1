@@ -1,10 +1,12 @@
 import React from 'react';
 import { Page, UserProfile } from '../types';
-import { ChevronLeftIcon, FireIcon, SnowflakeIcon, TrophyIcon, BadgeIcon, ChartBarIcon } from './icons';
+import { ChevronLeftIcon } from './icons';
+import DynamicIcon from './DynamicIcon';
 
 interface ProfilePageProps {
     user: UserProfile;
     navigateTo: (page: Page) => void;
+    appAssets: Record<string, string>;
 }
 
 const StatCard: React.FC<{ icon: React.ReactNode; label: string; value: string | number; }> = ({ icon, label, value }) => (
@@ -17,7 +19,7 @@ const StatCard: React.FC<{ icon: React.ReactNode; label: string; value: string |
     </div>
 );
 
-const ProfilePage: React.FC<ProfilePageProps> = ({ user, navigateTo }) => {
+const ProfilePage: React.FC<ProfilePageProps> = ({ user, navigateTo, appAssets }) => {
     return (
         <div className="p-4 sm:p-6 lg:p-8 max-w-4xl mx-auto">
             <header className="mb-8">
@@ -41,10 +43,10 @@ const ProfilePage: React.FC<ProfilePageProps> = ({ user, navigateTo }) => {
                 <section>
                     <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-4">Statistics</h2>
                     <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                        <StatCard icon={<ChartBarIcon className="h-8 w-8" />} label="Avg. Score" value={`${user.avgScore}%`} />
-                        <StatCard icon={<TrophyIcon className="h-8 w-8" />} label="Tests Taken" value={user.testsTaken} />
-                        <StatCard icon={<FireIcon className="h-8 w-8 text-orange-400" />} label="Streak" value={user.streak} />
-                        <StatCard icon={<SnowflakeIcon className="h-8 w-8 text-sky-400" />} label="Freezes" value={user.freezes} />
+                        <StatCard icon={<DynamicIcon svgString={appAssets['icon_chart_bar']} className="h-8 w-8" />} label="Avg. Score" value={`${user.avgScore}%`} />
+                        <StatCard icon={<DynamicIcon svgString={appAssets['badge_trophy']} className="h-8 w-8" />} label="Tests Taken" value={user.testsTaken} />
+                        <StatCard icon={<DynamicIcon svgString={appAssets['badge_fire']} className="h-8 w-8 text-orange-400" />} label="Streak" value={user.streak} />
+                        <StatCard icon={<DynamicIcon svgString={appAssets['badge_snowflake']} className="h-8 w-8 text-sky-400" />} label="Freezes" value={user.freezes} />
                     </div>
                 </section>
 
@@ -53,10 +55,9 @@ const ProfilePage: React.FC<ProfilePageProps> = ({ user, navigateTo }) => {
                     <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-4">Badges</h2>
                      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
                         {user.badges.map((badge, index) => {
-                            const Icon = badge.icon;
                             return (
                                 <div key={index} className="bg-gray-100 dark:bg-slate-700/50 p-4 rounded-lg text-center">
-                                    <Icon className={`h-10 w-10 mx-auto ${badge.color}`} />
+                                    <DynamicIcon svgString={appAssets[badge.icon]} className={`h-10 w-10 mx-auto ${badge.color}`} />
                                     <p className="mt-2 text-sm font-semibold text-gray-800 dark:text-gray-200">{badge.name}</p>
                                 </div>
                             );

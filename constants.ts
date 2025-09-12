@@ -1,5 +1,5 @@
 import React from 'react';
-import { Page, TestCardData, Question, HazardPerceptionClip, RoadSign, RoadSignCategory, TestAttempt, LeaderboardEntry } from './types';
+import { Page, TestCardData, Question, RoadSign, RoadSignCategory, TestAttempt, LeaderboardEntry } from './types';
 import { SwordsIcon, ClockIcon, ClipboardIcon, ConstructionIcon, TrophyIcon, FireIcon, SnowflakeIcon, CheckCircleIcon, StarIcon, BadgeIcon, RoadSignIcon, ChartBarIcon, CalendarIcon, LightbulbIcon, BookmarkIcon, BookOpenIcon, DocumentTextIcon } from './components/icons';
 
 // This file will now primarily hold static configuration data.
@@ -14,7 +14,7 @@ export const PRIMARY_TEST_CARDS: TestCardData[] = [
     id: 'daily-challenge',
     title: 'Daily Challenge',
     description: 'A new set of 10 questions every day. How will you score?',
-    icon: CalendarIcon,
+    icon: 'icon_calendar',
     color: 'text-sky-500',
     hoverColor: '',
     page: Page.Test,
@@ -24,7 +24,7 @@ export const PRIMARY_TEST_CARDS: TestCardData[] = [
     id: 'battle-ground',
     title: 'Battle Ground',
     description: 'Challenge other users in a real-time quiz.',
-    icon: SwordsIcon,
+    icon: 'icon_swords',
     color: 'text-red-500',
     hoverColor: '',
     page: Page.Matchmaking,
@@ -33,7 +33,7 @@ export const PRIMARY_TEST_CARDS: TestCardData[] = [
     id: 'timed-3',
     title: '3 Minute Challenge',
     description: 'Answer as many questions as you can in 3 minutes.',
-    icon: ClockIcon,
+    icon: 'icon_clock',
     color: 'text-blue-500',
     hoverColor: '',
     page: Page.Test,
@@ -44,7 +44,7 @@ export const PRIMARY_TEST_CARDS: TestCardData[] = [
     id: 'timed-6',
     title: '6 Minute Challenge',
     description: 'Answer as many questions as you can in 6 minutes.',
-    icon: ClockIcon,
+    icon: 'icon_clock',
     color: 'text-blue-500',
     hoverColor: '',
     page: Page.Test,
@@ -55,7 +55,7 @@ export const PRIMARY_TEST_CARDS: TestCardData[] = [
     id: 'timed-9',
     title: '9 Minute Challenge',
     description: 'Answer as many questions as you can in 9 minutes.',
-    icon: ClockIcon,
+    icon: 'icon_clock',
     color: 'text-blue-500',
     hoverColor: '',
     page: Page.Test,
@@ -66,7 +66,7 @@ export const PRIMARY_TEST_CARDS: TestCardData[] = [
     id: 'mock-test',
     title: 'Full Mock Test',
     description: 'Simulate the official DVSA theory test.',
-    icon: ClipboardIcon,
+    icon: 'icon_clipboard',
     color: 'text-gray-700',
     hoverColor: '',
     page: Page.Test,
@@ -78,7 +78,7 @@ export const STUDY_CARDS: TestCardData[] = [
     id: 'topic-tests',
     title: 'Topic Tests',
     description: 'Focus your practice on specific categories.',
-    icon: ClipboardIcon,
+    icon: 'icon_clipboard',
     color: 'text-indigo-500',
     hoverColor: '',
     page: Page.TopicSelection,
@@ -88,7 +88,7 @@ export const STUDY_CARDS: TestCardData[] = [
     id: 'study-mode',
     title: 'Study Mode',
     description: 'Review questions and explanations by topic, at your own pace.',
-    icon: LightbulbIcon,
+    icon: 'icon_lightbulb',
     color: 'text-purple-500',
     hoverColor: '',
     page: Page.TopicSelection,
@@ -98,7 +98,7 @@ export const STUDY_CARDS: TestCardData[] = [
     id: 'bookmarked-questions',
     title: 'Bookmarked Questions',
     description: 'Review questions you have saved for later.',
-    icon: BookmarkIcon,
+    icon: 'icon_bookmark',
     color: 'text-yellow-500',
     hoverColor: '',
     page: Page.BookmarkedQuestions,
@@ -107,7 +107,7 @@ export const STUDY_CARDS: TestCardData[] = [
     id: 'road-signs',
     title: 'Road Signs',
     description: 'Browse and learn all essential road signs.',
-    icon: RoadSignIcon,
+    icon: 'icon_road_sign',
     color: 'text-orange-500',
     hoverColor: '',
     page: Page.RoadSigns,
@@ -116,30 +116,14 @@ export const STUDY_CARDS: TestCardData[] = [
     id: 'hazard-perception',
     title: 'Hazard Perception',
     description: 'Interactive video-based hazard scenarios.',
-    icon: ConstructionIcon,
+    icon: 'icon_construction',
     color: 'text-teal-500',
     hoverColor: '',
     page: Page.HazardPerception,
   },
 ];
 
-export const MOCK_HAZARD_CLIPS: HazardPerceptionClip[] = [
-  { 
-    id: 1, 
-    description: "A ball rolls out from behind a parked car.", 
-    duration: 8000, 
-    hazardWindowStart: 50, 
-    hazardWindowEnd: 75,
-    backgroundUrl: 'https://picsum.photos/seed/road1/800/450',
-    hazard: {
-      icon: '⚽️',
-      animationClass: 'animate-roll-across',
-      positionClass: 'top-[65%] left-1/2 -translate-x-1/2'
-    }
-  },
-];
-
-export const HAZARD_PERCEPTION_PASS_MARK = 15; // out of max 20 for this mock
+export const HAZARD_PERCEPTION_PASS_MARK = 15; // Official test is 44/75. We'll use a proportional value.
 export const MAX_SCORE_PER_CLIP = 5;
 
 export const OPPONENT_CHAT_MESSAGES = {

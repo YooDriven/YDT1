@@ -1,8 +1,12 @@
 import React, { useState } from 'react';
 import { supabase } from '../lib/supabaseClient';
-import { YooDriveLogo } from './icons';
+import DynamicIcon from './DynamicIcon';
 
-const LoginPage: React.FC = () => {
+interface LoginPageProps {
+    appAssets: Record<string, string>;
+}
+
+const LoginPage: React.FC<LoginPageProps> = ({ appAssets }) => {
     const [loading, setLoading] = useState(false);
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
@@ -47,7 +51,9 @@ const LoginPage: React.FC = () => {
         <div className="min-h-screen bg-slate-50 dark:bg-slate-900 flex flex-col justify-center items-center p-4">
             <div className="max-w-md w-full bg-white dark:bg-slate-800/50 rounded-2xl shadow-lg border border-gray-200 dark:border-slate-700 p-8 space-y-6">
                 <div className="text-center">
-                    <YooDriveLogo className="h-10 w-auto mx-auto mb-4" />
+                    <div className="h-10 w-auto mx-auto mb-4 flex justify-center">
+                        <DynamicIcon svgString={appAssets['logo_yoodrive']} />
+                    </div>
                     <h2 className="text-2xl font-bold text-gray-900 dark:text-white">Get Started</h2>
                     <p className="mt-2 text-sm text-gray-600 dark:text-gray-400">Sign in or create an account to begin</p>
                 </div>

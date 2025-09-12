@@ -1,6 +1,7 @@
 import React from 'react';
 import { Page } from '../types';
-import { HAZARD_PERCEPTION_PASS_MARK, MOCK_HAZARD_CLIPS } from '../constants';
+// FIX: Removed unused import 'MOCK_HAZARD_CLIPS' as it is not exported from constants.
+import { HAZARD_PERCEPTION_PASS_MARK } from '../constants';
 
 interface HazardPerceptionResultsPageProps {
   navigateTo: (page: Page) => void;

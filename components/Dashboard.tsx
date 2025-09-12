@@ -10,9 +10,10 @@ interface DashboardProps {
   userProfile: UserProfile;
   navigateTo: (page: Page) => void;
   handleDuel: (opponent: LeaderboardEntry) => void;
+  appAssets: Record<string, string>;
 }
 
-const Dashboard: React.FC<DashboardProps> = ({ onCardClick, userProfile, navigateTo, handleDuel }) => {
+const Dashboard: React.FC<DashboardProps> = ({ onCardClick, userProfile, navigateTo, handleDuel, appAssets }) => {
   const [nationalLeaderboard, setNationalLeaderboard] = useState<LeaderboardEntry[]>([]);
   const [regionalLeaderboard, setRegionalLeaderboard] = useState<LeaderboardEntry[]>([]);
   const [loadingLeaderboards, setLoadingLeaderboards] = useState(true);
@@ -82,23 +83,24 @@ const Dashboard: React.FC<DashboardProps> = ({ onCardClick, userProfile, navigat
             nationalLeaderboard={nationalLeaderboard} 
             regionalLeaderboard={regionalLeaderboard}
             handleDuel={handleDuel}
+            appAssets={appAssets}
           />
         </div>
         <div className="lg:col-span-2 grid grid-cols-1 gap-6">
           {/* Row 1 */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
-            {dailyChallengeCard && <TestCard card={dailyChallengeCard} index={0} onClick={onCardClick} completed={isDailyChallengeCompleted} />}
-            {battleGroundCard && <TestCard card={battleGroundCard} index={1} onClick={onCardClick} />}
+            {dailyChallengeCard && <TestCard card={dailyChallengeCard} index={0} onClick={onCardClick} completed={isDailyChallengeCompleted} appAssets={appAssets} />}
+            {battleGroundCard && <TestCard card={battleGroundCard} index={1} onClick={onCardClick} appAssets={appAssets} />}
           </div>
           {/* Row 2 */}
           <div className="grid grid-cols-3 gap-6">
-            {timed3MinCard && <TestCard card={timed3MinCard} index={2} onClick={onCardClick} />}
-            {timed6MinCard && <TestCard card={timed6MinCard} index={3} onClick={onCardClick} />}
-            {timed9MinCard && <TestCard card={timed9MinCard} index={4} onClick={onCardClick} />}
+            {timed3MinCard && <TestCard card={timed3MinCard} index={2} onClick={onCardClick} appAssets={appAssets} />}
+            {timed6MinCard && <TestCard card={timed6MinCard} index={3} onClick={onCardClick} appAssets={appAssets} />}
+            {timed9MinCard && <TestCard card={timed9MinCard} index={4} onClick={onCardClick} appAssets={appAssets} />}
           </div>
           {/* Row 3 */}
           <div className="grid grid-cols-1 gap-6">
-            {mockTestCard && <TestCard card={mockTestCard} index={5} onClick={onCardClick} />}
+            {mockTestCard && <TestCard card={mockTestCard} index={5} onClick={onCardClick} appAssets={appAssets} />}
           </div>
         </div>
       </div>
