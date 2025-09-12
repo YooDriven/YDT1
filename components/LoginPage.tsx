@@ -13,16 +13,27 @@ const LoginPage: React.FC = () => {
         setLoading(true);
         setError(null);
         setMessage(null);
+
+        // --- Test sign-on logic ---
+        // If the user tries to sign in with email 'K', log them in as the test user.
+        // This is for development and testing purposes only.
+        let authEmail = email;
+        let authPassword = password;
+        if (!isSignUp && email.toLowerCase() === 'k') {
+            authEmail = 'test@drivetheory.pro';
+            authPassword = 'password123';
+        }
+        // --- End of test sign-on logic ---
         
         const authMethod = isSignUp 
             ? supabase!.auth.signUp 
             : supabase!.auth.signInWithPassword;
             
-        const { error } = await authMethod({ email, password });
+        const { error } = await authMethod({ email: authEmail, password: authPassword });
 
         if (error) {
             setError(error.message);
-        } else if (isSignUp) {
+        } else if (isSignUp && authEmail === email) { // Only show signup message for actual signups
             setMessage('Check your email for the confirmation link!');
         }
         // On successful login, the onAuthStateChange in App.tsx will take over.
