@@ -19,6 +19,8 @@ export enum Page {
   BookmarkedQuestions,
   HighwayCode,
   CaseStudySelection,
+  Profile,
+  Settings,
 }
 
 export interface TestCardData {

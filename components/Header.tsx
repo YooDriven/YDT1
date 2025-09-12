@@ -25,6 +25,11 @@ const Header: React.FC<HeaderProps> = ({ user, navigateTo, theme, setTheme }) =>
         return () => document.removeEventListener('mousedown', handleClickOutside);
     }, []);
 
+    const handleNavigation = (page: Page) => {
+        navigateTo(page);
+        setIsMenuOpen(false);
+    };
+
     const handleLogout = async () => {
         setIsMenuOpen(false);
         await supabase!.auth.signOut();
@@ -55,10 +60,10 @@ const Header: React.FC<HeaderProps> = ({ user, navigateTo, theme, setTheme }) =>
                             <div className="absolute top-full right-0 mt-2 w-48 bg-white dark:bg-slate-800 rounded-md shadow-lg border border-gray-200 dark:border-slate-700 z-20">
                                 <ul className="py-1">
                                     <li>
-                                        <button className="w-full text-left px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-slate-700">My Profile</button>
+                                        <button onClick={() => handleNavigation(Page.Profile)} className="w-full text-left px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-slate-700">My Profile</button>
                                     </li>
                                     <li>
-                                        <button className="w-full text-left px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-slate-700">Settings</button>
+                                        <button onClick={() => handleNavigation(Page.Settings)} className="w-full text-left px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-slate-700">Settings</button>
                                     </li>
                                     <li>
                                         <button onClick={handleLogout} className="w-full text-left px-4 py-2 text-sm text-red-600 dark:text-red-400 hover:bg-gray-100 dark:hover:bg-slate-700">Logout</button>

@@ -19,6 +19,8 @@ import HighwayCodePage from './components/HighwayCodePage';
 import CaseStudySelectionPage from './components/CaseStudySelectionPage';
 import Header from './components/Header';
 import LoginPage from './components/LoginPage';
+import ProfilePage from './components/ProfilePage';
+import SettingsPage from './components/SettingsPage';
 import { TOTAL_QUESTIONS, MOCK_HAZARD_CLIPS, DAILY_GOAL_TARGET, MOCK_QUESTIONS } from './constants';
 import { getDailyChallengeQuestions } from './utils';
 import { supabase, isSupabaseConfigured } from './lib/supabaseClient';
@@ -172,7 +174,7 @@ const App: React.FC = () => {
           const newUserProfileData = {
             name: user.user_metadata?.full_name || user.email?.split('@')[0] || 'New User',
             avatarUrl: user.user_metadata?.avatar_url || `https://api.dicebear.com/8.x/initials/svg?seed=${user.email}`,
-            avgScore: 0, testsTaken: 0, timeSpent: '0m', streak: 0, freezes: 0, badges: [], testHistory: [],
+            avgScore: 0, testsTaken: 0, timeSpent: '0m', streak: 0, freezes: 0, badges: [],
             dailyGoalProgress: 0, dailyGoalTarget: DAILY_GOAL_TARGET, lastDailyChallengeDate: null, bookmarked_questions: [],
           };
           const { data: newProfile, error } = await supabase!.from('profiles').insert({ id: user.id, ...newUserProfileData }).select().single();
@@ -252,26 +254,50 @@ const App: React.FC = () => {
   const handleTestComplete = useCallback(async (score: number, questions: Question[], userAnswers: (number | null)[], topic?: string, testId?: string) => {
     if (!userProfile) return;
 
-    const isDailyChallenge = testId === 'daily-challenge';
-    const todayStr = new Date().toISOString().split('T')[0];
+    // 1. Create the new test attempt object
+    const newAttempt: TestAttempt = {
+        userId: userProfile.id,
+        topic: topic || (testId === 'daily-challenge' ? 'Daily Challenge' : 'Mock Test'),
+        score: score,
+        total: questions.length,
+        questionIds: questions.map(q => q.id),
+        userAnswers: userAnswers,
+    };
+
+    // 2. Update the test history for calculation
+    const updatedTestHistory = [...userProfile.testHistory, newAttempt];
+
+    // 3. Recalculate the average score
+    const totalScoreSum = updatedTestHistory.reduce((sum, attempt) => sum + attempt.score, 0);
+    const totalQuestionsSum = updatedTestHistory.reduce((sum, attempt) => sum + attempt.total, 0);
+    const newAvgScore = totalQuestionsSum > 0 ? Math.round((totalScoreSum / totalQuestionsSum) * 100) : 0;
     
+    // 4. Save the new attempt to the database
     supabase!.from('test_attempts').insert({
-        user_id: userProfile.id, topic: topic || (testId === 'daily-challenge' ? 'Daily Challenge' : 'Mock Test'),
-        score: score, total: questions.length, question_ids: questions.map(q => q.id), user_answers: userAnswers,
+        user_id: newAttempt.userId, topic: newAttempt.topic,
+        score: newAttempt.score, total: newAttempt.total,
+        question_ids: newAttempt.questionIds, user_answers: newAttempt.userAnswers,
     }).then(({error}) => error && console.error('Error saving test attempt:', error));
     
+    const isDailyChallenge = testId === 'daily-challenge';
+    const todayStr = new Date().toISOString().split('T')[0];
+
+    // 5. Update the user's profile in the database with the new average score
     supabase!.from('profiles').update({ 
-        testsTaken: userProfile.testsTaken + 1, dailyGoalProgress: userProfile.dailyGoalProgress + score,
+        testsTaken: userProfile.testsTaken + 1,
+        dailyGoalProgress: userProfile.dailyGoalProgress + score,
         lastDailyChallengeDate: isDailyChallenge ? todayStr : userProfile.lastDailyChallengeDate,
+        avgScore: newAvgScore,
     }).eq('id', userProfile.id).then(({error}) => error && console.error("Error updating profile stats:", error));
     
-    const newAttempt: TestAttempt = {
-      userId: userProfile.id, topic: topic || (testId === 'daily-challenge' ? 'Daily Challenge' : 'Mock Test'), score: score,
-      total: questions.length, questionIds: questions.map(q => q.id), userAnswers: userAnswers,
-    };
-    
-    setUserProfile(prev => prev ? { ...prev, testsTaken: prev.testsTaken + 1, dailyGoalProgress: prev.dailyGoalProgress + score,
-        lastDailyChallengeDate: isDailyChallenge ? todayStr : prev.lastDailyChallengeDate, testHistory: [...prev.testHistory, newAttempt],
+    // 6. Update the local user profile state
+    setUserProfile(prev => prev ? { 
+      ...prev,
+      testsTaken: prev.testsTaken + 1,
+      dailyGoalProgress: prev.dailyGoalProgress + score,
+      lastDailyChallengeDate: isDailyChallenge ? todayStr : prev.lastDailyChallengeDate,
+      testHistory: updatedTestHistory,
+      avgScore: newAvgScore,
     } : null);
     
     setTestResult({ score, total: questions.length });
@@ -342,6 +368,11 @@ const App: React.FC = () => {
         return <HighwayCodePage navigateTo={navigateTo} />;
       case Page.CaseStudySelection:
         return <CaseStudySelectionPage navigateTo={navigateTo} />;
+      case Page.Profile:
+        return <ProfilePage user={userProfile!} navigateTo={navigateTo} />;
+      case Page.Settings:
+        // FIX: Pass session object to SettingsPage to avoid making an async call in render.
+        return <SettingsPage user={userProfile!} session={session} navigateTo={navigateTo} theme={theme} setTheme={setTheme} />;
       case Page.Dashboard:
       default:
         return <Dashboard onCardClick={handleCardClick} userProfile={userProfile!} navigateTo={navigateTo} handleDuel={handleDuel} />;
