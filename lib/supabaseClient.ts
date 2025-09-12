@@ -1,13 +1,15 @@
 import { createClient } from '@supabase/supabase-js';
 
-// These variables should be set in your Vercel project settings.
-const supabaseUrl = process.env.SUPABASE_URL;
-const supabaseAnonKey = process.env.SUPABASE_ANON_KEY;
+// Vite exposes environment variables on the `import.meta.env` object.
+// Only variables prefixed with VITE_ are exposed to your client-side code.
+// FIX: Cast import.meta to any to access Vite environment variables without TypeScript errors.
+const supabaseUrl = (import.meta as any).env.VITE_SUPABASE_URL;
+const supabaseAnonKey = (import.meta as any).env.VITE_SUPABASE_ANON_KEY;
 
-if (!supabaseUrl || !supabaseAnonKey) {
-  throw new Error('Supabase URL and anon key are required. Please set them in your environment variables.');
-}
+export const isSupabaseConfigured = !!(supabaseUrl && supabaseAnonKey);
 
-// The generic type argument '<Database>' will be used for generated types
-// For now, we can omit it or use 'any'.
-export const supabase = createClient(supabaseUrl, supabaseAnonKey);
+// We export the client, and the App will handle the case where it's not configured.
+// Note: This will be null if the environment variables are not set.
+export const supabase = isSupabaseConfigured
+  ? createClient(supabaseUrl, supabaseAnonKey)
+  : null;

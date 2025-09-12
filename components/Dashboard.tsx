@@ -23,7 +23,7 @@ const Dashboard: React.FC<DashboardProps> = ({ onCardClick, userProfile, navigat
       
       // For demonstration, we'll fetch the top 10 nationally.
       // A real app might fetch based on user's region or rank.
-      const { data, error } = await supabase
+      const { data, error } = await supabase!
         .from('profiles')
         .select('id, name, avgScore, avatarUrl')
         .order('avgScore', { ascending: false })

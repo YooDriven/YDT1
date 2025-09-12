@@ -19,7 +19,35 @@ import CaseStudySelectionPage from './components/CaseStudySelectionPage';
 import Header from './components/Header';
 import { TOTAL_QUESTIONS, MOCK_HAZARD_CLIPS } from './constants';
 import { getDailyChallengeQuestions } from './utils';
-import { supabase } from './lib/supabaseClient';
+import { supabase, isSupabaseConfigured } from './lib/supabaseClient';
+
+const ConfigurationError = () => (
+  <div className="min-h-screen bg-slate-900 flex items-center justify-center p-4 text-gray-300">
+    <div className="max-w-2xl w-full bg-slate-800 border border-red-500/50 rounded-2xl p-8 shadow-2xl shadow-red-500/10">
+      <div className="text-center">
+        <h1 className="text-3xl font-bold text-red-400 mb-4">Application Configuration Error</h1>
+        <p className="text-lg text-slate-400 mb-6">
+          The application is missing essential configuration details required to connect to the backend service (Supabase).
+        </p>
+        <p className="text-slate-400 mb-8">
+          Please ensure that the <code className="bg-slate-700 text-amber-400 font-mono p-1 rounded">VITE_SUPABASE_URL</code> and <code className="bg-slate-700 text-amber-400 font-mono p-1 rounded">VITE_SUPABASE_ANON_KEY</code> environment variables are correctly set in your project's secrets or configuration settings.
+        </p>
+      </div>
+      <div className="bg-slate-900/50 p-6 rounded-lg border border-slate-700">
+        <h2 className="text-xl font-semibold text-sky-400 mb-4">Action Required:</h2>
+        <ol className="list-decimal list-inside space-y-2 text-slate-400">
+          <li>Locate your project's environment variable or secrets management section.</li>
+          <li>Add the two required secrets: <code className="bg-slate-700 text-amber-400 font-mono p-1 rounded">'VITE_SUPABASE_URL'</code> and <code className="bg-slate-700 text-amber-400 font-mono p-1 rounded">'VITE_SUPABASE_ANON_KEY'</code>.</li>
+          <li>Provide the correct values obtained from your Supabase project dashboard.</li>
+          <li>Redeploy or restart the application.</li>
+        </ol>
+      </div>
+      <p className="text-center mt-8 text-sm text-slate-500">
+        The application cannot start until these values are provided.
+      </p>
+    </div>
+  </div>
+);
 
 const App: React.FC = () => {
   const [theme, setTheme] = useState<Theme>(
@@ -41,6 +69,10 @@ const App: React.FC = () => {
   const [currentMode, setCurrentMode] = useState<'test' | 'study'>('test');
   const [duelOpponent, setDuelOpponent] = useState<LeaderboardEntry | null>(null);
 
+  if (!isSupabaseConfigured) {
+    return <ConfigurationError />;
+  }
+
   useEffect(() => {
     if (theme === 'dark') {
       document.documentElement.classList.add('dark');
@@ -54,7 +86,7 @@ const App: React.FC = () => {
     const fetchData = async () => {
       setLoading(true);
       // For demo purposes, we fetch a hardcoded user profile. In a real app, this would be the logged-in user.
-      const { data: profileData, error: profileError } = await supabase
+      const { data: profileData, error: profileError } = await supabase!
         .from('profiles')
         .select('*')
         .eq('name', 'Alan') // Assuming a user named 'Alan' exists
@@ -63,7 +95,7 @@ const App: React.FC = () => {
       if (profileError) console.error('Error fetching profile:', profileError);
       else setUserProfile(profileData);
 
-      const { data: questionsData, error: questionsError } = await supabase
+      const { data: questionsData, error: questionsError } = await supabase!
         .from('questions')
         .select('*');
 
@@ -124,7 +156,7 @@ const App: React.FC = () => {
     }) : null);
     
     // Persist test attempt to Supabase
-    const { error } = await supabase.from('test_attempts').insert({
+    const { error } = await supabase!.from('test_attempts').insert({
         user_id: userProfile.id,
         topic: topic || (testId === 'daily-challenge' ? 'Daily Challenge' : 'Mock Test'),
         score: score,
