@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useCallback } from 'react';
 import { Session } from 'https://esm.sh/@supabase/supabase-js@2';
 import { Page, Question, TestCardData, UserProfile, Theme, LeaderboardEntry, TestAttempt } from './types';
@@ -30,7 +31,6 @@ import { isGeminiConfigured } from './lib/gemini';
 type AppState =
   | 'CONFIG_CHECKING'
   | 'CONFIG_ERROR'
-  | 'INITIALIZING'
   | 'AUTH_CHECKING'
   | 'UNAUTHENTICATED'
   | 'FETCHING_PROFILE'
@@ -39,10 +39,9 @@ type AppState =
   | 'ERROR';
 
 const AppLoadingIndicator: React.FC<{ state: AppState }> = ({ state }) => {
-  const messages: Record<AppState, string> = {
+  const messages: Record<string, string> = {
     CONFIG_CHECKING: 'Verifying configuration...',
     CONFIG_ERROR: 'Configuration error.',
-    INITIALIZING: 'Initializing application...',
     AUTH_CHECKING: 'Securing connection...',
     UNAUTHENTICATED: 'Redirecting to login...',
     FETCHING_PROFILE: 'Loading your profile...',
@@ -111,6 +110,9 @@ const App: React.FC = () => {
   const [duelOpponent, setDuelOpponent] = useState<LeaderboardEntry | null>(null);
 
   useEffect(() => {
+    // This single effect handles the entire app initialization and auth lifecycle.
+    // It runs only once on component mount due to the empty dependency array.
+
     // 1. Configuration Check
     const keys: string[] = [];
     if (!isSupabaseConfigured) keys.push('VITE_SUPABASE_URL', 'VITE_SUPABASE_ANON_KEY');
@@ -119,9 +121,26 @@ const App: React.FC = () => {
     if (keys.length > 0) {
       setMissingKeys(keys);
       setAppState('CONFIG_ERROR');
-    } else {
-      setAppState('INITIALIZING');
+      return;
     }
+
+    // 2. Auth State Subscription
+    setAppState('AUTH_CHECKING');
+    const { data: { subscription } } = supabase!.auth.onAuthStateChange((_event, session) => {
+      setSession(session);
+      if (session) {
+        // Handles both initial session and subsequent sign-ins
+        setAppState('FETCHING_PROFILE');
+      } else {
+        // Handles no initial session and sign-outs
+        setUserProfile(null);
+        setAllQuestions([]);
+        setCurrentPage(Page.Dashboard);
+        setAppState('UNAUTHENTICATED');
+      }
+    });
+
+    return () => subscription.unsubscribe();
   }, []);
 
   useEffect(() => {
@@ -132,31 +151,6 @@ const App: React.FC = () => {
     }
     localStorage.setItem('theme', theme);
   }, [theme]);
-
-  useEffect(() => {
-    if (appState !== 'INITIALIZING') return;
-    
-    // 2. Auth State Subscription
-    setAppState('AUTH_CHECKING');
-    supabase!.auth.getSession().then(({ data: { session } }) => {
-      setSession(session);
-      setAppState(session ? 'FETCHING_PROFILE' : 'UNAUTHENTICATED');
-    });
-
-    const { data: { subscription } } = supabase!.auth.onAuthStateChange((_event, session) => {
-      setSession(session);
-      if (_event === 'SIGNED_OUT') {
-        setUserProfile(null);
-        setAllQuestions([]);
-        setCurrentPage(Page.Dashboard);
-        setAppState('UNAUTHENTICATED');
-      } else if (_event === 'SIGNED_IN') {
-        setAppState('FETCHING_PROFILE');
-      }
-    });
-
-    return () => subscription.unsubscribe();
-  }, [appState]);
 
   useEffect(() => {
     const fetchProfile = async () => {
@@ -179,6 +173,7 @@ const App: React.FC = () => {
           };
           const { data: newProfile, error } = await supabase!.from('profiles').insert({ id: user.id, ...newUserProfileData }).select().single();
           if (error) throw error;
+          if (!newProfile) throw new Error("Profile creation failed: no data returned.");
           profileData = newProfile;
         }
         
@@ -371,7 +366,6 @@ const App: React.FC = () => {
       case Page.Profile:
         return <ProfilePage user={userProfile!} navigateTo={navigateTo} />;
       case Page.Settings:
-        // FIX: Pass session object to SettingsPage to avoid making an async call in render.
         return <SettingsPage user={userProfile!} session={session} navigateTo={navigateTo} theme={theme} setTheme={setTheme} />;
       case Page.Dashboard:
       default:
