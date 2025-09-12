@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { Session } from '@supabase/supabase-js';
+import { Session } from 'https://esm.sh/@supabase/supabase-js@2';
 import { Page, Question, TestCardData, UserProfile, Theme, LeaderboardEntry, TestAttempt } from './types';
 import Dashboard from './components/Dashboard';
 import TestPage from './components/TestPage';

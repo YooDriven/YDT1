@@ -2,7 +2,7 @@ import React from 'react';
 import { Page, Theme, UserProfile } from '../types';
 import { ChevronLeftIcon, SunIcon, MoonIcon } from './icons';
 import { supabase } from '../lib/supabaseClient';
-import { Session } from '@supabase/supabase-js';
+import { Session } from 'https://esm.sh/@supabase/supabase-js@2';
 
 interface SettingsPageProps {
     user: UserProfile;

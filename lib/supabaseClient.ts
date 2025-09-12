@@ -1,4 +1,4 @@
-import { createClient } from '@supabase/supabase-js';
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 
 // Vite exposes environment variables on the `import.meta.env` object.
 // Only variables prefixed with VITE_ are exposed to your client-side code.

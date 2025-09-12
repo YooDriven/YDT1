@@ -1,4 +1,4 @@
-import { GoogleGenAI, Type } from "@google/genai";
+import { GoogleGenAI, Type } from "https://esm.sh/@google/genai";
 import { Question } from '../types';
 
 const geminiApiKey = (import.meta as any).env.VITE_GEMINI_API_KEY;
