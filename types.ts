@@ -113,6 +113,7 @@ export interface UserProfile {
   dailyGoalTarget: number;
   lastDailyChallengeDate: string | null;
   bookmarkedQuestions: string[];
+  role?: 'user' | 'admin';
 }
 
 export interface RoadSign {

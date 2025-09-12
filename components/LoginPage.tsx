@@ -15,12 +15,15 @@ const LoginPage: React.FC = () => {
         setMessage(null);
 
         // --- Test sign-on logic ---
-        // If the user tries to sign in with email 'K', log them in as the test user.
-        // This is for development and testing purposes only.
         let authEmail = email;
         let authPassword = password;
         if (!isSignUp && email.toLowerCase() === 'k') {
+            // Standard test user
             authEmail = 'test@drivetheory.pro';
+            authPassword = 'password123';
+        } else if (!isSignUp && email.toLowerCase() === 'admin') {
+            // Admin test user
+            authEmail = 'admin@drivetheory.pro';
             authPassword = 'password123';
         }
         // --- End of test sign-on logic ---

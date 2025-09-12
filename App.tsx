@@ -161,6 +161,7 @@ const App: React.FC = () => {
               avatarUrl: session.user.user_metadata?.avatar_url || `https://api.dicebear.com/8.x/initials/svg?seed=${session.user.email}`,
               avgScore: 0, testsTaken: 0, timeSpent: '0m', streak: 0, freezes: 0, badges: [],
               dailyGoalProgress: 0, dailyGoalTarget: DAILY_GOAL_TARGET, lastDailyChallengeDate: null, bookmarked_questions: [],
+              role: 'user',
             };
             const { data: newProfile, error } = await supabase!.from('profiles').insert({ id: session.user.id, ...newUserProfileData }).select().single();
             if (error) throw error;
