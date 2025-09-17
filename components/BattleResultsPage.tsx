@@ -3,6 +3,7 @@ import { Page } from '../types';
 
 interface BattleResultsPageProps {
   navigateTo: (page: Page) => void;
+  onRematch: () => void;
   playerScore: number;
   opponentScore: number;
   total: number;
@@ -18,7 +19,7 @@ const Button: React.FC<{ children: React.ReactNode; onClick: () => void; classNa
     </button>
 );
 
-const BattleResultsPage: React.FC<BattleResultsPageProps> = ({ navigateTo, playerScore, opponentScore, total, opponentName }) => {
+const BattleResultsPage: React.FC<BattleResultsPageProps> = ({ navigateTo, onRematch, playerScore, opponentScore, total, opponentName }) => {
     const getResult = () => {
         if (playerScore > opponentScore) return { text: "You Win!", color: "text-teal-500 dark:text-teal-400" };
         if (playerScore < opponentScore) return { text: "You Lose", color: "text-red-500" };
@@ -56,11 +57,14 @@ const BattleResultsPage: React.FC<BattleResultsPageProps> = ({ navigateTo, playe
         </p>
         
         <div className="mt-10 flex flex-col sm:flex-row justify-center gap-4">
-            <Button onClick={() => navigateTo(Page.Matchmaking)} className="bg-gray-600 hover:bg-gray-700 dark:bg-slate-700 dark:hover:bg-slate-600 text-white">
-                Play Again
+             <Button onClick={onRematch} className="bg-gray-600 hover:bg-gray-700 dark:bg-slate-700 dark:hover:bg-slate-600 text-white">
+                Rematch
+            </Button>
+            <Button onClick={() => navigateTo(Page.Matchmaking)} className="bg-gray-200 hover:bg-gray-300 dark:bg-slate-600 dark:hover:bg-slate-500 text-gray-800 dark:text-gray-200">
+                New Opponent
             </Button>
             <Button onClick={() => navigateTo(Page.Dashboard)} className="bg-teal-500 hover:bg-teal-600 text-white">
-                Back to Dashboard
+                Dashboard
             </Button>
         </div>
       </div>

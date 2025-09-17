@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Page, Theme, UserProfile } from '../types';
 import { ChevronLeftIcon, SunIcon, MoonIcon } from './icons';
 import { supabase } from '../lib/supabaseClient';
@@ -10,9 +10,48 @@ interface SettingsPageProps {
     session: Session | null;
     theme: Theme;
     setTheme: (theme: Theme) => void;
+    onProfileUpdate: (name: string) => void;
 }
 
-const SettingsPage: React.FC<SettingsPageProps> = ({ user, navigateTo, session, theme, setTheme }) => {
+const SettingsPage: React.FC<SettingsPageProps> = ({ user, navigateTo, session, theme, setTheme, onProfileUpdate }) => {
+    const [name, setName] = useState(user.name);
+    const [currentPassword, setCurrentPassword] = useState('');
+    const [newPassword, setNewPassword] = useState('');
+    const [message, setMessage] = useState<{ text: string, type: 'success' | 'error'} | null>(null);
+    const [isSaving, setIsSaving] =useState(false);
+
+    const handleProfileUpdate = async (e: React.FormEvent) => {
+        e.preventDefault();
+        setIsSaving(true);
+        setMessage(null);
+        const { error } = await supabase!.from('profiles').update({ name }).eq('id', user.id);
+        if (error) {
+            setMessage({ text: `Error updating name: ${error.message}`, type: 'error' });
+        } else {
+            setMessage({ text: 'Display name updated successfully!', type: 'success' });
+            onProfileUpdate(name);
+        }
+        setIsSaving(false);
+    };
+
+    const handlePasswordChange = async (e: React.FormEvent) => {
+        e.preventDefault();
+        setIsSaving(true);
+        setMessage(null);
+
+        // Supabase requires re-authentication for password changes which is complex.
+        // A simpler method is to use the dedicated password update function.
+        const { error } = await supabase!.auth.updateUser({ password: newPassword });
+
+        if (error) {
+            setMessage({ text: `Error changing password: ${error.message}`, type: 'error' });
+        } else {
+            setMessage({ text: 'Password changed successfully!', type: 'success' });
+            setCurrentPassword('');
+            setNewPassword('');
+        }
+        setIsSaving(false);
+    };
 
     const handleLogout = async () => {
         await supabase!.auth.signOut();
@@ -33,6 +72,12 @@ const SettingsPage: React.FC<SettingsPageProps> = ({ user, navigateTo, session, 
             </header>
 
             <main className="space-y-8">
+                {message && (
+                    <div className={`p-4 rounded-md text-sm ${message.type === 'success' ? 'bg-teal-100 dark:bg-teal-500/20 text-teal-800 dark:text-teal-300' : 'bg-red-100 dark:bg-red-500/20 text-red-800 dark:text-red-300'}`}>
+                        {message.text}
+                    </div>
+                )}
+                
                 {/* Appearance Section */}
                 <section>
                     <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-4">Appearance</h2>
@@ -61,28 +106,37 @@ const SettingsPage: React.FC<SettingsPageProps> = ({ user, navigateTo, session, 
                 <section>
                     <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-4">Account</h2>
                     <div className="bg-white dark:bg-slate-800/50 p-6 rounded-xl border border-gray-200 dark:border-slate-700 space-y-4">
-                         <div>
-                            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Display Name</label>
-                            <input
-                                type="text"
-                                defaultValue={user.name}
-                                disabled
-                                className="mt-1 block w-full px-3 py-2 bg-gray-100 dark:bg-slate-700 border border-gray-300 dark:border-slate-600 rounded-md shadow-sm text-gray-500 dark:text-gray-400 cursor-not-allowed"
-                            />
-                        </div>
-                        <div>
-                            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Email</label>
-                            <input
-                                type="email"
-                                // FIX: Use the session object passed via props to get the email.
-                                defaultValue={session?.user.email || ''}
-                                disabled
-                                className="mt-1 block w-full px-3 py-2 bg-gray-100 dark:bg-slate-700 border border-gray-300 dark:border-slate-600 rounded-md shadow-sm text-gray-500 dark:text-gray-400 cursor-not-allowed"
-                            />
-                        </div>
-                        <button className="w-full text-center bg-gray-200 dark:bg-slate-600 text-gray-500 dark:text-gray-400 font-bold py-3 rounded-lg cursor-not-allowed">
-                            Change Password (Coming Soon)
-                        </button>
+                         <form onSubmit={handleProfileUpdate} className="space-y-4">
+                             <div>
+                                <label htmlFor="displayName" className="block text-sm font-medium text-gray-700 dark:text-gray-300">Display Name</label>
+                                <input
+                                    id="displayName"
+                                    type="text"
+                                    value={name}
+                                    onChange={(e) => setName(e.target.value)}
+                                    className="mt-1 block w-full px-3 py-2 bg-gray-50 dark:bg-slate-700 border border-gray-300 dark:border-slate-600 rounded-md shadow-sm focus:outline-none focus:ring-teal-500 focus:border-teal-500"
+                                />
+                            </div>
+                            <button type="submit" disabled={isSaving || name === user.name} className="w-full text-center bg-[#008485] text-white font-bold py-3 rounded-lg hover:bg-[#007374] transition-colors disabled:opacity-50">
+                                {isSaving ? 'Saving...' : 'Save Name'}
+                            </button>
+                         </form>
+                         <hr className="border-gray-200 dark:border-slate-600" />
+                         <form onSubmit={handlePasswordChange} className="space-y-4">
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">New Password</label>
+                                <input
+                                    type="password"
+                                    value={newPassword}
+                                    onChange={(e) => setNewPassword(e.target.value)}
+                                    placeholder="Enter new password"
+                                    className="mt-1 block w-full px-3 py-2 bg-gray-50 dark:bg-slate-700 border border-gray-300 dark:border-slate-600 rounded-md shadow-sm focus:outline-none focus:ring-teal-500 focus:border-teal-500"
+                                />
+                            </div>
+                            <button type="submit" disabled={isSaving || !newPassword} className="w-full text-center bg-[#008485] text-white font-bold py-3 rounded-lg hover:bg-[#007374] transition-colors disabled:opacity-50">
+                                {isSaving ? 'Changing...' : 'Change Password'}
+                            </button>
+                        </form>
                     </div>
                 </section>
                 

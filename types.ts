@@ -19,13 +19,14 @@ export enum Page {
   BookmarkedQuestions,
   HighwayCode,
   CaseStudySelection,
+  CaseStudy,
   Profile,
   Settings,
   Admin,
 }
 
 export type AdminSection = 'content' | 'appearance';
-export type ContentTab = 'questions' | 'hazard' | 'road_signs' | 'highway_code' | 'case_studies';
+export type ContentTab = 'questions' | 'categories' | 'hazard' | 'road_signs' | 'highway_code' | 'case_studies';
 
 
 export interface TestCardData {
@@ -56,6 +57,7 @@ export interface Question {
   correctAnswer: number;
   category: string;
   explanation: string;
+  created_at?: string;
 }
 
 export interface LeaderboardEntry {
@@ -97,7 +99,7 @@ export interface TestAttempt {
 }
 
 export interface UserProfile {
-  id: string;
+  id:string;
   name: string;
   avatarUrl: string;
   avgScore: number; // This would be calculated dynamically in a real app
@@ -125,4 +127,20 @@ export interface RoadSign {
 export interface RoadSignCategory {
   id: string;
   name: string;
+}
+
+export interface HighwayCodeRule {
+  id: number;
+  rule_number: number;
+  title: string;
+  content: string;
+  category: string;
+}
+
+export interface CaseStudy {
+  id: string;
+  title: string;
+  scenario: string;
+  scenario_image?: string;
+  question_ids: string[];
 }

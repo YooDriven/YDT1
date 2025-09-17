@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { Session } from 'https://esm.sh/@supabase/supabase-js@2';
-import { Page, Question, TestCardData, UserProfile, Theme, LeaderboardEntry, TestAttempt, Badge } from './types';
+import { Page, Question, TestCardData, UserProfile, Theme, LeaderboardEntry, TestAttempt, Badge, CaseStudy } from './types';
 import Dashboard from './components/Dashboard';
 import TestPage from './components/TestPage';
 import ResultsPage from './components/ResultsPage';
@@ -17,6 +17,7 @@ import StudyPage from './components/StudyPage';
 import BookmarkedQuestionsPage from './components/BookmarkedQuestionsPage';
 import HighwayCodePage from './components/HighwayCodePage';
 import CaseStudySelectionPage from './components/CaseStudySelectionPage';
+import CaseStudyPage from './components/CaseStudyPage';
 import Header from './components/Header';
 import LoginPage from './components/LoginPage';
 import ProfilePage from './components/ProfilePage';
@@ -38,6 +39,8 @@ type AppState =
   | 'FETCHING_QUESTIONS'
   | 'READY'
   | 'ERROR';
+
+type Opponent = { name: string; avatarUrl: string; isUser?: boolean, rank?: number, score?: number, id?: string };
 
 const AppLoadingIndicator: React.FC<{ state: AppState }> = ({ state }) => {
   const messages: Record<string, string> = {
@@ -137,6 +140,8 @@ const App: React.FC = () => {
   const [currentTopic, setCurrentTopic] = useState<string | undefined>();
   const [currentMode, setCurrentMode] = useState<'test' | 'study'>('test');
   const [duelOpponent, setDuelOpponent] = useState<LeaderboardEntry | null>(null);
+  const [selectedCaseStudy, setSelectedCaseStudy] = useState<CaseStudy | null>(null);
+  const [lastOpponent, setLastOpponent] = useState<Opponent | null>(null);
 
   useEffect(() => {
     if (theme === 'dark') {
@@ -242,6 +247,7 @@ const App: React.FC = () => {
       setTimeLimit(undefined);
       setCurrentTopic(undefined);
       setDuelOpponent(null);
+      setSelectedCaseStudy(null);
     }
     setCurrentPage(page);
     setAnimationKey(prevKey => prevKey + 1);
@@ -271,12 +277,26 @@ const App: React.FC = () => {
       }
   }, [navigateTo, currentMode]);
 
+  const handleCaseStudySelect = useCallback((caseStudy: CaseStudy) => {
+    setSelectedCaseStudy(caseStudy);
+    navigateTo(Page.CaseStudy);
+  }, [navigateTo]);
+
   const handleTestComplete = useCallback(async (score: number, questions: Question[], userAnswers: (number | null)[], topic?: string, testId?: string) => {
     if (!userProfile) return;
+    
+    let testTopic = topic;
+    if (selectedCaseStudy) {
+        testTopic = `Case Study: ${selectedCaseStudy.title}`;
+    } else if (testId === 'daily-challenge') {
+        testTopic = 'Daily Challenge';
+    } else if (!topic) {
+        testTopic = 'Mock Test';
+    }
 
     const newAttempt: TestAttempt = {
         userId: userProfile.id,
-        topic: topic || (testId === 'daily-challenge' ? 'Daily Challenge' : 'Mock Test'),
+        topic: testTopic,
         score: score,
         total: questions.length,
         questionIds: questions.map(q => q.id),
@@ -316,13 +336,26 @@ const App: React.FC = () => {
     setTestResult({ score, total: questions.length });
     setReviewData({ questions, userAnswers });
     navigateTo(Page.Results);
-  }, [navigateTo, userProfile]);
+  }, [navigateTo, userProfile, selectedCaseStudy]);
 
-  const handleBattleComplete = useCallback((playerScore: number, opponentScore: number, total: number, opponentName: string) => {
+  const handleBattleComplete = useCallback((playerScore: number, opponentScore: number, total: number, opponent: Opponent) => {
     setUserProfile(prev => prev ? ({ ...prev, testsTaken: prev.testsTaken + 1, dailyGoalProgress: prev.dailyGoalProgress + playerScore }) : null);
-    setBattleResult({ playerScore, opponentScore, total, opponentName });
+    setBattleResult({ playerScore, opponentScore, total, opponentName: opponent.name });
+    setLastOpponent(opponent);
     navigateTo(Page.BattleResults);
   }, [navigateTo]);
+
+  const handleRematch = useCallback(() => {
+    if (lastOpponent?.isUser) {
+        // This is a rough conversion for rematching a real player
+        setDuelOpponent(lastOpponent as LeaderboardEntry);
+    } else {
+        // For rematching a bot, just clear the duel opponent so a new one is generated
+        setDuelOpponent(null);
+    }
+    navigateTo(Page.BattleGround);
+  }, [lastOpponent, navigateTo]);
+
 
   const handleHazardPerceptionComplete = useCallback((scores: number[], totalClips: number) => {
     const totalScore = scores.reduce((acc, s) => acc + s, 0);
@@ -377,7 +410,7 @@ const App: React.FC = () => {
       case Page.BattleGround:
         return <BattleGroundPage navigateTo={navigateTo} onBattleComplete={handleBattleComplete} opponent={duelOpponent} allQuestions={allQuestions} />;
       case Page.BattleResults:
-        return <BattleResultsPage navigateTo={navigateTo} {...battleResult} />;
+        return <BattleResultsPage navigateTo={navigateTo} onRematch={handleRematch} {...battleResult} />;
       case Page.HazardPerception:
         return <HazardPerceptionPage navigateTo={navigateTo} onTestComplete={handleHazardPerceptionComplete} />;
       case Page.HazardPerceptionResults:
@@ -393,11 +426,13 @@ const App: React.FC = () => {
       case Page.HighwayCode:
         return <HighwayCodePage navigateTo={navigateTo} />;
       case Page.CaseStudySelection:
-        return <CaseStudySelectionPage navigateTo={navigateTo} />;
+        return <CaseStudySelectionPage navigateTo={navigateTo} onCaseStudySelect={handleCaseStudySelect} />;
+      case Page.CaseStudy:
+        return <CaseStudyPage navigateTo={navigateTo} caseStudy={selectedCaseStudy!} allQuestions={allQuestions} onTestComplete={handleTestComplete} />;
       case Page.Profile:
         return <ProfilePage user={userProfile!} navigateTo={navigateTo} appAssets={appAssets} />;
       case Page.Settings:
-        return <SettingsPage user={userProfile!} session={session} navigateTo={navigateTo} theme={theme} setTheme={setTheme} />;
+        return <SettingsPage user={userProfile!} onProfileUpdate={(name) => setUserProfile(p => p ? {...p, name} : null)} session={session} navigateTo={navigateTo} theme={theme} setTheme={setTheme} />;
       case Page.Admin:
         return <AdminPage navigateTo={navigateTo} appAssets={appAssets} onAssetsUpdate={onAssetsUpdate} />;
       case Page.Dashboard:

@@ -29,7 +29,7 @@ const HazardPerceptionPage: React.FC<HazardPerceptionPageProps> = ({ navigateTo,
       if (error) {
         setError(error.message);
       } else if (data) {
-        // FIX: Map database snake_case columns to application camelCase properties
+        // Map database snake_case columns to application camelCase properties
         const mappedClips = data.map(clip => ({
           id: clip.id,
           description: clip.description,
@@ -65,6 +65,28 @@ const HazardPerceptionPage: React.FC<HazardPerceptionPageProps> = ({ navigateTo,
     }
   };
   
+  const calculateScore = useCallback(() => {
+    if (!currentClip || clicks.length === 0) return 0;
+    
+    // Per official test rules, too many clicks can result in a zero score for the clip.
+    // We will allow one click for scoring. More than one results in zero.
+    if (clicks.length > 1) return 0;
+
+    const clickProgress = clicks[0];
+    const { hazardWindowStart, hazardWindowEnd } = currentClip;
+
+    if (clickProgress >= hazardWindowStart && clickProgress <= hazardWindowEnd) {
+      const windowSize = hazardWindowEnd - hazardWindowStart;
+      // Prevent division by zero if window size is 0
+      if (windowSize <= 0) return MAX_SCORE_PER_CLIP;
+      
+      const positionInWindow = (clickProgress - hazardWindowStart) / windowSize;
+      const score = Math.max(1, Math.round(MAX_SCORE_PER_CLIP * (1 - positionInWindow)));
+      return score;
+    }
+    return 0;
+  }, [clicks, currentClip]);
+
   const finishClip = useCallback(() => {
     setClipState('finished');
     const score = calculateScore();
@@ -82,22 +104,8 @@ const HazardPerceptionPage: React.FC<HazardPerceptionPageProps> = ({ navigateTo,
         onTestComplete(newScores, clips.length);
       }
     }, 2000);
-  }, [clicks, currentClip, scores, currentClipIndex, onTestComplete, clips.length]);
+  }, [calculateScore, scores, currentClipIndex, onTestComplete, clips.length]);
 
-  const calculateScore = () => {
-    if (!currentClip || clicks.length === 0 || clicks.length > 2) return 0;
-
-    const clickProgress = clicks[0];
-    const { hazardWindowStart, hazardWindowEnd } = currentClip;
-
-    if (clickProgress >= hazardWindowStart && clickProgress <= hazardWindowEnd) {
-      const windowSize = hazardWindowEnd - hazardWindowStart;
-      const positionInWindow = (clickProgress - hazardWindowStart) / windowSize;
-      const score = Math.max(1, Math.round(MAX_SCORE_PER_CLIP * (1 - positionInWindow)));
-      return score;
-    }
-    return 0;
-  };
 
   const handlePlayerClick = () => {
     if (clipState !== 'playing' || !videoRef.current) return;
@@ -136,7 +144,7 @@ const HazardPerceptionPage: React.FC<HazardPerceptionPageProps> = ({ navigateTo,
             />
           )}
 
-          {clipState === 'ready' && (
+          {clipState === 'ready' && currentClip && (
             <div className="absolute inset-0 bg-black/70 flex flex-col items-center justify-center text-center p-4">
               <h3 className="text-xl font-bold mb-4 text-white">Clip {currentClipIndex + 1}</h3>
               <p className="text-gray-300 mb-6">{currentClip.description}</p>
@@ -154,7 +162,7 @@ const HazardPerceptionPage: React.FC<HazardPerceptionPageProps> = ({ navigateTo,
 
           {/* Click indicator flag */}
           {clicks.length > 0 && clipState === 'playing' && (
-            <div className="absolute bottom-4 right-4 h-8 w-8 bg-red-500 rounded-full flex items-center justify-center text-white font-bold animate-ping-once">
+            <div key={clicks.length} className="absolute bottom-4 right-4 h-8 w-8 bg-red-500 rounded-full flex items-center justify-center text-white font-bold animate-ping-once">
               !
             </div>
           )}

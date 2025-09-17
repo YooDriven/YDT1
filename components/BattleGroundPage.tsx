@@ -4,9 +4,11 @@ import { ChevronLeftIcon } from './icons';
 import { OPPONENT_CHAT_MESSAGES } from '../constants';
 import { getAiOpponentAnswer, isGeminiConfigured } from '../lib/gemini';
 
+type Opponent = { name: string; avatarUrl: string; isUser?: boolean, rank?: number, score?: number, id?: string };
+
 interface BattleGroundPageProps {
   navigateTo: (page: Page) => void;
-  onBattleComplete: (playerScore: number, opponentScore: number, total: number, opponentName: string) => void;
+  onBattleComplete: (playerScore: number, opponentScore: number, total: number, opponent: Opponent) => void;
   allQuestions: Question[];
   opponent?: LeaderboardEntry | null;
 }
@@ -47,8 +49,7 @@ const AnimatedScore: React.FC<{ score: number; isAnimating: boolean }> = ({ scor
 
 const BattleGroundPage: React.FC<BattleGroundPageProps> = ({ navigateTo, onBattleComplete, opponent, allQuestions }) => {
     const [questions, setQuestions] = useState<Question[]>([]);
-    const [opponentName, setOpponentName] = useState('');
-    const [opponentAvatar, setOpponentAvatar] = useState('');
+    const [opponentDetails, setOpponentDetails] = useState<Opponent>({ name: '', avatarUrl: '' });
     const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
     const [playerScore, setPlayerScore] = useState(0);
     const [opponentScore, setOpponentScore] = useState(0);
@@ -66,28 +67,29 @@ const BattleGroundPage: React.FC<BattleGroundPageProps> = ({ navigateTo, onBattl
 
     const addOpponentMessage = useCallback((text: string, delay = 1000) => {
         setTimeout(() => {
-            setChatMessages(prev => [...prev, { author: opponentName, text }]);
+            setChatMessages(prev => [...prev, { author: opponentDetails.name, text }]);
         }, delay);
-    }, [opponentName]);
+    }, [opponentDetails.name]);
 
     useEffect(() => {
         if (!allQuestions || allQuestions.length === 0) return;
         
         const shuffled = [...allQuestions].sort(() => 0.5 - Math.random());
-        let newOpponentName;
-        let newOpponentAvatar;
+        let currentOpponent: Opponent;
 
         if (opponent) {
-            newOpponentName = opponent.name;
-            newOpponentAvatar = opponent.avatarUrl;
+            currentOpponent = opponent;
         } else {
-            newOpponentName = opponentNames[Math.floor(Math.random() * opponentNames.length)];
-            newOpponentAvatar = `https://api.dicebear.com/8.x/bottts/svg?seed=${newOpponentName}`;
+            const name = opponentNames[Math.floor(Math.random() * opponentNames.length)];
+            currentOpponent = {
+                name,
+                avatarUrl: `https://api.dicebear.com/8.x/bottts/svg?seed=${name}`,
+                isUser: false,
+            };
         }
         
         setQuestions(shuffled.slice(0, 10)); // Battles are 10 questions
-        setOpponentName(newOpponentName);
-        setOpponentAvatar(newOpponentAvatar);
+        setOpponentDetails(currentOpponent);
 
         setCurrentQuestionIndex(0);
         setPlayerScore(0);
@@ -97,7 +99,7 @@ const BattleGroundPage: React.FC<BattleGroundPageProps> = ({ navigateTo, onBattl
         setIsRoundOver(false);
         setChatMessages([]);
         setTimeout(() => {
-            setChatMessages([{ author: newOpponentName, text: getRandomMessage('greetings') }]);
+            setChatMessages([{ author: currentOpponent.name, text: getRandomMessage('greetings') }]);
         }, 1500);
 
     }, [allQuestions, getRandomMessage, opponent]);
@@ -119,10 +121,10 @@ const BattleGroundPage: React.FC<BattleGroundPageProps> = ({ navigateTo, onBattl
             addOpponentMessage(finalMessage, 500);
             
             setTimeout(() => {
-                onBattleComplete(playerScore, opponentScore, questions.length, opponentName);
+                onBattleComplete(playerScore, opponentScore, questions.length, opponentDetails);
             }, 2000);
         }
-    }, [currentQuestionIndex, questions.length, onBattleComplete, playerScore, opponentScore, opponentName, addOpponentMessage, getRandomMessage]);
+    }, [currentQuestionIndex, questions.length, onBattleComplete, playerScore, opponentScore, opponentDetails, addOpponentMessage, getRandomMessage]);
 
     const handlePlayerAnswer = (index: number) => {
         if (playerAnswer !== null) return;
@@ -231,14 +233,14 @@ const BattleGroundPage: React.FC<BattleGroundPageProps> = ({ navigateTo, onBattl
                              <p className="text-sm text-gray-600 dark:text-gray-300 font-semibold">{getPlayerStatus()}</p>
                         </div>
                         <div className="w-1/3 flex flex-col items-center">
-                            <img src={opponentAvatar} alt="Opponent" className={`h-12 w-12 rounded-full border-2 border-red-500 mb-2 transition-all ${playerAnswer !== null && opponentAnswer === null ? 'animate-pulse' : ''}`}/>
+                            <img src={opponentDetails.avatarUrl} alt="Opponent" className={`h-12 w-12 rounded-full border-2 border-red-500 mb-2 transition-all ${playerAnswer !== null && opponentAnswer === null ? 'animate-pulse' : ''}`}/>
                             <div className="relative h-8 flex items-center justify-center">
                                 <AnimatedScore score={opponentScore} isAnimating={!!roundResult?.opponent} />
                                  {roundResult?.opponent && (
                                     <span className="absolute top-0 left-1/2 -translate-x-1/2 text-green-500 dark:text-green-400 font-bold animate-popUp">+1</span>
                                 )}
                             </div>
-                            <p className="text-sm text-gray-500 dark:text-gray-400">{opponentName}</p>
+                            <p className="text-sm text-gray-500 dark:text-gray-400">{opponentDetails.name}</p>
                         </div>
                     </div>
                      <div className="w-full bg-gray-200 dark:bg-slate-700 rounded-full h-1.5 mt-4">
