@@ -23,10 +23,10 @@ import LoginPage from './components/LoginPage';
 import ProfilePage from './components/ProfilePage';
 import SettingsPage from './components/SettingsPage';
 import AdminPage from './components/AdminPage';
-import { TOTAL_QUESTIONS, DAILY_GOAL_TARGET, MOCK_QUESTIONS, MAX_SCORE_PER_CLIP } from './constants';
-import { getDailyChallengeQuestions } from './utils';
+import { TOTAL_QUESTIONS, DAILY_GOAL_TARGET, MAX_SCORE_PER_CLIP } from './constants';
 import { supabase, isSupabaseConfigured } from './lib/supabaseClient';
 import { isGeminiConfigured } from './lib/gemini';
+import { QuestionsProvider } from './contexts/QuestionsContext';
 
 // Define the states for our application's loading lifecycle
 type AppState =
@@ -36,7 +36,6 @@ type AppState =
   | 'UNAUTHENTICATED'
   | 'FETCHING_PROFILE'
   | 'FETCHING_ASSETS'
-  | 'FETCHING_QUESTIONS'
   | 'READY'
   | 'ERROR';
 
@@ -50,7 +49,6 @@ const AppLoadingIndicator: React.FC<{ state: AppState }> = ({ state }) => {
     UNAUTHENTICATED: 'Redirecting to login...',
     FETCHING_PROFILE: 'Loading your profile...',
     FETCHING_ASSETS: 'Loading visual assets...',
-    FETCHING_QUESTIONS: 'Preparing questions...',
     READY: 'Ready!',
     ERROR: 'An error occurred.'
   };
@@ -128,7 +126,6 @@ const App: React.FC = () => {
   const [currentPage, setCurrentPage] = useState<Page>(Page.Dashboard);
   const [animationKey, setAnimationKey] = useState<number>(0);
   const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
-  const [allQuestions, setAllQuestions] = useState<Question[]>([]);
   const [appAssets, setAppAssets] = useState<Record<string, string>>({});
 
   const [testResult, setTestResult] = useState<{ score: number, total: number }>({ score: 0, total: 0 });
@@ -136,6 +133,7 @@ const App: React.FC = () => {
   const [battleResult, setBattleResult] = useState<{ playerScore: number, opponentScore: number, total: number, opponentName: string }>({ playerScore: 0, opponentScore: 0, total: 0, opponentName: '' });
   const [hazardPerceptionResult, setHazardPerceptionResult] = useState<{ scores: number[], totalScore: number, maxScore: number }>({ scores: [], totalScore: 0, maxScore: 0 });
   const [customTest, setCustomTest] = useState<Question[] | null>(null);
+  const [currentTestId, setCurrentTestId] = useState<string | undefined>();
   const [timeLimit, setTimeLimit] = useState<number | undefined>();
   const [currentTopic, setCurrentTopic] = useState<string | undefined>();
   const [currentMode, setCurrentMode] = useState<'test' | 'study'>('test');
@@ -203,13 +201,6 @@ const App: React.FC = () => {
             profileData.bookmarkedQuestions = profileData.bookmarked_questions || [];
             setUserProfile(profileData);
 
-            // Fetch questions
-            setAppState('FETCHING_QUESTIONS');
-            const questionsPromise = supabase!.from('questions').select('*');
-            const { data: questionsData, error: questionsError } = await withTimeout(questionsPromise, TIMEOUT_DURATION, 'Could not load questions. Please check the `questions` table and its RLS policies.');
-            if (questionsError) throw questionsError;
-
-            setAllQuestions(questionsData && questionsData.length > 0 ? questionsData : MOCK_QUESTIONS);
             setAppState('READY');
         } catch (error: any) {
             console.error("Error during data initialization:", error);
@@ -248,25 +239,22 @@ const App: React.FC = () => {
       setCurrentTopic(undefined);
       setDuelOpponent(null);
       setSelectedCaseStudy(null);
+      setCurrentTestId(undefined);
     }
     setCurrentPage(page);
     setAnimationKey(prevKey => prevKey + 1);
   }, []);
   
   const handleCardClick = useCallback((card: TestCardData) => {
-    if (card.id === 'daily-challenge') {
-        const dailyQuestions = getDailyChallengeQuestions(allQuestions, 10);
-        setCustomTest(dailyQuestions);
-    } else {
-        setCustomTest(null);
-    }
+    setCustomTest(null); // Clear any previous custom tests
     if (card.mode) {
       setCurrentMode(card.mode);
     }
     setCurrentTopic(card.topic);
     setTimeLimit(card.timeLimit);
+    setCurrentTestId(card.id);
     navigateTo(card.page);
-  }, [navigateTo, allQuestions]);
+  }, [navigateTo]);
 
   const handleTopicSelect = useCallback((topic: string) => {
       setCurrentTopic(topic);
@@ -364,10 +352,10 @@ const App: React.FC = () => {
     navigateTo(Page.HazardPerceptionResults);
   }, [navigateTo]);
 
-  const handleDuel = (opponent: LeaderboardEntry) => {
+  const handleDuel = useCallback((opponent: LeaderboardEntry) => {
     setDuelOpponent(opponent);
     navigateTo(Page.BattleGround);
-  };
+  }, [navigateTo]);
 
   const handleToggleBookmark = async (questionId: string) => {
     if (!userProfile) return;
@@ -398,7 +386,7 @@ const App: React.FC = () => {
   const renderCurrentPage = () => {
     switch (currentPage) {
       case Page.Test:
-        return <TestPage navigateTo={navigateTo} onTestComplete={handleTestComplete} totalQuestions={TOTAL_QUESTIONS} allQuestions={allQuestions} customQuestions={customTest} testId={customTest ? 'daily-challenge' : undefined} timeLimit={timeLimit} topic={currentTopic} bookmarkedQuestions={userProfile?.bookmarkedQuestions || []} onToggleBookmark={handleToggleBookmark} />;
+        return <TestPage navigateTo={navigateTo} onTestComplete={handleTestComplete} totalQuestions={TOTAL_QUESTIONS} customQuestions={customTest} testId={currentTestId} timeLimit={timeLimit} topic={currentTopic} bookmarkedQuestions={userProfile?.bookmarkedQuestions || []} onToggleBookmark={handleToggleBookmark} />;
       case Page.Results:
         return <ResultsPage navigateTo={navigateTo} score={testResult.score} totalQuestions={testResult.total} />;
       case Page.Review:
@@ -408,7 +396,7 @@ const App: React.FC = () => {
       case Page.Matchmaking:
         return <MatchmakingPage navigateTo={navigateTo} />;
       case Page.BattleGround:
-        return <BattleGroundPage navigateTo={navigateTo} onBattleComplete={handleBattleComplete} opponent={duelOpponent} allQuestions={allQuestions} />;
+        return <BattleGroundPage navigateTo={navigateTo} onBattleComplete={handleBattleComplete} opponent={duelOpponent} />;
       case Page.BattleResults:
         return <BattleResultsPage navigateTo={navigateTo} onRematch={handleRematch} {...battleResult} />;
       case Page.HazardPerception:
@@ -418,17 +406,17 @@ const App: React.FC = () => {
       case Page.StudyHub:
         return <StudyHubPage navigateTo={navigateTo} onCardClick={handleCardClick} appAssets={appAssets} />;
       case Page.TopicSelection:
-        return <TopicSelectionPage navigateTo={navigateTo} onTopicSelect={handleTopicSelect} mode={currentMode} allQuestions={allQuestions} />;
+        return <TopicSelectionPage navigateTo={navigateTo} onTopicSelect={handleTopicSelect} mode={currentMode} />;
       case Page.Study:
-        return <StudyPage navigateTo={navigateTo} topic={currentTopic || ''} allQuestions={allQuestions} />;
+        return <StudyPage navigateTo={navigateTo} topic={currentTopic || ''} />;
       case Page.BookmarkedQuestions:
-        return <BookmarkedQuestionsPage navigateTo={navigateTo} allQuestions={allQuestions} bookmarkedQuestions={userProfile?.bookmarkedQuestions || []} onToggleBookmark={handleToggleBookmark} />;
+        return <BookmarkedQuestionsPage navigateTo={navigateTo} bookmarkedQuestions={userProfile?.bookmarkedQuestions || []} onToggleBookmark={handleToggleBookmark} />;
       case Page.HighwayCode:
         return <HighwayCodePage navigateTo={navigateTo} />;
       case Page.CaseStudySelection:
         return <CaseStudySelectionPage navigateTo={navigateTo} onCaseStudySelect={handleCaseStudySelect} />;
       case Page.CaseStudy:
-        return <CaseStudyPage navigateTo={navigateTo} caseStudy={selectedCaseStudy!} allQuestions={allQuestions} onTestComplete={handleTestComplete} />;
+        return <CaseStudyPage navigateTo={navigateTo} caseStudy={selectedCaseStudy!} onTestComplete={handleTestComplete} />;
       case Page.Profile:
         return <ProfilePage user={userProfile!} navigateTo={navigateTo} appAssets={appAssets} />;
       case Page.Settings:
@@ -455,12 +443,14 @@ const App: React.FC = () => {
   }
 
   return (
-    <div className="min-h-screen bg-[#f7f7f7] dark:bg-slate-900">
-      <Header user={userProfile} navigateTo={navigateTo} theme={theme} setTheme={setTheme} appAssets={appAssets} />
-      <main key={animationKey} className="animate-fadeInUp">
-        {renderCurrentPage()}
-      </main>
-    </div>
+    <QuestionsProvider>
+      <div className="min-h-screen bg-[#f7f7f7] dark:bg-slate-900">
+        <Header user={userProfile} navigateTo={navigateTo} theme={theme} setTheme={setTheme} appAssets={appAssets} />
+        <main key={animationKey} className="animate-fadeInUp">
+          {renderCurrentPage()}
+        </main>
+      </div>
+    </QuestionsProvider>
   );
 };
 

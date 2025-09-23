@@ -3,13 +3,13 @@ import { Page, Question, ChatMessage, LeaderboardEntry } from '../types';
 import { ChevronLeftIcon } from './icons';
 import { OPPONENT_CHAT_MESSAGES } from '../constants';
 import { getAiOpponentAnswer, isGeminiConfigured } from '../lib/gemini';
+import { useQuestions } from '../contexts/QuestionsContext';
 
 type Opponent = { name: string; avatarUrl: string; isUser?: boolean, rank?: number, score?: number, id?: string };
 
 interface BattleGroundPageProps {
   navigateTo: (page: Page) => void;
   onBattleComplete: (playerScore: number, opponentScore: number, total: number, opponent: Opponent) => void;
-  allQuestions: Question[];
   opponent?: LeaderboardEntry | null;
 }
 
@@ -47,7 +47,8 @@ const AnimatedScore: React.FC<{ score: number; isAnimating: boolean }> = ({ scor
 };
 
 
-const BattleGroundPage: React.FC<BattleGroundPageProps> = ({ navigateTo, onBattleComplete, opponent, allQuestions }) => {
+const BattleGroundPage: React.FC<BattleGroundPageProps> = ({ navigateTo, onBattleComplete, opponent }) => {
+    const { questions: allQuestions, loading: questionsLoading } = useQuestions();
     const [questions, setQuestions] = useState<Question[]>([]);
     const [opponentDetails, setOpponentDetails] = useState<Opponent>({ name: '', avatarUrl: '' });
     const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
@@ -72,7 +73,7 @@ const BattleGroundPage: React.FC<BattleGroundPageProps> = ({ navigateTo, onBattl
     }, [opponentDetails.name]);
 
     useEffect(() => {
-        if (!allQuestions || allQuestions.length === 0) return;
+        if (questionsLoading || allQuestions.length === 0) return;
         
         const shuffled = [...allQuestions].sort(() => 0.5 - Math.random());
         let currentOpponent: Opponent;
@@ -102,7 +103,7 @@ const BattleGroundPage: React.FC<BattleGroundPageProps> = ({ navigateTo, onBattl
             setChatMessages([{ author: currentOpponent.name, text: getRandomMessage('greetings') }]);
         }, 1500);
 
-    }, [allQuestions, getRandomMessage, opponent]);
+    }, [allQuestions, getRandomMessage, opponent, questionsLoading]);
 
     const handleNextRound = useCallback(() => {
         setRoundResult(null);
@@ -200,8 +201,8 @@ const BattleGroundPage: React.FC<BattleGroundPageProps> = ({ navigateTo, onBattl
 
     }, [playerAnswer, opponentAnswer, isRoundOver, currentQuestionIndex, questions, handleNextRound, addOpponentMessage, getRandomMessage, playerScore]);
 
-    if (questions.length === 0) {
-        return <div />; 
+    if (questionsLoading || questions.length === 0) {
+        return <div className="p-8 text-center text-gray-500 dark:text-gray-400">Preparing battle...</div>; 
     }
     
     const currentQuestion = questions[currentQuestionIndex];

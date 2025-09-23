@@ -1,12 +1,13 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { Page, Question } from '../types';
 import { ChevronLeftIcon, FlagIcon } from './icons';
+import { useQuestions } from '../contexts/QuestionsContext';
+import { getDailyChallengeQuestions } from '../utils';
 
 interface TestPageProps {
   navigateTo: (page: Page) => void;
   onTestComplete: (score: number, questions: Question[], userAnswers: (number | null)[], topic?: string, testId?: string) => void;
   totalQuestions: number;
-  allQuestions: Question[];
   customQuestions?: Question[] | null;
   testId?: string;
   timeLimit?: number;
@@ -15,19 +16,22 @@ interface TestPageProps {
   onToggleBookmark: (questionId: string) => void;
 }
 
-const TestPage: React.FC<TestPageProps> = ({ navigateTo, onTestComplete, totalQuestions, allQuestions, customQuestions, testId, timeLimit = 3570, topic, bookmarkedQuestions, onToggleBookmark }) => {
+const TestPage: React.FC<TestPageProps> = ({ navigateTo, onTestComplete, totalQuestions, customQuestions, testId, timeLimit = 3570, topic, bookmarkedQuestions, onToggleBookmark }) => {
     const [questions, setQuestions] = useState<Question[]>([]);
     const [userAnswers, setUserAnswers] = useState<(number | null)[]>([]);
     const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
     const [timeLeft, setTimeLeft] = useState(timeLimit);
     
+    const { questions: allQuestions, loading: questionsLoading } = useQuestions();
     const finishTestHandlerRef = useRef<(() => void) | null>(null);
 
     useEffect(() => {
-        if (allQuestions.length === 0 && !customQuestions) return;
+        if (questionsLoading) return;
 
         let testQuestions: Question[];
-        if (customQuestions) {
+        if (testId === 'daily-challenge') {
+            testQuestions = getDailyChallengeQuestions(allQuestions, 10);
+        } else if (customQuestions) {
             testQuestions = customQuestions;
         } else if (topic) {
             testQuestions = allQuestions.filter(q => q.category === topic);
@@ -36,7 +40,7 @@ const TestPage: React.FC<TestPageProps> = ({ navigateTo, onTestComplete, totalQu
         }
         setQuestions(testQuestions);
         setUserAnswers(new Array(testQuestions.length).fill(null));
-    }, [totalQuestions, customQuestions, topic, allQuestions]);
+    }, [totalQuestions, customQuestions, topic, allQuestions, questionsLoading, testId]);
 
     useEffect(() => {
         finishTestHandlerRef.current = () => {
@@ -80,7 +84,7 @@ const TestPage: React.FC<TestPageProps> = ({ navigateTo, onTestComplete, totalQu
         return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
     };
 
-    if (questions.length === 0) {
+    if (questionsLoading || questions.length === 0) {
         return <div className="p-8 text-center text-gray-500 dark:text-gray-400">Loading test...</div>;
     }
     

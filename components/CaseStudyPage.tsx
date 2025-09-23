@@ -1,27 +1,29 @@
 import React, { useState, useMemo } from 'react';
 import { Page, Question, CaseStudy } from '../types';
 import { ChevronLeftIcon } from './icons';
+import { useQuestions } from '../contexts/QuestionsContext';
 
 interface CaseStudyPageProps {
   navigateTo: (page: Page) => void;
   onTestComplete: (score: number, questions: Question[], userAnswers: (number | null)[]) => void;
   caseStudy: CaseStudy;
-  allQuestions: Question[];
 }
 
 type ViewState = 'scenario' | 'questions';
 
-const CaseStudyPage: React.FC<CaseStudyPageProps> = ({ navigateTo, onTestComplete, caseStudy, allQuestions }) => {
+const CaseStudyPage: React.FC<CaseStudyPageProps> = ({ navigateTo, onTestComplete, caseStudy }) => {
+    const { questions: allQuestions, loading } = useQuestions();
     const [viewState, setViewState] = useState<ViewState>('scenario');
     const [userAnswers, setUserAnswers] = useState<(number | null)[]>([]);
     const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
 
     const studyQuestions = useMemo(() => {
+        if (loading) return [];
         const questionMap = new Map(allQuestions.map(q => [q.id, q]));
         const questions = caseStudy.question_ids.map(id => questionMap.get(id)).filter(Boolean) as Question[];
         setUserAnswers(new Array(questions.length).fill(null));
         return questions;
-    }, [caseStudy, allQuestions]);
+    }, [caseStudy, allQuestions, loading]);
 
     const handleSelectAnswer = (optionIndex: number) => {
         const newAnswers = [...userAnswers];
@@ -39,8 +41,12 @@ const CaseStudyPage: React.FC<CaseStudyPageProps> = ({ navigateTo, onTestComplet
         onTestComplete(score, studyQuestions, userAnswers);
     };
 
+    if (loading) {
+        return <div className="p-8 text-center text-gray-500 dark:text-gray-400">Loading case study questions...</div>;
+    }
+
     if (studyQuestions.length === 0) {
-        return <div className="p-8 text-center">Loading case study questions...</div>;
+        return <div className="p-8 text-center">No questions found for this case study.</div>;
     }
 
     const currentQuestion = studyQuestions[currentQuestionIndex];

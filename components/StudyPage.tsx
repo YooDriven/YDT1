@@ -1,21 +1,27 @@
 import React, { useState, useMemo } from 'react';
 import { Page, Question } from '../types';
 import { ChevronLeftIcon } from './icons';
+import { useQuestions } from '../contexts/QuestionsContext';
 
 interface StudyPageProps {
     navigateTo: (page: Page) => void;
     topic: string;
-    allQuestions: Question[];
 }
 
-const StudyPage: React.FC<StudyPageProps> = ({ navigateTo, topic, allQuestions }) => {
+const StudyPage: React.FC<StudyPageProps> = ({ navigateTo, topic }) => {
+    const { questions: allQuestions, loading } = useQuestions();
     const [currentIndex, setCurrentIndex] = useState(0);
 
     const topicQuestions = useMemo(() => {
+        if (loading) return [];
         return allQuestions.filter(q => q.category === topic);
-    }, [allQuestions, topic]);
+    }, [allQuestions, topic, loading]);
     
     const currentQuestion = topicQuestions[currentIndex];
+
+    if (loading) {
+        return <div className="p-8 text-center text-gray-500 dark:text-gray-400">Loading questions...</div>;
+    }
 
     if (topicQuestions.length === 0) {
         return (

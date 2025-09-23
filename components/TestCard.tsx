@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { memo } from 'react';
 import type { TestCardData } from '../types';
 import { CheckCircleIcon } from './icons';
 import DynamicIcon from './DynamicIcon';
@@ -48,4 +48,4 @@ const TestCard: React.FC<TestCardProps> = ({ card, index, onClick, completed, ap
   );
 };
 
-export default TestCard;
+export default memo(TestCard);

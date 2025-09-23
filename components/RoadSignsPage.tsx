@@ -3,6 +3,7 @@ import { Page, RoadSign, RoadSignCategory } from '../types';
 import { ChevronLeftIcon } from './icons';
 import { supabase } from '../lib/supabaseClient';
 import DynamicIcon from './DynamicIcon';
+import { useDebounce } from '../hooks/useDebounce';
 
 interface RoadSignsPageProps {
   navigateTo: (page: Page) => void;
@@ -17,6 +18,8 @@ const RoadSignsPage: React.FC<RoadSignsPageProps> = ({ navigateTo }) => {
   const [searchTerm, setSearchTerm] = useState('');
   const [activeCategory, setActiveCategory] = useState('all');
   const [flippedSignId, setFlippedSignId] = useState<string | null>(null);
+
+  const debouncedSearchTerm = useDebounce(searchTerm, 300);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -45,12 +48,12 @@ const RoadSignsPage: React.FC<RoadSignsPageProps> = ({ navigateTo }) => {
   const filteredSigns = useMemo(() => {
     return signs.filter(sign => {
       const matchesCategory = activeCategory === 'all' || sign.category === activeCategory;
-      const matchesSearch = searchTerm === '' ||
-        sign.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        sign.description.toLowerCase().includes(searchTerm.toLowerCase());
+      const matchesSearch = debouncedSearchTerm === '' ||
+        sign.name.toLowerCase().includes(debouncedSearchTerm.toLowerCase()) ||
+        sign.description.toLowerCase().includes(debouncedSearchTerm.toLowerCase());
       return matchesCategory && matchesSearch;
     });
-  }, [searchTerm, activeCategory, signs]);
+  }, [debouncedSearchTerm, activeCategory, signs]);
 
   if (loading) return <div className="p-8 text-center text-gray-500 dark:text-gray-400">Loading Road Signs...</div>;
   if (error) return <div className="p-8 text-center text-red-500">Error: {error}</div>;

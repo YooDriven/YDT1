@@ -3,44 +3,8 @@ import { Page, Question, AdminSection, ContentTab, RoadSign, RoadSignCategory, H
 import { ChevronLeftIcon } from './icons';
 import { supabase } from '../lib/supabaseClient';
 import DynamicIcon from './DynamicIcon';
-
-// Reusable UI Components
-const Toast: React.FC<{ message: string; type: 'success' | 'error'; onDismiss: () => void; }> = ({ message, type, onDismiss }) => {
-    useEffect(() => {
-        const timer = setTimeout(onDismiss, 3000);
-        return () => clearTimeout(timer);
-    }, [onDismiss]);
-    const bgColor = type === 'success' ? 'bg-teal-500' : 'bg-red-500';
-    return <div className={`fixed bottom-5 right-5 ${bgColor} text-white px-6 py-3 rounded-lg shadow-lg z-[100] animate-fadeInUp`}>{message}</div>;
-};
-
-const Modal: React.FC<{ title: string; children: React.ReactNode; onClose: () => void; size?: 'md' | 'lg' | 'xl' | '2xl' | '3xl' }> = ({ title, children, onClose, size = 'xl' }) => (
-    <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4" onClick={onClose}>
-        <div className={`bg-white dark:bg-slate-800 rounded-lg shadow-xl w-full max-w-${size} max-h-[90vh] flex flex-col animate-fadeInUp`} onClick={(e) => e.stopPropagation()}>
-            <header className="p-4 border-b border-gray-200 dark:border-slate-700 flex justify-between items-center flex-shrink-0">
-                <h2 className="text-lg font-bold text-gray-900 dark:text-white">{title}</h2>
-                <button onClick={onClose} className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 text-2xl">&times;</button>
-            </header>
-            <div className="p-6 overflow-y-auto">{children}</div>
-        </div>
-    </div>
-);
-
-// FIX: Update FormRow to accept and merge className prop to resolve type error.
-const FormRow: React.FC<{ children: React.ReactNode; className?: string }> = ({ children, className }) => <div className={["mb-4", className].filter(Boolean).join(" ")}>{children}</div>;
-const Label: React.FC<{ children: React.ReactNode; htmlFor?: string; className?: string; }> = ({ children, htmlFor, className }) => <label htmlFor={htmlFor} className={`block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1 ${className || ''}`}>{children}</label>;
-const Input: React.FC<React.InputHTMLAttributes<HTMLInputElement>> = (props) => <input {...props} className={`w-full p-2 bg-gray-50 dark:bg-slate-700 border border-gray-300 dark:border-slate-600 rounded-md text-gray-900 dark:text-white ${props.className}`} />;
-const Textarea: React.FC<React.TextareaHTMLAttributes<HTMLTextAreaElement>> = (props) => <textarea {...props} className="w-full p-2 bg-gray-50 dark:bg-slate-700 border border-gray-300 dark:border-slate-600 rounded-md text-gray-900 dark:text-white" rows={props.rows || 3} />;
-const Select: React.FC<React.SelectHTMLAttributes<HTMLSelectElement>> = (props) => <select {...props} className="w-full p-2 bg-gray-50 dark:bg-slate-700 border border-gray-300 dark:border-slate-600 rounded-md text-gray-900 dark:text-white" />;
-const Button: React.FC<{ children: React.ReactNode; onClick?: () => void; disabled?: boolean; className?: string; variant?: 'primary' | 'secondary' | 'danger'; type?: 'button' | 'submit' }> = ({ children, onClick, disabled, className, variant = 'primary', type = 'button' }) => {
-    const variants = {
-        primary: 'bg-teal-500 hover:bg-teal-600 text-white',
-        secondary: 'bg-gray-200 dark:bg-slate-600 hover:bg-gray-300 dark:hover:bg-slate-500 text-gray-800 dark:text-gray-200',
-        danger: 'bg-red-600 hover:bg-red-700 text-white',
-    };
-    return <button type={type} onClick={onClick} disabled={disabled} className={`px-4 py-2 rounded-md font-semibold disabled:opacity-50 ${variants[variant]} ${className}`}>{children}</button>;
-};
-
+import { Toast, Modal, FormRow, Label, Input, Textarea, Select, Button } from './ui';
+import { useDebounce } from '../hooks/useDebounce';
 
 // Question Form Component
 const DEFAULT_QUESTION: Omit<Question, 'id'> = {
@@ -100,7 +64,7 @@ const QuestionForm: React.FC<{ question: Question | null; onSave: (question: Omi
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <FormRow>
                         <Label htmlFor="category">Category</Label>
-                        <Input id="category" name="category" list="category-list" value={formData.category} onChange={handleInputChange} required />
+                        <Input id="category" name="category" list="category-list" value={formData.category} onChange={handleInputChange} required placeholder="Type or select a category" />
                         <datalist id="category-list">
                             {categories.map(cat => <option key={cat} value={cat} />)}
                         </datalist>
@@ -127,6 +91,7 @@ const QuestionManager: React.FC<{ showToast: (msg: string, type?: 'success' | 'e
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [editingQuestion, setEditingQuestion] = useState<Question | null>(null);
     const [searchTerm, setSearchTerm] = useState('');
+    const debouncedSearchTerm = useDebounce(searchTerm, 300);
 
     const fetchQuestions = useCallback(async () => {
         setLoading(true);
@@ -185,7 +150,7 @@ const QuestionManager: React.FC<{ showToast: (msg: string, type?: 'success' | 'e
     };
 
     const uniqueCategories = useMemo(() => [...new Set(questions.map(q => q.category))], [questions]);
-    const filteredQuestions = useMemo(() => questions.filter(q => q.question.toLowerCase().includes(searchTerm.toLowerCase())), [questions, searchTerm]);
+    const filteredQuestions = useMemo(() => questions.filter(q => q.question.toLowerCase().includes(debouncedSearchTerm.toLowerCase())), [questions, debouncedSearchTerm]);
 
     if (loading) return <div className="text-center p-8">Loading questions...</div>;
     if (error) return <div className="text-center p-8 text-red-500">Error: {error}</div>;
@@ -299,7 +264,7 @@ const CategoryDeleteModal: React.FC<{ category: CategoryInfo; otherCategories: s
     );
 };
 
-const CategoryManager: React.FC<{ showToast: (msg: string, type?: 'success' | 'error') => void; onAddNew: () => void; }> = ({ showToast, onAddNew }) => {
+const CategoryManager: React.FC<{ showToast: (msg: string, type?: 'success' | 'error') => void; }> = ({ showToast }) => {
     const [categories, setCategories] = useState<CategoryInfo[]>([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
@@ -373,12 +338,9 @@ const CategoryManager: React.FC<{ showToast: (msg: string, type?: 'success' | 'e
             {modal === 'rename' && selectedCategory && <CategoryRenameModal categoryName={selectedCategory.name} onSave={handleRename} onClose={() => setModal(null)} />}
             {modal === 'delete' && selectedCategory && <CategoryDeleteModal category={selectedCategory} otherCategories={categories.map(c => c.name).filter(n => n !== selectedCategory.name)} onDelete={handleDelete} onClose={() => setModal(null)} />}
             
-            <div className="flex justify-between items-center mb-4">
-                <h2 className="text-2xl font-bold text-gray-900 dark:text-white">Manage Categories</h2>
-                <div className="flex items-center gap-2">
-                    <p className="text-sm text-gray-500 dark:text-gray-400 hidden md:block">A category is created with its first question.</p>
-                    <Button onClick={onAddNew}>Add New Category</Button>
-                </div>
+            <div className="mb-4">
+                <h2 className="text-2xl font-bold text-gray-900 dark:text-white">Manage Question Categories</h2>
+                <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">Categories are created automatically when you add or edit questions. This ensures that every category is actively in use.</p>
             </div>
             
             <div className="bg-white dark:bg-slate-800 rounded-lg border border-gray-200 dark:border-slate-700 overflow-hidden">
@@ -487,6 +449,7 @@ const RoadSignManager: React.FC<{ showToast: (msg: string, type?: 'success' | 'e
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [editingSign, setEditingSign] = useState<RoadSign | null>(null);
     const [searchTerm, setSearchTerm] = useState('');
+    const debouncedSearchTerm = useDebounce(searchTerm, 300);
     
     const categoryMap = useMemo(() => new Map(categories.map(c => [c.id, c.name])), [categories]);
 
@@ -551,7 +514,7 @@ const RoadSignManager: React.FC<{ showToast: (msg: string, type?: 'success' | 'e
         setIsModalOpen(true);
     };
     
-    const filteredSigns = useMemo(() => signs.filter(s => s.name.toLowerCase().includes(searchTerm.toLowerCase())), [signs, searchTerm]);
+    const filteredSigns = useMemo(() => signs.filter(s => s.name.toLowerCase().includes(debouncedSearchTerm.toLowerCase())), [signs, debouncedSearchTerm]);
     
     if (loading) return <div className="text-center p-8">Loading road signs...</div>;
     if (error) return <div className="text-center p-8 text-red-500">Error: {error}</div>;
@@ -601,6 +564,177 @@ const RoadSignManager: React.FC<{ showToast: (msg: string, type?: 'success' | 'e
         </div>
     );
 };
+
+// Road Sign Category Manager
+const SignCategoryFormModal: React.FC<{ category: RoadSignCategory | null; onSave: (data: Partial<RoadSignCategory>) => Promise<void>; onClose: () => void; }> = ({ category, onSave, onClose }) => {
+    const [name, setName] = useState(category?.name || '');
+    const [isSaving, setIsSaving] = useState(false);
+
+    const handleSubmit = async (e: React.FormEvent) => {
+        e.preventDefault();
+        setIsSaving(true);
+        await onSave({ ...category, name });
+        setIsSaving(false);
+    };
+
+    return (
+        <Modal title={category ? 'Edit Sign Category' : 'Add New Sign Category'} onClose={onClose} size="md">
+            <form onSubmit={handleSubmit}>
+                <FormRow>
+                    <Label htmlFor="name">Category Name</Label>
+                    <Input id="name" name="name" value={name} onChange={e => setName(e.target.value)} required />
+                </FormRow>
+                <div className="flex justify-end gap-3 mt-6">
+                    <Button type="button" variant="secondary" onClick={onClose} disabled={isSaving}>Cancel</Button>
+                    <Button type="submit" variant="primary" disabled={isSaving || !name}>{isSaving ? 'Saving...' : 'Save'}</Button>
+                </div>
+            </form>
+        </Modal>
+    );
+};
+
+const SignCategoryDeleteModal: React.FC<{ category: RoadSignCategory; otherCategories: RoadSignCategory[]; onDelete: (transferToId: string | null) => Promise<void>; onClose: () => void; }> = ({ category, otherCategories, onDelete, onClose }) => {
+    const [transferTo, setTransferTo] = useState('');
+    const [isDeleting, setIsDeleting] = useState(false);
+    const [signCount, setSignCount] = useState<number | null>(null);
+
+    useEffect(() => {
+        supabase!.from('road_signs').select('id', { count: 'exact', head: true }).eq('category', category.id)
+            .then(({ count }) => setSignCount(count));
+    }, [category.id]);
+    
+    const needsTransfer = signCount !== null && signCount > 0;
+
+    const handleSubmit = async () => {
+        setIsDeleting(true);
+        await onDelete(transferTo);
+        setIsDeleting(false);
+    };
+    
+    if (signCount === null) {
+        return <Modal title={`Delete Category: ${category.name}`} onClose={onClose} size="lg"><p>Checking for associated signs...</p></Modal>;
+    }
+    
+    return (
+        <Modal title={`Delete Category: ${category.name}`} onClose={onClose} size="lg">
+            <p className="text-gray-700 dark:text-gray-300">Are you sure you want to delete this category?</p>
+            {needsTransfer && (
+                <div className="mt-4 p-4 bg-yellow-50 dark:bg-yellow-500/10 border-l-4 border-yellow-400 dark:border-yellow-500 text-yellow-700 dark:text-yellow-300">
+                    <p className="font-bold">This category contains {signCount} road signs.</p>
+                    <p>To prevent orphaning signs, please select a new category to move them to.</p>
+                </div>
+            )}
+            {needsTransfer && (
+                <FormRow>
+                    <Label htmlFor="transfer-category" className="mt-4">Move signs to:</Label>
+                    <Select id="transfer-category" value={transferTo} onChange={e => setTransferTo(e.target.value)} required>
+                        <option value="" disabled>Select a category...</option>
+                        {otherCategories.map(cat => <option key={cat.id} value={cat.id}>{cat.name}</option>)}
+                    </Select>
+                </FormRow>
+            )}
+            <div className="flex justify-end gap-3 mt-6">
+                <Button type="button" variant="secondary" onClick={onClose}>Cancel</Button>
+                <Button variant="danger" onClick={handleSubmit} disabled={isDeleting || (needsTransfer && !transferTo)}>
+                    {isDeleting ? 'Deleting...' : 'Delete Category'}
+                </Button>
+            </div>
+        </Modal>
+    );
+};
+
+
+const RoadSignCategoryManager: React.FC<{ showToast: (msg: string, type?: 'success' | 'error') => void; }> = ({ showToast }) => {
+    const [categories, setCategories] = useState<RoadSignCategory[]>([]);
+    const [loading, setLoading] = useState(true);
+    const [error, setError] = useState<string | null>(null);
+    const [modal, setModal] = useState<'edit' | 'delete' | null>(null);
+    const [selectedCategory, setSelectedCategory] = useState<RoadSignCategory | null>(null);
+
+    const fetchCategories = useCallback(async () => {
+        setLoading(true);
+        try {
+            const { data, error } = await supabase!.from('road_sign_categories').select('*').order('name');
+            if (error) throw error;
+            setCategories(data || []);
+        } catch (err: any) {
+            setError(err.message);
+        } finally {
+            setLoading(false);
+        }
+    }, []);
+
+    useEffect(() => { fetchCategories() }, [fetchCategories]);
+
+    const handleSave = async (data: Partial<RoadSignCategory>) => {
+        try {
+            const { error } = await supabase!.from('road_sign_categories').upsert(data);
+            if (error) throw error;
+            showToast('Category saved!');
+            setModal(null);
+            setSelectedCategory(null);
+            fetchCategories();
+        } catch (err: any) {
+            showToast(`Error: ${err.message}`, 'error');
+        }
+    };
+    
+    const handleDelete = async (transferToId: string | null) => {
+        if (!selectedCategory) return;
+        try {
+            if (transferToId) {
+                const { error: updateError } = await supabase!.from('road_signs').update({ category: transferToId }).eq('category', selectedCategory.id);
+                if (updateError) throw updateError;
+            }
+            const { error: deleteError } = await supabase!.from('road_sign_categories').delete().eq('id', selectedCategory.id);
+            if (deleteError) throw deleteError;
+
+            showToast('Category deleted.');
+            setModal(null);
+            setSelectedCategory(null);
+            fetchCategories();
+        } catch (err: any) {
+            showToast(`Error: ${err.message}`, 'error');
+        }
+    };
+    
+    if (loading) return <p>Loading sign categories...</p>;
+    if (error) return <p className="text-red-500">Error: {error}</p>;
+
+    return (
+        <div>
+            {modal === 'edit' && <SignCategoryFormModal category={selectedCategory} onSave={handleSave} onClose={() => setModal(null)} />}
+            {modal === 'delete' && selectedCategory && <SignCategoryDeleteModal category={selectedCategory} otherCategories={categories.filter(c => c.id !== selectedCategory.id)} onDelete={handleDelete} onClose={() => setModal(null)} />}
+
+            <div className="flex justify-between items-center mb-4">
+                <h2 className="text-2xl font-bold text-gray-900 dark:text-white">Manage Sign Categories</h2>
+                <Button onClick={() => { setSelectedCategory(null); setModal('edit'); }}>Add New Category</Button>
+            </div>
+            <div className="bg-white dark:bg-slate-800 rounded-lg border border-gray-200 dark:border-slate-700 overflow-hidden">
+                <table className="w-full text-sm text-left">
+                    <thead className="text-xs text-gray-700 uppercase bg-gray-50 dark:bg-slate-700 dark:text-gray-400">
+                        <tr>
+                            <th className="px-6 py-3">Category Name</th>
+                            <th className="px-6 py-3 text-right">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {categories.map(c => (
+                            <tr key={c.id} className="border-b dark:border-slate-700">
+                                <td className="px-6 py-4 font-medium text-gray-900 dark:text-white">{c.name}</td>
+                                <td className="px-6 py-4 flex justify-end gap-2">
+                                    <Button variant="secondary" onClick={() => { setSelectedCategory(c); setModal('edit'); }}>Edit</Button>
+                                    <Button variant="danger" onClick={() => { setSelectedCategory(c); setModal('delete'); }}>Delete</Button>
+                                </td>
+                            </tr>
+                        ))}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    );
+};
+
 
 // Hazard Perception Manager Components
 const mapClipToCamelCase = (dbClip: any): HazardPerceptionClip => ({
@@ -848,6 +982,7 @@ const CaseStudyForm: React.FC<{ study: CaseStudy | null; onSave: (studyData: Omi
     const [isSaving, setIsSaving] = useState(false);
     const [allQuestions, setAllQuestions] = useState<Question[]>([]);
     const [questionSearch, setQuestionSearch] = useState('');
+    const debouncedSearch = useDebounce(questionSearch, 300);
 
     useEffect(() => {
         supabase!.from('questions').select('id, question, category').then(({ data }) => {
@@ -877,8 +1012,8 @@ const CaseStudyForm: React.FC<{ study: CaseStudy | null; onSave: (studyData: Omi
     };
 
     const filteredQuestions = useMemo(() => {
-        return allQuestions.filter(q => q.question.toLowerCase().includes(questionSearch.toLowerCase()));
-    }, [allQuestions, questionSearch]);
+        return allQuestions.filter(q => q.question.toLowerCase().includes(debouncedSearch.toLowerCase()));
+    }, [allQuestions, debouncedSearch]);
 
     return (
         <Modal title={study ? 'Edit Case Study' : 'Add New Case Study'} onClose={onClose} size="3xl">
@@ -1142,140 +1277,6 @@ const HighwayCodeManager: React.FC<{ showToast: (msg: string, type?: 'success' |
     );
 };
 
-// Main Component
-interface AdminPageProps {
-    navigateTo: (page: Page) => void;
-    appAssets: Record<string, string>;
-    onAssetsUpdate: () => void;
-}
-
-const AdminPage: React.FC<AdminPageProps> = ({ navigateTo, appAssets, onAssetsUpdate }) => {
-    const [activeSection, setActiveSection] = useState<AdminSection>('content');
-    const [activeContentTab, setActiveContentTab] = useState<ContentTab>('questions');
-    const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
-    const [isQuestionModalOpen, setIsQuestionModalOpen] = useState(false);
-    const [editingQuestion, setEditingQuestion] = useState<Question | null>(null);
-
-    const showToast = (message: string, type: 'success' | 'error' = 'success') => {
-        setToast({ message, type });
-    };
-
-    const sidebarItems = {
-        content: { name: 'Content Management', icon: 'icon_clipboard' },
-        appearance: { name: 'Appearance', icon: 'icon_lightbulb' }
-    };
-    
-    const contentTabs = {
-        questions: { name: 'Questions' },
-        categories: { name: 'Categories' },
-        road_signs: { name: 'Road Signs' },
-        hazard: { name: 'Hazard Perception' },
-        highway_code: { name: 'Highway Code' },
-        case_studies: { name: 'Case Studies' }
-    };
-
-    const handleAddNewCategory = () => {
-        setEditingQuestion(null);
-        setIsQuestionModalOpen(true);
-    };
-
-    const renderContent = () => {
-        if (activeSection === 'content') {
-            switch (activeContentTab) {
-                case 'questions':
-                    return <QuestionManager showToast={showToast} />;
-                case 'categories':
-                    return <CategoryManager showToast={showToast} onAddNew={handleAddNewCategory} />;
-                case 'road_signs':
-                    return <RoadSignManager showToast={showToast} />;
-                case 'hazard':
-                    return <HazardClipManager showToast={showToast} />;
-                case 'highway_code':
-                    return <HighwayCodeManager showToast={showToast} />;
-                case 'case_studies':
-                    return <CaseStudyManager showToast={showToast} />;
-                default:
-                    return <div>
-                        {/* FIX: Add type assertion to prevent TS error from exhaustive switch narrowing variable to 'never'. */}
-                        <h2 className="text-2xl font-bold mb-4 text-gray-900 dark:text-white">{contentTabs[activeContentTab as ContentTab].name}</h2>
-                        <div className="p-8 text-center bg-gray-100 dark:bg-slate-800 rounded-lg border border-gray-200 dark:border-slate-700">
-                            <p className="text-gray-500 dark:text-gray-400">Management for this section is coming soon.</p>
-                        </div>
-                    </div>;
-            }
-        }
-        if (activeSection === 'appearance') {
-             return <AppearanceManager onAssetsUpdate={onAssetsUpdate} showToast={showToast} appAssets={appAssets} />;
-        }
-        return null;
-    };
-
-    return (
-        <div className="min-h-[calc(100vh-81px)]">
-            {toast && <Toast message={toast.message} type={toast.type} onDismiss={() => setToast(null)} />}
-            {isQuestionModalOpen && (
-                <QuestionForm
-                    question={editingQuestion}
-                    onSave={async (q) => {
-                        /* This save is only for adding new categories via new questions; QuestionManager handles its own saves. */
-                        const { id, created_at, ...upsertData } = q as Question;
-                        const { error } = await supabase!.from('questions').upsert(upsertData);
-                        if (error) {
-                            showToast(`Error saving question: ${error.message}`, 'error');
-                        } else {
-                            showToast('Question saved successfully!');
-                            setIsQuestionModalOpen(false);
-                        }
-                    }}
-                    onClose={() => setIsQuestionModalOpen(false)}
-                    categories={[]} // Not needed here as user will type a new one
-                />
-            )}
-             <header className="p-4 sm:p-6 lg:p-8 max-w-full mx-auto border-b border-gray-200 dark:border-slate-700">
-                <div className="flex items-center justify-between">
-                  <button onClick={() => navigateTo(Page.Dashboard)} className="flex items-center space-x-2 text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white transition-colors duration-200 group">
-                      <ChevronLeftIcon className="h-6 w-6 transform group-hover:-translate-x-1 transition-transform" />
-                      <span>Back to Dashboard</span>
-                  </button>
-                  <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Admin Dashboard</h1>
-                </div>
-            </header>
-            <div className="flex">
-                <aside className="w-64 bg-white dark:bg-slate-800/50 p-4 border-r border-gray-200 dark:border-slate-700">
-                    <nav className="space-y-2">
-                         {Object.entries(sidebarItems).map(([key, {name, icon}]) => (
-                            <button
-                                key={key}
-                                onClick={() => setActiveSection(key as AdminSection)}
-                                className={`w-full flex items-center p-3 rounded-lg text-left transition-colors ${activeSection === key ? 'bg-teal-500/10 text-teal-600 dark:text-teal-400' : 'text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-slate-700'}`}
-                            >
-                                <DynamicIcon svgString={appAssets[icon]} className="h-5 w-5 mr-3" />
-                                <span className="font-semibold">{name}</span>
-                            </button>
-                        ))}
-                    </nav>
-                </aside>
-                <main className="flex-1 p-6 bg-gray-50 dark:bg-slate-900/50">
-                    {activeSection === 'content' && (
-                        <div className="mb-6 flex items-center gap-2 border-b border-gray-200 dark:border-slate-700 overflow-x-auto">
-                            {Object.entries(contentTabs).map(([key, { name }]) => (
-                                <button
-                                    key={key}
-                                    onClick={() => setActiveContentTab(key as ContentTab)}
-                                    className={`px-4 py-2 font-semibold border-b-2 transition-colors whitespace-nowrap ${activeContentTab === key ? 'border-teal-500 text-teal-600 dark:text-teal-400' : 'border-transparent text-gray-500 dark:text-gray-400 hover:border-gray-300 dark:hover:border-slate-600 hover:text-gray-800 dark:hover:text-gray-200'}`}
-                                >
-                                    {name}
-                                </button>
-                            ))}
-                        </div>
-                    )}
-                    {renderContent()}
-                </main>
-            </div>
-        </div>
-    );
-};
-
 // Appearance Manager Component
 const AppearanceManager: React.FC<{ onAssetsUpdate: () => void; showToast: (msg: string, type?: 'success' | 'error') => void; appAssets: Record<string, string>; }> = ({ onAssetsUpdate, showToast, appAssets: initialAssets }) => {
     const [assets, setAssets] = useState(initialAssets);
@@ -1376,5 +1377,118 @@ const AppearanceManager: React.FC<{ onAssetsUpdate: () => void; showToast: (msg:
     );
 };
 
+
+// Main Component
+interface AdminPageProps {
+    navigateTo: (page: Page) => void;
+    appAssets: Record<string, string>;
+    onAssetsUpdate: () => void;
+}
+
+const AdminPage: React.FC<AdminPageProps> = ({ navigateTo, appAssets, onAssetsUpdate }) => {
+    const [activeSection, setActiveSection] = useState<AdminSection>('content');
+    const [activeContentTab, setActiveContentTab] = useState<ContentTab>('questions');
+    const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
+
+    const showToast = (message: string, type: 'success' | 'error' = 'success') => {
+        setToast({ message, type });
+    };
+
+    const sidebarItems = {
+        content: { name: 'Content Management', icon: 'icon_clipboard' },
+        appearance: { name: 'Appearance', icon: 'icon_lightbulb' }
+    };
+    
+    const contentTabs: Record<ContentTab, { name: string }> = {
+        questions: { name: 'Questions' },
+        categories: { name: 'Question Categories' },
+        road_signs: { name: 'Road Signs' },
+        road_sign_categories: { name: 'Sign Categories' },
+        hazard: { name: 'Hazard Perception' },
+        highway_code: { name: 'Highway Code' },
+        case_studies: { name: 'Case Studies' }
+    };
+
+
+    const renderContent = () => {
+        if (activeSection === 'content') {
+            switch (activeContentTab) {
+                case 'questions':
+                    return <QuestionManager showToast={showToast} />;
+                case 'categories':
+                    return <CategoryManager showToast={showToast} />;
+                case 'road_signs':
+                    return <RoadSignManager showToast={showToast} />;
+                case 'road_sign_categories':
+                    return <RoadSignCategoryManager showToast={showToast} />;
+                case 'hazard':
+                    return <HazardClipManager showToast={showToast} />;
+                case 'highway_code':
+                    return <HighwayCodeManager showToast={showToast} />;
+                case 'case_studies':
+                    return <CaseStudyManager showToast={showToast} />;
+                default:
+                    return <div>
+                        {/* FIX: Add type assertion to prevent TS error from exhaustive switch narrowing variable to 'never'. */}
+                        <h2 className="text-2xl font-bold mb-4 text-gray-900 dark:text-white">{contentTabs[activeContentTab as ContentTab].name}</h2>
+                        <div className="p-8 text-center bg-gray-100 dark:bg-slate-800 rounded-lg border border-gray-200 dark:border-slate-700">
+                            <p className="text-gray-500 dark:text-gray-400">Management for this section is coming soon.</p>
+                        </div>
+                    </div>;
+            }
+        }
+        if (activeSection === 'appearance') {
+             return <AppearanceManager onAssetsUpdate={onAssetsUpdate} showToast={showToast} appAssets={appAssets} />;
+        }
+        return null;
+    };
+
+    return (
+        <div className="min-h-[calc(100vh-81px)]">
+            {toast && <Toast message={toast.message} type={toast.type} onDismiss={() => setToast(null)} />}
+             <header className="p-4 sm:p-6 lg:p-8 max-w-full mx-auto border-b border-gray-200 dark:border-slate-700">
+                <div className="flex items-center justify-between">
+                  <button onClick={() => navigateTo(Page.Dashboard)} className="flex items-center space-x-2 text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white transition-colors duration-200 group">
+                      <ChevronLeftIcon className="h-6 w-6 transform group-hover:-translate-x-1 transition-transform" />
+                      <span>Back to Dashboard</span>
+                  </button>
+                  <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Admin Dashboard</h1>
+                </div>
+            </header>
+            <div className="flex">
+                <aside className="w-64 bg-white dark:bg-slate-800/50 p-4 border-r border-gray-200 dark:border-slate-700">
+                    <nav className="space-y-2">
+                         {Object.entries(sidebarItems).map(([key, {name, icon}]) => (
+                            <button
+                                key={key}
+                                onClick={() => setActiveSection(key as AdminSection)}
+                                className={`w-full flex items-center p-3 rounded-lg text-left transition-colors ${activeSection === key ? 'bg-teal-500/10 text-teal-600 dark:text-teal-400' : 'text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-slate-700'}`}
+                            >
+                                <DynamicIcon svgString={appAssets[icon]} className="h-5 w-5 mr-3" />
+                                <span className="font-semibold">{name}</span>
+                            </button>
+                        ))}
+                    </nav>
+                </aside>
+                <main className="flex-1 p-6 bg-gray-50 dark:bg-slate-900/50">
+                    {activeSection === 'content' && (
+                        <div className="mb-6 flex items-center gap-2 border-b border-gray-200 dark:border-slate-700 overflow-x-auto">
+                            {Object.entries(contentTabs).map(([key, { name }]) => (
+                                <button
+                                    key={key}
+                                    onClick={() => setActiveContentTab(key as ContentTab)}
+                                    className={`px-4 py-2 font-semibold border-b-2 transition-colors whitespace-nowrap ${activeContentTab === key ? 'border-teal-500 text-teal-600 dark:text-teal-400' : 'border-transparent text-gray-500 dark:text-gray-400 hover:border-gray-300 dark:hover:border-slate-600 hover:text-gray-800 dark:hover:text-gray-200'}`}
+                                >
+                                    {name}
+                                </button>
+                            ))}
+                        </div>
+                    )}
+                    {renderContent()}
+                </main>
+            </div>
+        </div>
+    );
+};
 
 export default AdminPage;

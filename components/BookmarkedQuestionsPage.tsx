@@ -1,19 +1,22 @@
 import React, { useMemo } from 'react';
 import { Page, Question } from '../types';
 import { ChevronLeftIcon, BookmarkIcon, FlagIcon } from './icons';
+import { useQuestions } from '../contexts/QuestionsContext';
 
 interface BookmarkedQuestionsPageProps {
     navigateTo: (page: Page) => void;
-    allQuestions: Question[];
     bookmarkedQuestions: string[];
     onToggleBookmark: (questionId: string) => void;
 }
 
-const BookmarkedQuestionsPage: React.FC<BookmarkedQuestionsPageProps> = ({ navigateTo, allQuestions, bookmarkedQuestions, onToggleBookmark }) => {
+const BookmarkedQuestionsPage: React.FC<BookmarkedQuestionsPageProps> = ({ navigateTo, bookmarkedQuestions, onToggleBookmark }) => {
+    const { questions: allQuestions, loading } = useQuestions();
+
     const bookmarked = useMemo(() => {
+        if (loading) return [];
         const bookmarkedSet = new Set(bookmarkedQuestions);
         return allQuestions.filter(q => bookmarkedSet.has(q.id));
-    }, [allQuestions, bookmarkedQuestions]);
+    }, [allQuestions, bookmarkedQuestions, loading]);
 
     return (
         <div className="p-4 sm:p-6 lg:p-8 max-w-4xl mx-auto">
@@ -31,7 +34,11 @@ const BookmarkedQuestionsPage: React.FC<BookmarkedQuestionsPageProps> = ({ navig
             </header>
             
             <main className="space-y-6">
-                {bookmarked.length > 0 ? (
+                {loading ? (
+                     <div className="text-center py-16">
+                        <p className="text-gray-500 dark:text-gray-400">Loading bookmarked questions...</p>
+                    </div>
+                ) : bookmarked.length > 0 ? (
                     bookmarked.map((question, index) => (
                         <div key={question.id} className="stagger-fade-in bg-white dark:bg-slate-800/50 p-6 rounded-xl border border-gray-200 dark:border-slate-700" style={{ animationDelay: `${index * 50}ms` }}>
                             <div className="flex justify-between items-start mb-4">

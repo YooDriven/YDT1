@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { memo } from 'react';
 import { LeaderboardEntry, Page, UserProfile } from '../types';
 import PerformanceChart from './PerformanceChart';
 import DynamicIcon from './DynamicIcon';
@@ -152,4 +152,4 @@ const StudentProfileCard: React.FC<StudentProfileCardProps> = ({ user, navigateT
   );
 };
 
-export default StudentProfileCard;
+export default memo(StudentProfileCard);

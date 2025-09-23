@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, memo } from 'react';
 import { Page, UserProfile, Theme } from '../types';
 import DynamicIcon from './DynamicIcon';
 import ThemeToggle from './ThemeToggle';
@@ -84,4 +84,4 @@ const Header: React.FC<HeaderProps> = ({ user, navigateTo, theme, setTheme, appA
     );
 };
 
-export default Header;
+export default memo(Header);
