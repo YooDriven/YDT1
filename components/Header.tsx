@@ -50,7 +50,7 @@ const Header: React.FC<HeaderProps> = ({ user, navigateTo, theme, setTheme, appA
                             onClick={() => setIsMenuOpen(prev => !prev)}
                             className="flex items-center space-x-3"
                         >
-                            <span className="font-semibold text-gray-700 dark:text-gray-300 hidden sm:inline">{user.name}</span>
+                            <span className="font-semibold text-base text-gray-700 dark:text-gray-300 hidden sm:inline">{user.name}</span>
                             <img
                                 src={user.avatarUrl}
                                 alt="User Avatar"

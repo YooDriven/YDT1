@@ -1,6 +1,7 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { supabase } from '../lib/supabaseClient';
 import DynamicIcon from './DynamicIcon';
+import { Button, Input } from './ui';
 
 interface LoginPageProps {
     appAssets: Record<string, string>;
@@ -10,30 +11,60 @@ const LoginPage: React.FC<LoginPageProps> = ({ appAssets }) => {
     const [loading, setLoading] = useState(false);
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
-    const [error, setError] = useState<string | null>(null);
+    const [formError, setFormError] = useState<string | null>(null);
     const [message, setMessage] = useState<string | null>(null);
+    
+    const [emailError, setEmailError] = useState<string | null>(null);
+    const [passwordError, setPasswordError] = useState<string | null>(null);
+
+    const validateForm = () => {
+        let isValid = true;
+        if (!email) {
+            setEmailError("Email cannot be empty.");
+            isValid = false;
+        } else if (!/\S+@\S+\.\S+/.test(email)) {
+            setEmailError("Please enter a valid email address.");
+            isValid = false;
+        } else {
+            setEmailError(null);
+        }
+
+        if (!password) {
+            setPasswordError("Password cannot be empty.");
+            isValid = false;
+        } else if (password.length < 6) {
+            setPasswordError("Password must be at least 6 characters long.");
+            isValid = false;
+        } else {
+            setPasswordError(null);
+        }
+        return isValid;
+    };
 
     const handleEmailAuth = async (isSignUp: boolean) => {
+        if (!validateForm()) return;
+
         setLoading(true);
-        setError(null);
+        setFormError(null);
         setMessage(null);
 
         if (isSignUp) {
             const { data, error } = await supabase!.auth.signUp({ email, password });
+
             if (error) {
-                setError(error.message);
+                setFormError(error.message);
             } else if (data.user && data.user.identities && data.user.identities.length === 0) {
-                // This is a Supabase nuance: a successful call with an existing user returns a user with no identities.
-                setError("User with this email already exists. Please sign in.");
+                setFormError("User with this email already exists. Please sign in.");
+            } else if (data.session) {
+                setMessage("Sign up successful! Redirecting...");
             } else {
-                setMessage('Check your email for the confirmation link!');
+                setMessage('Account created! Please check your email to verify your account. For a smoother development experience, you can disable "Confirm email" in your Supabase project\'s Auth settings.');
             }
-        } else {
+        } else { // Sign in logic
             const { error } = await supabase!.auth.signInWithPassword({ email, password });
             if (error) {
-                setError(error.message);
+                setFormError(error.message);
             }
-            // On successful login, onAuthStateChange in App.tsx takes over.
         }
 
         setLoading(false);
@@ -41,19 +72,16 @@ const LoginPage: React.FC<LoginPageProps> = ({ appAssets }) => {
 
     const handleOneClickLogin = async (role: 'user' | 'admin') => {
         setLoading(true);
-        setError(null);
+        setFormError(null);
         setMessage(null);
 
         const loginEmail = role === 'admin' ? 'admin@drivetheory.pro' : 'test@drivetheory.pro';
         const loginPassword = 'password123';
 
         const { error } = await supabase!.auth.signInWithPassword({ email: loginEmail, password: loginPassword });
-
         if (error) {
-            setError(`Failed to one-click login as ${role}. Ensure the developer account is correctly set up.`);
+            setFormError(`Failed to one-click login as ${role}. Ensure the developer account is correctly set up.`);
         }
-        // On successful login, onAuthStateChange in App.tsx takes over.
-
         setLoading(false);
     };
 
@@ -64,45 +92,49 @@ const LoginPage: React.FC<LoginPageProps> = ({ appAssets }) => {
                     <div className="h-10 w-auto mx-auto mb-4 flex justify-center">
                         <DynamicIcon svgString={appAssets['logo_yoodrive']} />
                     </div>
-                    <h2 className="text-2xl font-bold text-gray-900 dark:text-white">Get Started</h2>
-                    <p className="mt-2 text-sm text-gray-600 dark:text-gray-400">Sign in or create an account to begin</p>
+                    <h2 className="text-3xl font-bold text-gray-900 dark:text-white tracking-tight">Get Started</h2>
+                    <p className="mt-2 text-base text-gray-600 dark:text-gray-400">Sign in or create an account to begin</p>
                 </div>
 
                 <div className="space-y-4">
-                    <input
+                    <Input
                         type="email"
                         placeholder="Email address"
                         value={email}
                         onChange={(e) => setEmail(e.target.value)}
-                        className="w-full px-4 py-3 bg-gray-50 dark:bg-slate-900/50 border border-gray-300 dark:border-slate-600 rounded-md focus:outline-none focus:ring-2 focus:ring-teal-500 text-gray-900 dark:text-white"
+                        onBlur={validateForm}
+                        error={emailError || undefined}
                     />
-                    <input
+                    <Input
                         type="password"
                         placeholder="Password"
                         value={password}
                         onChange={(e) => setPassword(e.target.value)}
-                        className="w-full px-4 py-3 bg-gray-50 dark:bg-slate-900/50 border border-gray-300 dark:border-slate-600 rounded-md focus:outline-none focus:ring-2 focus:ring-teal-500 text-gray-900 dark:text-white"
+                        onBlur={validateForm}
+                        error={passwordError || undefined}
                     />
                 </div>
 
-                {error && <p className="text-sm text-red-500 text-center">{error}</p>}
+                {formError && <p className="text-sm text-red-500 text-center">{formError}</p>}
                 {message && <p className="text-sm text-green-500 text-center">{message}</p>}
 
                 <div className="flex flex-col sm:flex-row gap-3">
-                     <button
+                     <Button
                         onClick={() => handleEmailAuth(false)}
-                        disabled={loading || !email || !password}
-                        className="w-full py-3 px-4 bg-[#008485] text-white font-bold rounded-lg hover:bg-[#007374] transition-colors disabled:opacity-50"
+                        disabled={loading}
+                        variant="primary"
+                        className="w-full py-3"
                     >
                         Sign In
-                    </button>
-                    <button
+                    </Button>
+                    <Button
                         onClick={() => handleEmailAuth(true)}
-                        disabled={loading || !email || !password}
-                        className="w-full py-3 px-4 bg-gray-600 text-white font-bold rounded-lg hover:bg-gray-700 transition-colors disabled:opacity-50"
+                        disabled={loading}
+                        variant="secondary"
+                        className="w-full py-3"
                     >
                         Sign Up
-                    </button>
+                    </Button>
                 </div>
 
                 <div className="relative pt-4">
@@ -120,14 +152,14 @@ const LoginPage: React.FC<LoginPageProps> = ({ appAssets }) => {
                     <button
                         onClick={() => handleOneClickLogin('user')}
                         disabled={loading}
-                        className="w-full py-3 px-4 bg-sky-600 text-white font-bold rounded-lg hover:bg-sky-700 transition-colors disabled:opacity-50"
+                        className="w-full py-3 px-4 bg-sky-600 text-white font-semibold rounded-lg hover:bg-sky-700 transition-colors disabled:opacity-50"
                     >
                         Login as User
                     </button>
                     <button
                         onClick={() => handleOneClickLogin('admin')}
                         disabled={loading}
-                        className="w-full py-3 px-4 bg-indigo-600 text-white font-bold rounded-lg hover:bg-indigo-700 transition-colors disabled:opacity-50"
+                        className="w-full py-3 px-4 bg-indigo-600 text-white font-semibold rounded-lg hover:bg-indigo-700 transition-colors disabled:opacity-50"
                     >
                         Login as Admin
                     </button>

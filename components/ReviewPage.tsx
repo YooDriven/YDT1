@@ -19,9 +19,9 @@ const ReviewPage: React.FC<ReviewPageProps> = ({ navigateTo, reviewData }) => {
         <div className="flex items-center justify-between mb-4">
           <button onClick={() => navigateTo(Page.Results)} className="flex items-center space-x-2 text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white transition-colors duration-200 group">
             <ChevronLeftIcon className="h-6 w-6 transform group-hover:-translate-x-1 transition-transform" />
-            <span>Back to Results</span>
+            <span className="text-base">Back to Results</span>
           </button>
-          <p className="text-lg font-bold text-gray-900 dark:text-white">Review Answers</p>
+          <p className="text-xl font-semibold text-gray-900 dark:text-white">Review Answers</p>
         </div>
         <p className="text-gray-500 dark:text-gray-400 mt-2 leading-relaxed">
           Review your answers below. Correct answers are highlighted in green, and your incorrect answers are in red.
@@ -35,7 +35,7 @@ const ReviewPage: React.FC<ReviewPageProps> = ({ navigateTo, reviewData }) => {
 
           return (
             <div key={index} className="bg-white dark:bg-slate-800/50 p-6 rounded-xl border border-gray-200 dark:border-slate-700">
-              <h3 className="text-lg font-semibold leading-relaxed text-gray-900 dark:text-white mb-4">
+              <h3 className="text-lg font-semibold leading-tight text-gray-900 dark:text-white mb-4">
                 {index + 1}. {question.question}
               </h3>
               <div className="space-y-3 mb-4">
@@ -53,7 +53,7 @@ const ReviewPage: React.FC<ReviewPageProps> = ({ navigateTo, reviewData }) => {
                   return (
                     <div key={optionIndex} className={`p-3 rounded-lg border ${optionClass} flex items-center`}>
                       <span className={`font-semibold mr-2 ${textClass}`}>{String.fromCharCode(65 + optionIndex)}.</span>
-                      {option.text && <span className={textClass}>{option.text}</span>}
+                      {option.text && <span className={`text-base leading-snug ${textClass}`}>{option.text}</span>}
                       {option.image && <img src={option.image} alt={`Option ${optionIndex + 1}`} className="h-24 rounded" />}
                     </div>
                   );

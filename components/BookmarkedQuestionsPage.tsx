@@ -24,11 +24,11 @@ const BookmarkedQuestionsPage: React.FC<BookmarkedQuestionsPageProps> = ({ navig
                 <div className="flex items-center justify-between mb-4">
                 <button onClick={() => navigateTo(Page.StudyHub)} className="flex items-center space-x-2 text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white transition-colors duration-200 group">
                     <ChevronLeftIcon className="h-6 w-6 transform group-hover:-translate-x-1 transition-transform" />
-                    <span>Back to Study Hub</span>
+                    <span className="text-base">Back to Study Hub</span>
                 </button>
                 </div>
-                <h1 className="text-4xl font-bold text-gray-900 dark:text-white">Bookmarked Questions</h1>
-                <p className="text-lg text-gray-500 dark:text-gray-400 mt-2">
+                <h1 className="text-4xl font-bold text-gray-900 dark:text-white tracking-tight leading-tight">Bookmarked Questions</h1>
+                <p className="text-lg text-gray-500 dark:text-gray-400 mt-2 leading-relaxed">
                     Review questions you have saved. The correct answer is highlighted in green.
                 </p>
             </header>
@@ -42,7 +42,7 @@ const BookmarkedQuestionsPage: React.FC<BookmarkedQuestionsPageProps> = ({ navig
                     bookmarked.map((question, index) => (
                         <div key={question.id} className="stagger-fade-in bg-white dark:bg-slate-800/50 p-6 rounded-xl border border-gray-200 dark:border-slate-700" style={{ animationDelay: `${index * 50}ms` }}>
                             <div className="flex justify-between items-start mb-4">
-                                <h3 className="text-lg font-semibold leading-relaxed text-gray-900 dark:text-white flex-1">
+                                <h3 className="text-lg font-semibold leading-tight text-gray-900 dark:text-white flex-1">
                                     {index + 1}. {question.question}
                                 </h3>
                                 <button
@@ -63,14 +63,14 @@ const BookmarkedQuestionsPage: React.FC<BookmarkedQuestionsPageProps> = ({ navig
                                             : 'border-gray-200 dark:border-slate-700'
                                         }`}>
                                             <span className={`font-semibold mr-2 ${isCorrect ? 'text-green-800 dark:text-white' : 'text-gray-800 dark:text-gray-300'}`}>{String.fromCharCode(65 + optionIndex)}.</span>
-                                            {option.text && <span className={`${isCorrect ? 'text-green-800 dark:text-white' : 'text-gray-800 dark:text-gray-300'}`}>{option.text}</span>}
+                                            {option.text && <span className={`text-base leading-snug ${isCorrect ? 'text-green-800 dark:text-white' : 'text-gray-800 dark:text-gray-300'}`}>{option.text}</span>}
                                             {option.image && <img src={option.image} alt={`Option ${optionIndex + 1}`} className="h-24 rounded" />}
                                         </div>
                                     );
                                 })}
                             </div>
                             <div className="mt-4 pt-4 border-t border-gray-200 dark:border-slate-700">
-                                <p className="text-sm text-gray-600 dark:text-gray-400 leading-relaxed">{question.explanation}</p>
+                                <p className="text-base text-gray-600 dark:text-gray-400 leading-relaxed">{question.explanation}</p>
                             </div>
                         </div>
                     ))

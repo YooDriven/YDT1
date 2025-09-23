@@ -28,11 +28,11 @@ const TopicSelectionPage: React.FC<TopicSelectionPageProps> = ({ navigateTo, onT
         <div className="flex items-center justify-between mb-4">
           <button onClick={() => navigateTo(Page.StudyHub)} className="flex items-center space-x-2 text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white transition-colors duration-200 group">
             <ChevronLeftIcon className="h-6 w-6 transform group-hover:-translate-x-1 transition-transform" />
-            <span>Back to Study Hub</span>
+            <span className="text-base">Back to Study Hub</span>
           </button>
         </div>
-        <h1 className="text-4xl font-bold text-gray-900 dark:text-white">{title}</h1>
-        <p className="text-lg text-gray-500 dark:text-gray-400 mt-2">{description}</p>
+        <h1 className="text-4xl font-bold text-gray-900 dark:text-white tracking-tight leading-tight">{title}</h1>
+        <p className="text-lg text-gray-500 dark:text-gray-400 mt-2 leading-relaxed">{description}</p>
       </header>
 
       <main className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -46,7 +46,7 @@ const TopicSelectionPage: React.FC<TopicSelectionPageProps> = ({ navigateTo, onT
                     className="stagger-fade-in p-6 bg-white dark:bg-slate-800 rounded-lg text-left hover:bg-gray-50 dark:hover:bg-slate-700/50 border border-gray-200 dark:border-slate-700 transition-all transform hover:-translate-y-1"
                     style={{ animationDelay: `${index * 50}ms` }}
                 >
-                    <h2 className="font-bold text-lg text-gray-900 dark:text-white">{topic}</h2>
+                    <h2 className="font-semibold text-lg text-gray-900 dark:text-white">{topic}</h2>
                 </button>
             ))
         )}

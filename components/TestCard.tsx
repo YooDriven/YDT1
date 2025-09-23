@@ -26,21 +26,21 @@ const TestCard: React.FC<TestCardProps> = ({ card, index, onClick, completed, ap
       >
         {comingSoon && (
           <div className="absolute inset-0 bg-gray-100/70 dark:bg-slate-900/70 rounded-xl flex items-center justify-center backdrop-blur-sm z-10">
-            <span className="text-lg font-bold text-gray-500 dark:text-gray-400">Coming Soon</span>
+            <span className="text-lg font-semibold text-gray-500 dark:text-gray-400">Coming Soon</span>
           </div>
         )}
         {completed && (
           <div className="absolute inset-0 bg-gray-100/80 dark:bg-slate-900/80 rounded-xl flex flex-col items-center justify-center backdrop-blur-sm z-10">
             <CheckCircleIcon className="h-12 w-12 text-teal-500 dark:text-teal-400 mb-2" />
-            <span className="text-lg font-bold text-gray-600 dark:text-gray-300">Completed Today</span>
+            <span className="text-lg font-semibold text-gray-600 dark:text-gray-300">Completed Today</span>
           </div>
         )}
         <div className="flex flex-col h-full items-center">
           <div className="mb-4">
             <DynamicIcon svgString={appAssets[iconKey]} className={`h-10 w-10 ${color} transition-colors`} />
           </div>
-          <h3 className="text-xl font-bold leading-tight text-gray-900 dark:text-white">{title}</h3>
-          <p className="text-gray-500 dark:text-gray-400 mt-2 flex-grow leading-relaxed">{description}</p>
+          <h3 className="text-xl font-semibold leading-tight text-gray-900 dark:text-white tracking-tight">{title}</h3>
+          <p className="text-sm text-gray-500 dark:text-gray-400 mt-2 flex-grow leading-relaxed">{description}</p>
           {duration && <p className="text-sm font-semibold text-gray-700 dark:text-gray-300 mt-4">{duration}</p>}
         </div>
       </button>

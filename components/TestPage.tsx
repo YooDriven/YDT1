@@ -91,18 +91,24 @@ const TestPage: React.FC<TestPageProps> = ({ navigateTo, onTestComplete, totalQu
     const currentQuestion = questions[currentQuestionIndex];
     const selectedAnswer = userAnswers[currentQuestionIndex];
     const isBookmarked = currentQuestion && bookmarkedQuestions.includes(currentQuestion.id);
+    const progressPercentage = questions.length > 0 ? ((currentQuestionIndex + 1) / questions.length) * 100 : 0;
 
     return (
         <div className="max-w-4xl mx-auto px-4 py-8">
-            <header className="flex flex-col sm:flex-row justify-between sm:items-center mb-4 gap-4">
-                <button onClick={() => navigateTo(Page.Dashboard)} className="text-sm text-gray-600 dark:text-gray-400 flex items-center self-start">
-                    <ChevronLeftIcon className="h-4 w-4 mr-1" />
-                    Back
-                </button>
-                <h1 className="text-2xl font-bold text-gray-900 dark:text-white text-center sm:text-left">{topic ? `Topic: ${topic}`: 'Theory Test'}</h1>
-                <div className="text-right bg-gray-100 dark:bg-slate-800 p-2 rounded-lg self-end sm:self-center">
-                    <span className="text-sm text-gray-600 dark:text-gray-400">Time Remaining:</span>
-                    <span className="font-bold text-red-500 text-lg ml-2">{formatTime(timeLeft)}</span>
+            <header className="mb-4">
+                <div className="flex flex-col sm:flex-row justify-between sm:items-center mb-4 gap-4">
+                    <button onClick={() => navigateTo(Page.Dashboard)} className="text-sm text-gray-600 dark:text-gray-400 flex items-center self-start p-2 rounded-md hover:bg-gray-100 dark:hover:bg-slate-700">
+                        <ChevronLeftIcon className="h-4 w-4 mr-1" />
+                        Exit Test
+                    </button>
+                    <h1 className="text-3xl font-bold text-gray-900 dark:text-white text-center sm:text-left tracking-tight">{topic ? `Topic: ${topic}`: 'Theory Test'}</h1>
+                    <div className="text-right bg-gray-100 dark:bg-slate-800 p-2 rounded-lg self-end sm:self-center">
+                        <span className="text-sm text-gray-600 dark:text-gray-400">Time Remaining:</span>
+                        <span className="font-bold text-red-600 dark:text-red-500 text-lg ml-2">{formatTime(timeLeft)}</span>
+                    </div>
+                </div>
+                 <div className="w-full bg-gray-200 dark:bg-slate-700 rounded-full h-2.5">
+                    <div className="bg-teal-600 h-2.5 rounded-full transition-all duration-500" style={{width: `${progressPercentage}%`}}></div>
                 </div>
             </header>
             <div className="bg-white dark:bg-slate-800/50 p-6 rounded-lg shadow-md border border-gray-200 dark:border-slate-700">
@@ -110,15 +116,15 @@ const TestPage: React.FC<TestPageProps> = ({ navigateTo, onTestComplete, totalQu
                     <button 
                         onClick={() => setCurrentQuestionIndex(i => Math.max(0, i - 1))}
                         disabled={currentQuestionIndex === 0}
-                        className="flex items-center disabled:opacity-50"
+                        className="flex items-center disabled:opacity-50 transition-opacity p-2 rounded-md hover:bg-gray-100 dark:hover:bg-slate-700"
                     >
                          <ChevronLeftIcon className="h-4 w-4 mr-1" />
                          Previous
                     </button>
-                    <div className="font-bold text-lg text-gray-900 dark:text-white">{currentQuestionIndex + 1} of {questions.length}</div>
+                    <div className="font-semibold text-lg text-gray-900 dark:text-white">{currentQuestionIndex + 1} of {questions.length}</div>
                     <button 
                         onClick={() => onToggleBookmark(currentQuestion.id)}
-                        className={`transition-colors ${isBookmarked ? 'text-teal-500' : 'text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white'}`}
+                        className={`transition-colors p-2 rounded-md hover:bg-yellow-100 dark:hover:bg-yellow-500/10 ${isBookmarked ? 'text-amber-500' : 'text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white'}`}
                         aria-label={isBookmarked ? 'Remove bookmark' : 'Add bookmark'}
                     >
                         <FlagIcon className="h-5 w-5" fill={isBookmarked ? 'currentColor' : 'none'} />
@@ -127,19 +133,19 @@ const TestPage: React.FC<TestPageProps> = ({ navigateTo, onTestComplete, totalQu
                 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-8 items-center">
                     <div>
-                        <h2 className="text-xl font-semibold mb-4 text-gray-900 dark:text-white">{currentQuestion.question}</h2>
-                        <p className="text-sm text-red-500 mb-4">Mark one answer</p>
+                        <h2 className="text-2xl font-semibold mb-4 text-gray-900 dark:text-white leading-tight">{currentQuestion.question}</h2>
+                        <p className="text-sm text-red-600 dark:text-red-500 mb-4">Mark one answer</p>
                         <div className={`grid ${currentQuestion.options[0]?.image ? 'grid-cols-2 gap-4' : 'grid-cols-1 gap-2'}`}>
                             {currentQuestion.options.map((option, index) => (
                                 <label 
                                     key={index} 
-                                    className={`flex items-center p-3 rounded-md border-2 cursor-pointer transition-colors ${selectedAnswer === index ? 'border-teal-500 bg-teal-50 dark:bg-teal-500/10' : 'border-gray-200 dark:border-slate-600'}`}
+                                    className={`flex items-center p-3 rounded-md border-2 cursor-pointer transition-all duration-200 ease-in-out transform hover:-translate-y-px active:scale-[0.99] ${selectedAnswer === index ? 'border-teal-600 bg-teal-50 dark:bg-teal-500/10' : 'border-slate-300 dark:border-slate-600 hover:border-teal-500'}`}
                                     onClick={() => handleSelectAnswer(index)}
                                 >
                                     <div className="flex-shrink-0 h-6 w-6 rounded-sm border-2 border-gray-300 dark:border-slate-500 flex items-center justify-center mr-3">
-                                        {selectedAnswer === index && <div className="h-4 w-4 bg-teal-500 rounded-sm" />}
+                                        {selectedAnswer === index && <div className="h-4 w-4 bg-teal-600 rounded-sm" />}
                                     </div>
-                                    {option.text && <span className="text-gray-800 dark:text-gray-300">{option.text}</span>}
+                                    {option.text && <span className="text-base text-gray-800 dark:text-gray-300 leading-snug">{option.text}</span>}
                                     {option.image && <img src={option.image} alt={`Option ${index+1}`} className="w-full h-auto rounded" />}
                                 </label>
                             ))}
@@ -156,14 +162,14 @@ const TestPage: React.FC<TestPageProps> = ({ navigateTo, onTestComplete, totalQu
                 {currentQuestionIndex < questions.length - 1 ? (
                      <button
                         onClick={() => setCurrentQuestionIndex(i => Math.min(questions.length - 1, i + 1))}
-                        className="w-full bg-[#008485] text-white font-bold py-4 rounded-lg hover:bg-[#007374] transition-colors"
+                        className="w-full bg-teal-600 text-white font-semibold py-4 rounded-lg hover:bg-teal-700 transition-colors transform hover:-translate-y-px active:scale-98"
                     >
                         Next Question
                     </button>
                 ) : (
                     <button
                         onClick={handleFinishTest}
-                        className="w-full bg-[#008485] text-white font-bold py-4 rounded-lg hover:bg-[#007374] transition-colors"
+                        className="w-full bg-teal-600 text-white font-semibold py-4 rounded-lg hover:bg-teal-700 transition-colors transform hover:-translate-y-px active:scale-98"
                     >
                         Finish Test
                     </button>

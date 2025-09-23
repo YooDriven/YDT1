@@ -168,7 +168,7 @@ const QuestionManager: React.FC<{ showToast: (msg: string, type?: 'success' | 'e
             <div className="bg-white dark:bg-slate-800 rounded-lg border border-gray-200 dark:border-slate-700 overflow-hidden">
                 <div className="overflow-x-auto">
                     <table className="w-full text-sm text-left">
-                         <thead className="text-xs text-gray-700 uppercase bg-gray-50 dark:bg-slate-700 dark:text-gray-400">
+                         <thead className="text-xs text-gray-700 uppercase bg-gray-50 dark:bg-slate-700 dark:text-gray-400 tracking-wider">
                              <tr>
                                  <th className="px-6 py-3">Question</th>
                                  <th className="px-6 py-3">Category</th>
@@ -178,7 +178,7 @@ const QuestionManager: React.FC<{ showToast: (msg: string, type?: 'success' | 'e
                          <tbody>
                             {filteredQuestions.map(q => (
                                 <tr key={q.id} className="border-b dark:border-slate-700">
-                                    <td className="px-6 py-4 font-medium text-gray-900 dark:text-white max-w-md truncate">{q.question}</td>
+                                    <td className="px-6 py-4 font-normal text-gray-900 dark:text-white max-w-md truncate">{q.question}</td>
                                     <td className="px-6 py-4 text-gray-600 dark:text-gray-400">{q.category}</td>
                                     <td className="px-6 py-4 flex justify-end gap-2">
                                         <Button variant="secondary" onClick={() => handleEdit(q)}>Edit</Button>
@@ -241,7 +241,7 @@ const CategoryDeleteModal: React.FC<{ category: CategoryInfo; otherCategories: s
             <p className="text-gray-700 dark:text-gray-300">Are you sure you want to delete this category?</p>
             {needsTransfer && (
                 <div className="mt-4 p-4 bg-yellow-50 dark:bg-yellow-500/10 border-l-4 border-yellow-400 dark:border-yellow-500 text-yellow-700 dark:text-yellow-300">
-                    <p className="font-bold">This category contains {category.count} questions.</p>
+                    <p className="font-semibold">This category contains {category.count} questions.</p>
                     <p>To prevent orphaning questions, please select a new category to move them to.</p>
                 </div>
             )}
@@ -340,13 +340,13 @@ const CategoryManager: React.FC<{ showToast: (msg: string, type?: 'success' | 'e
             
             <div className="mb-4">
                 <h2 className="text-2xl font-bold text-gray-900 dark:text-white">Manage Question Categories</h2>
-                <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">Categories are created automatically when you add or edit questions. This ensures that every category is actively in use.</p>
+                <p className="mt-1 text-sm text-gray-500 dark:text-gray-400 leading-relaxed">Categories are created automatically when you add or edit questions. This ensures that every category is actively in use.</p>
             </div>
             
             <div className="bg-white dark:bg-slate-800 rounded-lg border border-gray-200 dark:border-slate-700 overflow-hidden">
                 <div className="overflow-x-auto">
                     <table className="w-full text-sm text-left">
-                        <thead className="text-xs text-gray-700 uppercase bg-gray-50 dark:bg-slate-700 dark:text-gray-400">
+                        <thead className="text-xs text-gray-700 uppercase bg-gray-50 dark:bg-slate-700 dark:text-gray-400 tracking-wider">
                              <tr>
                                  <th className="px-6 py-3">Category Name</th>
                                  <th className="px-6 py-3">Questions</th>
@@ -356,7 +356,7 @@ const CategoryManager: React.FC<{ showToast: (msg: string, type?: 'success' | 'e
                          <tbody>
                             {categories.map(cat => (
                                 <tr key={cat.name} className="border-b dark:border-slate-700">
-                                    <td className="px-6 py-4 font-medium text-gray-900 dark:text-white">{cat.name}</td>
+                                    <td className="px-6 py-4 font-semibold text-gray-900 dark:text-white">{cat.name}</td>
                                     <td className="px-6 py-4 text-gray-600 dark:text-gray-400">{cat.count}</td>
                                     <td className="px-6 py-4 flex justify-end gap-2">
                                         <Button variant="secondary" onClick={() => { setSelectedCategory(cat); setModal('rename'); }}>Rename</Button>
@@ -532,7 +532,7 @@ const RoadSignManager: React.FC<{ showToast: (msg: string, type?: 'success' | 'e
             <div className="bg-white dark:bg-slate-800 rounded-lg border border-gray-200 dark:border-slate-700 overflow-hidden">
                 <div className="overflow-x-auto">
                     <table className="w-full text-sm text-left">
-                         <thead className="text-xs text-gray-700 uppercase bg-gray-50 dark:bg-slate-700 dark:text-gray-400">
+                         <thead className="text-xs text-gray-700 uppercase bg-gray-50 dark:bg-slate-700 dark:text-gray-400 tracking-wider">
                              <tr>
                                  <th className="px-6 py-3 w-20">Preview</th>
                                  <th className="px-6 py-3">Name</th>
@@ -548,7 +548,7 @@ const RoadSignManager: React.FC<{ showToast: (msg: string, type?: 'success' | 'e
                                             <DynamicIcon svgString={s.svg_code} className="w-full h-full" />
                                         </div>
                                     </td>
-                                    <td className="px-6 py-4 font-medium text-gray-900 dark:text-white">{s.name}</td>
+                                    <td className="px-6 py-4 font-semibold text-gray-900 dark:text-white">{s.name}</td>
                                     <td className="px-6 py-4 text-gray-600 dark:text-gray-400">{categoryMap.get(s.category) || 'N/A'}</td>
                                     <td className="px-6 py-4 flex justify-end gap-2">
                                         <Button variant="secondary" onClick={() => handleEdit(s)}>Edit</Button>
@@ -620,7 +620,7 @@ const SignCategoryDeleteModal: React.FC<{ category: RoadSignCategory; otherCateg
             <p className="text-gray-700 dark:text-gray-300">Are you sure you want to delete this category?</p>
             {needsTransfer && (
                 <div className="mt-4 p-4 bg-yellow-50 dark:bg-yellow-500/10 border-l-4 border-yellow-400 dark:border-yellow-500 text-yellow-700 dark:text-yellow-300">
-                    <p className="font-bold">This category contains {signCount} road signs.</p>
+                    <p className="font-semibold">This category contains {signCount} road signs.</p>
                     <p>To prevent orphaning signs, please select a new category to move them to.</p>
                 </div>
             )}
@@ -712,7 +712,7 @@ const RoadSignCategoryManager: React.FC<{ showToast: (msg: string, type?: 'succe
             </div>
             <div className="bg-white dark:bg-slate-800 rounded-lg border border-gray-200 dark:border-slate-700 overflow-hidden">
                 <table className="w-full text-sm text-left">
-                    <thead className="text-xs text-gray-700 uppercase bg-gray-50 dark:bg-slate-700 dark:text-gray-400">
+                    <thead className="text-xs text-gray-700 uppercase bg-gray-50 dark:bg-slate-700 dark:text-gray-400 tracking-wider">
                         <tr>
                             <th className="px-6 py-3">Category Name</th>
                             <th className="px-6 py-3 text-right">Actions</th>
@@ -721,7 +721,7 @@ const RoadSignCategoryManager: React.FC<{ showToast: (msg: string, type?: 'succe
                     <tbody>
                         {categories.map(c => (
                             <tr key={c.id} className="border-b dark:border-slate-700">
-                                <td className="px-6 py-4 font-medium text-gray-900 dark:text-white">{c.name}</td>
+                                <td className="px-6 py-4 font-semibold text-gray-900 dark:text-white">{c.name}</td>
                                 <td className="px-6 py-4 flex justify-end gap-2">
                                     <Button variant="secondary" onClick={() => { setSelectedCategory(c); setModal('edit'); }}>Edit</Button>
                                     <Button variant="danger" onClick={() => { setSelectedCategory(c); setModal('delete'); }}>Delete</Button>
@@ -936,7 +936,7 @@ const HazardClipManager: React.FC<{ showToast: (msg: string, type?: 'success' | 
             <div className="bg-white dark:bg-slate-800 rounded-lg border border-gray-200 dark:border-slate-700 overflow-hidden">
                 <div className="overflow-x-auto">
                     <table className="w-full text-sm text-left">
-                         <thead className="text-xs text-gray-700 uppercase bg-gray-50 dark:bg-slate-700 dark:text-gray-400">
+                         <thead className="text-xs text-gray-700 uppercase bg-gray-50 dark:bg-slate-700 dark:text-gray-400 tracking-wider">
                              <tr>
                                  <th className="px-6 py-3 w-32">Preview</th>
                                  <th className="px-6 py-3">Description</th>
@@ -951,7 +951,7 @@ const HazardClipManager: React.FC<{ showToast: (msg: string, type?: 'success' | 
                                     <td className="px-6 py-2">
                                         <video src={clip.videoUrl} className="w-28 h-16 bg-black rounded" muted />
                                     </td>
-                                    <td className="px-6 py-4 font-medium text-gray-900 dark:text-white max-w-sm truncate">{clip.description}</td>
+                                    <td className="px-6 py-4 font-normal text-gray-900 dark:text-white max-w-sm truncate">{clip.description}</td>
                                     <td className="px-6 py-4 text-gray-600 dark:text-gray-400">{clip.duration}s</td>
                                     <td className="px-6 py-4 text-gray-600 dark:text-gray-400">{clip.hazardWindowStart}% - {clip.hazardWindowEnd}%</td>
                                     <td className="px-6 py-4 flex justify-end gap-2">
@@ -1119,7 +1119,7 @@ const CaseStudyManager: React.FC<{ showToast: (msg: string, type?: 'success' | '
             </div>
             <div className="bg-white dark:bg-slate-800 rounded-lg border border-gray-200 dark:border-slate-700 overflow-hidden">
                 <table className="w-full text-sm text-left">
-                    <thead className="text-xs text-gray-700 uppercase bg-gray-50 dark:bg-slate-700 dark:text-gray-400">
+                    <thead className="text-xs text-gray-700 uppercase bg-gray-50 dark:bg-slate-700 dark:text-gray-400 tracking-wider">
                         <tr>
                             <th className="px-6 py-3">Title</th>
                             <th className="px-6 py-3"># Questions</th>
@@ -1129,7 +1129,7 @@ const CaseStudyManager: React.FC<{ showToast: (msg: string, type?: 'success' | '
                     <tbody>
                         {studies.map(s => (
                             <tr key={s.id} className="border-b dark:border-slate-700">
-                                <td className="px-6 py-4 font-medium text-gray-900 dark:text-white">{s.title}</td>
+                                <td className="px-6 py-4 font-semibold text-gray-900 dark:text-white">{s.title}</td>
                                 <td className="px-6 py-4">{s.question_ids.length}</td>
                                 <td className="px-6 py-4 flex justify-end gap-2">
                                     <Button variant="secondary" onClick={() => { setEditingStudy(s); setIsModalOpen(true); }}>Edit</Button>
@@ -1250,7 +1250,7 @@ const HighwayCodeManager: React.FC<{ showToast: (msg: string, type?: 'success' |
             </div>
             <div className="bg-white dark:bg-slate-800 rounded-lg border border-gray-200 dark:border-slate-700 overflow-hidden">
                  <table className="w-full text-sm text-left">
-                    <thead className="text-xs text-gray-700 uppercase bg-gray-50 dark:bg-slate-700 dark:text-gray-400">
+                    <thead className="text-xs text-gray-700 uppercase bg-gray-50 dark:bg-slate-700 dark:text-gray-400 tracking-wider">
                         <tr>
                             <th className="px-6 py-3">Rule #</th>
                             <th className="px-6 py-3">Title</th>
@@ -1262,7 +1262,7 @@ const HighwayCodeManager: React.FC<{ showToast: (msg: string, type?: 'success' |
                         {rules.map(r => (
                             <tr key={r.id} className="border-b dark:border-slate-700">
                                 <td className="px-6 py-4 font-bold">{r.rule_number}</td>
-                                <td className="px-6 py-4 font-medium text-gray-900 dark:text-white">{r.title}</td>
+                                <td className="px-6 py-4 font-semibold text-gray-900 dark:text-white">{r.title}</td>
                                 <td className="px-6 py-4">{r.category}</td>
                                 <td className="px-6 py-4 flex justify-end gap-2">
                                     <Button variant="secondary" onClick={() => { setEditingRule(r); setIsModalOpen(true); }}>Edit</Button>
@@ -1452,9 +1452,9 @@ const AdminPage: React.FC<AdminPageProps> = ({ navigateTo, appAssets, onAssetsUp
                 <div className="flex items-center justify-between">
                   <button onClick={() => navigateTo(Page.Dashboard)} className="flex items-center space-x-2 text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white transition-colors duration-200 group">
                       <ChevronLeftIcon className="h-6 w-6 transform group-hover:-translate-x-1 transition-transform" />
-                      <span>Back to Dashboard</span>
+                      <span className="text-base">Back to Dashboard</span>
                   </button>
-                  <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Admin Dashboard</h1>
+                  <h1 className="text-3xl font-bold text-gray-900 dark:text-white tracking-tight">Admin Dashboard</h1>
                 </div>
             </header>
             <div className="flex">

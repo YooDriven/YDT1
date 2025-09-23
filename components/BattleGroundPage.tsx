@@ -25,9 +25,9 @@ const ChatBox: React.FC<{ messages: ChatMessage[] }> = ({ messages }) => {
         <div className="mt-8 bg-gray-100 dark:bg-slate-900/50 p-4 rounded-xl border border-gray-200 dark:border-slate-700 h-32 overflow-y-auto">
             <div className="space-y-3">
                 {messages.map((msg, index) => (
-                    <div key={index} className="animate-slideInLeft">
+                    <div key={index} className="animate-slideInLeft text-sm leading-snug">
                         <p className="text-gray-700 dark:text-slate-300">
-                            <span className="font-bold text-red-500 dark:text-red-400">{msg.author}: </span>
+                            <span className="font-semibold text-red-500 dark:text-red-400">{msg.author}: </span>
                             {msg.text}
                         </p>
                     </div>
@@ -40,7 +40,7 @@ const ChatBox: React.FC<{ messages: ChatMessage[] }> = ({ messages }) => {
 
 const AnimatedScore: React.FC<{ score: number; isAnimating: boolean }> = ({ score, isAnimating }) => {
   return (
-    <p className={`font-bold text-lg transition-all duration-300 ease-in-out ${isAnimating ? 'transform scale-150 text-green-500 dark:text-green-400' : 'text-gray-800 dark:text-white'}`}>
+    <p className={`font-bold text-xl transition-all duration-300 ease-in-out ${isAnimating ? 'transform scale-150 text-green-500 dark:text-green-400' : 'text-gray-800 dark:text-white'}`}>
       {score}
     </p>
   );
@@ -230,8 +230,8 @@ const BattleGroundPage: React.FC<BattleGroundPageProps> = ({ navigateTo, onBattl
                             <p className="text-sm text-gray-500 dark:text-gray-400">You</p>
                         </div>
                         <div className="w-1/3">
-                             <p className="text-lg font-bold text-gray-900 dark:text-white">Question {currentQuestionIndex + 1}/{questions.length}</p>
-                             <p className="text-sm text-gray-600 dark:text-gray-300 font-semibold">{getPlayerStatus()}</p>
+                             <p className="text-lg font-semibold text-gray-900 dark:text-white">Question {currentQuestionIndex + 1}/{questions.length}</p>
+                             <p className="text-base text-gray-600 dark:text-gray-300 font-semibold">{getPlayerStatus()}</p>
                         </div>
                         <div className="w-1/3 flex flex-col items-center">
                             <img src={opponentDetails.avatarUrl} alt="Opponent" className={`h-12 w-12 rounded-full border-2 border-red-500 mb-2 transition-all ${playerAnswer !== null && opponentAnswer === null ? 'animate-pulse' : ''}`}/>
@@ -252,7 +252,7 @@ const BattleGroundPage: React.FC<BattleGroundPageProps> = ({ navigateTo, onBattl
 
             <main>
                 <div className="bg-white dark:bg-slate-800/50 p-6 rounded-xl border border-gray-200 dark:border-slate-700">
-                    <h2 className="text-xl font-semibold leading-relaxed text-gray-900 dark:text-white">
+                    <h2 className="text-2xl font-semibold leading-tight text-gray-900 dark:text-white">
                         {currentQuestion.question}
                     </h2>
                 </div>
@@ -279,7 +279,7 @@ const BattleGroundPage: React.FC<BattleGroundPageProps> = ({ navigateTo, onBattl
                                 className={`w-full text-left p-4 rounded-lg border transition-all duration-200 disabled:cursor-not-allowed ${buttonClass} flex items-center`}
                             >
                                 <span className="font-semibold mr-2 text-gray-900 dark:text-white">{String.fromCharCode(65 + index)}.</span>
-                                {option.text && <span className="text-gray-800 dark:text-gray-300">{option.text}</span>}
+                                {option.text && <span className="text-base text-gray-800 dark:text-gray-300 leading-snug">{option.text}</span>}
                                 {option.image && <img src={option.image} alt={`Option ${index + 1}`} className="h-24 rounded" />}
                             </button>
                         );

@@ -31,7 +31,7 @@ const PerformanceChart: React.FC<PerformanceChartProps> = ({ attempts }) => {
     if (performanceData.length === 0) {
         return (
             <div className="bg-gray-200 dark:bg-slate-700/50 p-4 rounded-lg text-center">
-                <p className="text-gray-500 dark:text-gray-400 text-sm">No topic test history found. Complete some topic tests to see your performance breakdown!</p>
+                <p className="text-gray-500 dark:text-gray-400 text-sm leading-relaxed">No topic test history found. Complete some topic tests to see your performance breakdown!</p>
             </div>
         );
     }
@@ -45,8 +45,8 @@ const PerformanceChart: React.FC<PerformanceChartProps> = ({ attempts }) => {
                 return (
                     <div key={topic} className="stagger-fade-in" style={{ animationDelay: `${index * 50}ms` }}>
                         <div className="flex justify-between items-center mb-1">
-                            <p className="text-xs font-medium text-gray-600 dark:text-gray-300 truncate pr-2">{topic}</p>
-                            <p className={`text-xs font-bold ${isPassing ? 'text-teal-500 dark:text-teal-400' : 'text-yellow-500'}`}>{average}%</p>
+                            <p className="text-sm font-normal text-gray-600 dark:text-gray-300 truncate pr-2">{topic}</p>
+                            <p className={`text-sm font-semibold ${isPassing ? 'text-teal-500 dark:text-teal-400' : 'text-yellow-500'}`}>{average}%</p>
                         </div>
                         <div className="w-full bg-gray-200 dark:bg-slate-700 rounded-full h-2">
                             <div

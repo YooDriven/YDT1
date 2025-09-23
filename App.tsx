@@ -23,6 +23,7 @@ import LoginPage from './components/LoginPage';
 import ProfilePage from './components/ProfilePage';
 import SettingsPage from './components/SettingsPage';
 import AdminPage from './components/AdminPage';
+import Breadcrumbs, { Breadcrumb } from './components/Breadcrumbs';
 import { TOTAL_QUESTIONS, DAILY_GOAL_TARGET, MAX_SCORE_PER_CLIP } from './constants';
 import { supabase, isSupabaseConfigured } from './lib/supabaseClient';
 import { isGeminiConfigured } from './lib/gemini';
@@ -54,35 +55,38 @@ const AppLoadingIndicator: React.FC<{ state: AppState }> = ({ state }) => {
   };
 
   return (
-    <div className="flex items-center justify-center h-screen bg-slate-900">
-      <div className="text-center">
-        <p className="text-gray-400">{messages[state] || 'Loading application...'}</p>
-        <div className="w-32 h-1 bg-slate-700 rounded-full overflow-hidden mt-4 mx-auto">
-          <div className="h-1 bg-teal-400 animate-pulse" style={{ width: '100%' }}></div>
+     <div className="flex items-center justify-center h-screen bg-slate-50 dark:bg-slate-900">
+      <div className="text-center p-4">
+        <div className="relative inline-flex">
+          <div className="w-16 h-16 bg-teal-500 rounded-full"></div>
+          <div className="w-16 h-16 bg-teal-500 rounded-full absolute top-0 left-0 animate-ping"></div>
+          <div className="w-16 h-16 bg-teal-500 rounded-full absolute top-0 left-0 animate-pulse"></div>
         </div>
+        <p className="text-lg text-gray-600 dark:text-gray-400 mt-6">{messages[state] || 'Loading application...'}</p>
       </div>
     </div>
   );
 };
 
 const AppError: React.FC<{ message: string; details?: string[] }> = ({ message, details }) => (
-  <div className="min-h-screen bg-slate-900 flex items-center justify-center p-4 text-gray-300">
-    <div className="max-w-2xl w-full bg-slate-800 border border-red-500/50 rounded-2xl p-8 shadow-2xl shadow-red-500/10">
+  <div className="min-h-screen bg-slate-50 dark:bg-slate-900 flex items-center justify-center p-4 text-gray-300 animate-fadeInUp">
+    <div className="max-w-2xl w-full bg-white dark:bg-slate-800 border border-red-500/50 rounded-2xl p-8 shadow-2xl shadow-red-500/10">
       <div className="text-center">
-        <h1 className="text-3xl font-bold text-red-400 mb-4">{message}</h1>
-        {details && details.length > 0 ? (
+        <h1 className="text-4xl font-bold text-red-500 dark:text-red-400 mb-4 tracking-tight leading-tight">Application Error</h1>
+        <p className="text-base text-gray-600 dark:text-slate-400 mb-6 leading-relaxed">
+          {message}
+        </p>
+        {details && details.length > 0 && (
           <>
-            <p className="text-slate-400 mb-8">
-              Please ensure the following environment variables are correctly set:
+            <p className="text-slate-500 dark:text-slate-400 mb-4 text-sm">
+              Please ensure the following environment variables are correctly set in your project configuration:
             </p>
             <div className="flex flex-col items-center space-y-2">
               {details.map(key => (
-                <code key={key} className="bg-slate-700 text-amber-400 font-mono p-2 rounded">{key}</code>
+                <code key={key} className="bg-slate-100 dark:bg-slate-700 text-amber-600 dark:text-amber-400 font-mono text-sm p-2 rounded">{key}</code>
               ))}
             </div>
           </>
-        ) : (
-          <p className="text-slate-400">{message.includes('timeout') && 'This can happen if the database is unreachable or if Row Level Security (RLS) policies are missing or incorrect for a table.'}</p>
         )}
       </div>
     </div>
@@ -382,6 +386,44 @@ const App: React.FC = () => {
     }, {});
     setAppAssets(assetsMap);
   }, []);
+  
+  const generateBreadcrumbs = (): Breadcrumb[] => {
+    const home: Breadcrumb = { label: 'Dashboard', page: Page.Dashboard };
+    const studyHub: Breadcrumb = { label: 'Study Hub', page: Page.StudyHub };
+
+    switch (currentPage) {
+        case Page.Profile:
+            return [home, { label: 'My Profile' }];
+        case Page.Settings:
+            return [home, { label: 'Settings' }];
+        case Page.Admin:
+             return [home, { label: 'Admin' }];
+        case Page.StudyHub:
+            return [home, { label: 'Study Hub' }];
+        case Page.TopicSelection:
+            return [home, studyHub, { label: 'Topics' }];
+        case Page.Study:
+            return [home, studyHub, { label: 'Topics', page: Page.TopicSelection }, { label: currentTopic || 'Study' }];
+        case Page.Test:
+             if (currentTopic) {
+                return [home, studyHub, { label: 'Topics', page: Page.TopicSelection }, { label: currentTopic }];
+            }
+            return []; // No breadcrumbs for general tests
+        case Page.RoadSigns:
+            return [home, studyHub, { label: 'Road Signs' }];
+        case Page.BookmarkedQuestions:
+            return [home, studyHub, { label: 'Bookmarked Questions' }];
+        case Page.HighwayCode:
+            return [home, studyHub, { label: 'Highway Code' }];
+        case Page.CaseStudySelection:
+            return [home, studyHub, { label: 'Case Studies' }];
+        case Page.CaseStudy:
+            return [home, studyHub, { label: 'Case Studies', page: Page.CaseStudySelection }, { label: selectedCaseStudy?.title || 'Case Study' }];
+        default:
+            return [];
+    }
+  };
+
 
   const renderCurrentPage = () => {
     switch (currentPage) {
@@ -444,8 +486,9 @@ const App: React.FC = () => {
 
   return (
     <QuestionsProvider>
-      <div className="min-h-screen bg-[#f7f7f7] dark:bg-slate-900">
+      <div className="min-h-screen bg-slate-50 dark:bg-slate-900">
         <Header user={userProfile} navigateTo={navigateTo} theme={theme} setTheme={setTheme} appAssets={appAssets} />
+        <Breadcrumbs path={generateBreadcrumbs()} navigateTo={navigateTo} />
         <main key={animationKey} className="animate-fadeInUp">
           {renderCurrentPage()}
         </main>

@@ -17,11 +17,11 @@ const StudyHubPage: React.FC<StudyHubPageProps> = ({ navigateTo, onCardClick, ap
         <div className="flex items-center justify-between mb-4">
           <button onClick={() => navigateTo(Page.Dashboard)} className="flex items-center space-x-2 text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white transition-colors duration-200 group">
             <ChevronLeftIcon className="h-6 w-6 transform group-hover:-translate-x-1 transition-transform" />
-            <span>Back to Dashboard</span>
+            <span className="text-base">Back to Dashboard</span>
           </button>
         </div>
-        <h1 className="text-4xl font-bold text-gray-900 dark:text-white">Study Hub</h1>
-        <p className="text-lg text-gray-500 dark:text-gray-400 mt-2">Focus your learning with these tools and resources.</p>
+        <h1 className="text-4xl font-bold text-gray-900 dark:text-white tracking-tight leading-tight">Study Hub</h1>
+        <p className="text-lg text-gray-500 dark:text-gray-400 mt-2 leading-relaxed">Focus your learning with these tools and resources.</p>
       </header>
 
       <main className="grid grid-cols-1 sm:grid-cols-2 gap-6">

@@ -29,10 +29,10 @@ const StudentProfileCard: React.FC<StudentProfileCardProps> = ({ user, navigateT
         <div className="space-y-1">
           {playersToShow.map(player => (
             <div key={`${title}-${player.rank}`} className={`flex items-center p-1.5 rounded-md ${player.isUser ? 'bg-teal-500/20 dark:bg-teal-500/20' : 'bg-gray-100 dark:bg-slate-700/50'}`}>
-              <span className="text-xs font-bold w-6 text-center text-gray-500 dark:text-gray-400">{player.rank}</span>
+              <span className="text-xs font-semibold w-6 text-center text-gray-500 dark:text-gray-400">{player.rank}</span>
               <img src={player.avatarUrl} alt={player.name} className="h-6 w-6 rounded-full mx-1.5"/>
-              <span className="flex-1 text-xs font-medium text-gray-700 dark:text-gray-300 truncate">{player.name}</span>
-              <span className="text-xs font-bold text-gray-900 dark:text-white mr-2">{player.score}%</span>
+              <span className="flex-1 text-sm text-gray-700 dark:text-gray-300 truncate">{player.name}</span>
+              <span className="text-sm font-semibold text-gray-900 dark:text-white mr-2">{player.score}%</span>
               {!player.isUser && (
                 <button onClick={() => handleDuel(player)} className="p-1 rounded-md bg-red-500/10 dark:bg-red-500/20 text-red-500 hover:bg-red-500/20 dark:hover:bg-red-500/30 transition-colors">
                   <DynamicIcon svgString={appAssets['icon_swords']} className="h-4 w-4" />
@@ -56,8 +56,8 @@ const StudentProfileCard: React.FC<StudentProfileCardProps> = ({ user, navigateT
             className="h-16 w-16 rounded-full border-2 border-teal-400"
             />
             <div>
-            <h2 className="text-xl font-bold text-gray-900 dark:text-white">{user.name}</h2>
-            <p className="text-sm text-gray-500 dark:text-gray-400">Keep up the great work!</p>
+            <h2 className="text-2xl font-bold text-gray-900 dark:text-white tracking-tight leading-tight">{user.name}</h2>
+            <p className="text-base text-gray-500 dark:text-gray-400 leading-snug">Keep up the great work!</p>
             </div>
         </div>
       </div>
@@ -71,7 +71,7 @@ const StudentProfileCard: React.FC<StudentProfileCardProps> = ({ user, navigateT
                   <path d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" fill="none" stroke={dailyGoalProgressPercent >= 100 ? "#2dd4bf" : "#f59e0b"} strokeWidth="4" strokeDasharray={`${dailyGoalProgressPercent}, 100`} strokeLinecap="round" transform="rotate(-90 18 18)" className="transition-all duration-500" />
               </svg>
               <div className="absolute inset-0 flex items-center justify-center">
-                  <span className="text-xs font-bold text-gray-800 dark:text-gray-200">{`${Math.round(dailyGoalProgressPercent)}%`}</span>
+                  <span className="text-xs font-semibold text-gray-800 dark:text-gray-200">{`${Math.round(dailyGoalProgressPercent)}%`}</span>
               </div>
             </div>
             <p className="text-xs text-gray-500 dark:text-gray-400 mt-1 leading-tight">Daily Goal</p>
@@ -82,7 +82,7 @@ const StudentProfileCard: React.FC<StudentProfileCardProps> = ({ user, navigateT
             <p className="text-2xl font-bold text-gray-900 dark:text-white">{`${user.avgScore}%`}</p>
             <p className="text-xs text-gray-500 dark:text-gray-400 mt-1 leading-tight">Avg. Score</p>
             <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 w-72 p-4 bg-white dark:bg-slate-800 border border-gray-200 dark:border-slate-700 rounded-lg shadow-xl opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none group-hover:pointer-events-auto z-20">
-              <h3 className="text-sm font-semibold text-gray-500 dark:text-gray-400 mb-2 flex items-center text-left">
+              <h3 className="text-base font-semibold text-gray-500 dark:text-gray-400 mb-2 flex items-center text-left">
                   <DynamicIcon svgString={appAssets['icon_chart_bar']} className="h-5 w-5 mr-2" />
                   Topic Performance
               </h3>
@@ -113,16 +113,16 @@ const StudentProfileCard: React.FC<StudentProfileCardProps> = ({ user, navigateT
       
       <div className="flex-grow space-y-4">          
           <div>
-            <h3 className="text-sm font-semibold text-gray-500 dark:text-gray-400 mb-2 flex items-center">
+            <h3 className="text-base font-semibold text-gray-500 dark:text-gray-400 mb-2 flex items-center">
                 <DynamicIcon svgString={appAssets['badge_generic']} className="h-5 w-5 mr-2" />
                 Badges
             </h3>
             <div className="grid grid-cols-2 gap-2">
                 {user.badges.map((badge) => {
                     return (
-                        <div key={badge.name} className="flex items-center bg-gray-100 dark:bg-slate-700/50 p-1 rounded-md">
+                        <div key={badge.name} className="flex items-center bg-gray-100 dark:bg-slate-700/50 p-1.5 rounded-md">
                             <DynamicIcon svgString={appAssets[badge.icon]} className={`h-4 w-4 mr-1.5 ${badge.color}`} />
-                            <span className="text-xs font-medium text-gray-600 dark:text-gray-300 leading-tight">{badge.name}</span>
+                            <span className="text-sm font-normal text-gray-600 dark:text-gray-300 leading-tight">{badge.name}</span>
                         </div>
                     );
                 })}
@@ -130,7 +130,7 @@ const StudentProfileCard: React.FC<StudentProfileCardProps> = ({ user, navigateT
           </div>
 
           <div>
-            <h3 className="text-sm font-semibold text-gray-500 dark:text-gray-400 mb-2 flex items-center">
+            <h3 className="text-base font-semibold text-gray-500 dark:text-gray-400 mb-2 flex items-center">
                 <DynamicIcon svgString={appAssets['badge_trophy']} className="h-5 w-5 mr-2" />
                 Leaderboard
             </h3>
@@ -143,7 +143,7 @@ const StudentProfileCard: React.FC<StudentProfileCardProps> = ({ user, navigateT
       <div className="mt-6">
         <button
           onClick={() => navigateTo(Page.StudyHub)}
-          className="w-full text-center bg-[#008485] text-white font-bold py-3 rounded-lg hover:bg-[#007374] transition-colors"
+          className="w-full text-center bg-[#008485] text-white font-semibold py-3 rounded-lg hover:bg-[#007374] transition-colors"
         >
           Study Hub
         </button>

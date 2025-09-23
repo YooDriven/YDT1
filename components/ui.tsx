@@ -23,14 +23,28 @@ export const Modal: React.FC<{ title: string; children: React.ReactNode; onClose
 
 export const FormRow: React.FC<{ children: React.ReactNode; className?: string }> = ({ children, className }) => <div className={["mb-4", className].filter(Boolean).join(" ")}>{children}</div>;
 export const Label: React.FC<{ children: React.ReactNode; htmlFor?: string; className?: string; }> = ({ children, htmlFor, className }) => <label htmlFor={htmlFor} className={`block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1 ${className || ''}`}>{children}</label>;
-export const Input: React.FC<React.InputHTMLAttributes<HTMLInputElement>> = (props) => <input {...props} className={`w-full p-2 bg-gray-50 dark:bg-slate-700 border border-gray-300 dark:border-slate-600 rounded-md text-gray-900 dark:text-white ${props.className}`} />;
-export const Textarea: React.FC<React.TextareaHTMLAttributes<HTMLTextAreaElement>> = (props) => <textarea {...props} className="w-full p-2 bg-gray-50 dark:bg-slate-700 border border-gray-300 dark:border-slate-600 rounded-md text-gray-900 dark:text-white" rows={props.rows || 3} />;
+
+export const Input: React.FC<React.InputHTMLAttributes<HTMLInputElement> & { error?: string }> = ({ error, ...props }) => (
+    <div>
+        <input {...props} className={`w-full p-2 bg-gray-50 dark:bg-slate-700 border ${error ? 'border-red-500' : 'border-gray-300 dark:border-slate-600'} rounded-md text-gray-900 dark:text-white focus:ring-2 ${error ? 'focus:ring-red-500' : 'focus:ring-teal-500'} focus:outline-none ${props.className}`} />
+        {error && <p className="mt-1 text-xs text-red-500">{error}</p>}
+    </div>
+);
+
+export const Textarea: React.FC<React.TextareaHTMLAttributes<HTMLTextAreaElement> & { error?: string }> = ({ error, ...props }) => (
+     <div>
+        <textarea {...props} className={`w-full p-2 bg-gray-50 dark:bg-slate-700 border ${error ? 'border-red-500' : 'border-gray-300 dark:border-slate-600'} rounded-md text-gray-900 dark:text-white focus:ring-2 ${error ? 'focus:ring-red-500' : 'focus:ring-teal-500'} focus:outline-none`} rows={props.rows || 3} />
+        {error && <p className="mt-1 text-xs text-red-500">{error}</p>}
+    </div>
+);
 export const Select: React.FC<React.SelectHTMLAttributes<HTMLSelectElement>> = (props) => <select {...props} className="w-full p-2 bg-gray-50 dark:bg-slate-700 border border-gray-300 dark:border-slate-600 rounded-md text-gray-900 dark:text-white" />;
-export const Button: React.FC<{ children: React.ReactNode; onClick?: () => void; disabled?: boolean; className?: string; variant?: 'primary' | 'secondary' | 'danger'; type?: 'button' | 'submit' }> = ({ children, onClick, disabled, className, variant = 'primary', type = 'button' }) => {
+export const Button: React.FC<{ children: React.ReactNode; onClick?: () => void; disabled?: boolean; className?: string; variant?: 'primary' | 'secondary' | 'outline' | 'danger'; type?: 'button' | 'submit' }> = ({ children, onClick, disabled, className, variant = 'primary', type = 'button' }) => {
+    const baseClasses = "px-4 py-2 rounded-md font-semibold disabled:opacity-50 transition-all duration-200 ease-in-out transform hover:-translate-y-px active:scale-98 focus:outline-none focus:ring-2 focus:ring-offset-2 dark:focus:ring-offset-slate-800";
     const variants = {
-        primary: 'bg-teal-500 hover:bg-teal-600 text-white',
-        secondary: 'bg-gray-200 dark:bg-slate-600 hover:bg-gray-300 dark:hover:bg-slate-500 text-gray-800 dark:text-gray-200',
-        danger: 'bg-red-600 hover:bg-red-700 text-white',
+        primary: 'bg-teal-600 hover:bg-teal-700 text-white focus:ring-teal-500',
+        secondary: 'bg-slate-600 hover:bg-slate-700 text-white focus:ring-slate-500',
+        outline: 'bg-transparent border-2 border-slate-400 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 hover:border-slate-500 focus:ring-slate-400',
+        danger: 'bg-red-600 hover:bg-red-700 text-white focus:ring-red-500',
     };
-    return <button type={type} onClick={onClick} disabled={disabled} className={`px-4 py-2 rounded-md font-semibold disabled:opacity-50 ${variants[variant]} ${className}`}>{children}</button>;
+    return <button type={type} onClick={onClick} disabled={disabled} className={`${baseClasses} ${variants[variant]} ${className}`}>{children}</button>;
 };

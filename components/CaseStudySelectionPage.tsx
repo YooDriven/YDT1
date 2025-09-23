@@ -55,8 +55,8 @@ const CaseStudySelectionPage: React.FC<CaseStudySelectionPageProps> = ({ navigat
                         className="stagger-fade-in p-6 bg-white dark:bg-slate-800 rounded-lg text-left hover:bg-gray-50 dark:hover:bg-slate-700/50 border border-gray-200 dark:border-slate-700 transition-all transform hover:-translate-y-1"
                         style={{ animationDelay: `${index * 50}ms` }}
                     >
-                        <h2 className="font-bold text-xl text-gray-900 dark:text-white">{study.title}</h2>
-                        <p className="text-sm text-gray-500 dark:text-gray-400 mt-2 line-clamp-2">{study.scenario}</p>
+                        <h2 className="font-semibold text-xl text-gray-900 dark:text-white">{study.title}</h2>
+                        <p className="text-base text-gray-500 dark:text-gray-400 mt-2 line-clamp-2 leading-relaxed">{study.scenario}</p>
                     </button>
                 ))}
             </main>
@@ -69,11 +69,11 @@ const CaseStudySelectionPage: React.FC<CaseStudySelectionPageProps> = ({ navigat
                 <div className="flex items-center justify-between mb-4">
                 <button onClick={() => navigateTo(Page.StudyHub)} className="flex items-center space-x-2 text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white transition-colors duration-200 group">
                     <ChevronLeftIcon className="h-6 w-6 transform group-hover:-translate-x-1 transition-transform" />
-                    <span>Back to Study Hub</span>
+                    <span className="text-base">Back to Study Hub</span>
                 </button>
                 </div>
-                <h1 className="text-4xl font-bold text-gray-900 dark:text-white">Case Studies</h1>
-                <p className="text-lg text-gray-500 dark:text-gray-400 mt-2">Select a scenario to test your knowledge with a related set of questions.</p>
+                <h1 className="text-4xl font-bold text-gray-900 dark:text-white tracking-tight leading-tight">Case Studies</h1>
+                <p className="text-lg text-gray-500 dark:text-gray-400 mt-2 leading-relaxed">Select a scenario to test your knowledge with a related set of questions.</p>
             </header>
             {renderContent()}
         </div>

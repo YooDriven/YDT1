@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { Page, HazardPerceptionClip } from '../types';
 import { supabase } from '../lib/supabaseClient';
 import { MAX_SCORE_PER_CLIP } from '../constants';
+import Tooltip from './Tooltip';
 
 interface HazardPerceptionPageProps {
   navigateTo: (page: Page) => void;
@@ -122,9 +123,23 @@ const HazardPerceptionPage: React.FC<HazardPerceptionPageProps> = ({ navigateTo,
 
   return (
     <div className="p-4 sm:p-6 lg:p-8 max-w-4xl mx-auto">
-      <header className="mb-8">
-        <p className="text-lg font-bold text-gray-900 dark:text-white">Hazard Perception</p>
-        <p className="text-gray-500 dark:text-gray-400 text-right mt-2">Clip {currentClipIndex + 1} of {clips.length}</p>
+      <header className="mb-4">
+        <div className="flex justify-between items-baseline mb-4">
+            <h1 className="text-3xl font-bold text-gray-900 dark:text-white tracking-tight">Hazard Perception</h1>
+            <div className="flex items-center space-x-2">
+                <p className="text-lg font-semibold text-gray-500 dark:text-gray-400">Clip {currentClipIndex + 1} of {clips.length}</p>
+                <Tooltip text="Click when you see a developing hazard. Score up to 5 points based on how quickly you react. Clicking more than once per clip results in a score of 0." />
+            </div>
+        </div>
+         <div className="w-full bg-gray-200 dark:bg-slate-700 rounded-full">
+            <div className="flex justify-between">
+                {clips.map((_, index) => (
+                    <div key={index} className="flex-1 px-0.5">
+                        <div className={`h-2 rounded-full ${index < currentClipIndex ? 'bg-teal-600' : 'bg-transparent'} ${index === currentClipIndex ? 'bg-teal-600/50' : ''}`} />
+                    </div>
+                ))}
+            </div>
+        </div>
       </header>
       
       <main>
@@ -146,8 +161,8 @@ const HazardPerceptionPage: React.FC<HazardPerceptionPageProps> = ({ navigateTo,
 
           {clipState === 'ready' && currentClip && (
             <div className="absolute inset-0 bg-black/70 flex flex-col items-center justify-center text-center p-4">
-              <h3 className="text-xl font-bold mb-4 text-white">Clip {currentClipIndex + 1}</h3>
-              <p className="text-gray-300 mb-6">{currentClip.description}</p>
+              <h3 className="text-2xl font-bold mb-4 text-white tracking-tight">Clip {currentClipIndex + 1}</h3>
+              <p className="text-base text-gray-300 mb-6 max-w-md leading-relaxed">{currentClip.description}</p>
               <button onClick={startClip} className="px-6 py-3 rounded-lg font-semibold bg-teal-500 hover:bg-teal-600 text-white transition-transform duration-200 hover:scale-105 z-10">
                 Start Clip
               </button>

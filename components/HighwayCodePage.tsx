@@ -112,17 +112,17 @@ const HighwayCodePage: React.FC<HighwayCodePageProps> = ({ navigateTo }) => {
                 ref={el => { categoryRefs.current[category] = el; }}
                 className="mb-12 scroll-mt-24"
             >
-                <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-6 pb-2 border-b-2 border-teal-500">{category}</h2>
+                <h2 className="text-3xl font-bold text-gray-900 dark:text-white mb-6 pb-2 border-b-2 border-teal-500 leading-tight">{category}</h2>
                 <div className="space-y-6">
                     {rulesInCategory.map((rule, index) => (
                         <article key={rule.id} className="stagger-fade-in flex items-start gap-4" style={{ animationDelay: `${index * 20}ms`}}>
-                            <div className="flex-shrink-0 mt-1 h-8 w-8 flex items-center justify-center rounded-full bg-gray-200 dark:bg-slate-700 text-sm font-bold text-gray-800 dark:text-white">
+                            <div className="flex-shrink-0 mt-1 h-8 w-8 flex items-center justify-center rounded-full bg-gray-200 dark:bg-slate-700 text-sm font-semibold text-gray-800 dark:text-white">
                                 {rule.rule_number}
                             </div>
                             <div className="flex-1">
-                                <h3 className="font-semibold text-gray-800 dark:text-gray-200">{rule.title}</h3>
+                                <h3 className="font-semibold text-lg text-gray-800 dark:text-gray-200">{rule.title}</h3>
                                 <div
-                                    className="prose prose-sm dark:prose-invert text-gray-600 dark:text-gray-400 mt-1"
+                                    className="prose prose-base dark:prose-invert text-gray-600 dark:text-gray-400 mt-1 max-w-none leading-relaxed"
                                     dangerouslySetInnerHTML={{ __html: rule.content }}
                                 />
                             </div>
@@ -139,25 +139,25 @@ const HighwayCodePage: React.FC<HighwayCodePageProps> = ({ navigateTo }) => {
                 <div className="flex items-center justify-between mb-4">
                     <button onClick={() => navigateTo(Page.StudyHub)} className="flex items-center space-x-2 text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white transition-colors duration-200 group">
                         <ChevronLeftIcon className="h-6 w-6 transform group-hover:-translate-x-1 transition-transform" />
-                        <span>Back to Study Hub</span>
+                        <span className="text-base">Back to Study Hub</span>
                     </button>
                 </div>
-                <h1 className="text-4xl font-bold text-gray-900 dark:text-white">The Highway Code</h1>
-                <p className="text-lg text-gray-500 dark:text-gray-400 mt-2">The official rules of the road. Search or browse by category.</p>
+                <h1 className="text-4xl font-bold text-gray-900 dark:text-white tracking-tight leading-tight">The Highway Code</h1>
+                <p className="text-lg text-gray-500 dark:text-gray-400 mt-2 leading-relaxed">The official rules of the road. Search or browse by category.</p>
             </header>
 
             <div className="flex flex-col md:flex-row mt-8">
                 <aside className="w-full md:w-64 lg:w-72 md:pr-8 mb-8 md:mb-0">
                     <div className="sticky top-24">
-                        <h2 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">Categories</h2>
+                        <h2 className="text-xl font-semibold text-gray-900 dark:text-white mb-4">Categories</h2>
                         <nav className="space-y-2 max-h-[60vh] overflow-y-auto">
                             {categories.map(category => (
                                 <button
                                     key={category}
                                     onClick={() => handleCategoryClick(category)}
-                                    className={`w-full text-left p-2 rounded-md text-sm font-medium transition-colors ${
+                                    className={`w-full text-left p-2 rounded-md text-base font-normal transition-colors ${
                                         activeCategory === category
-                                            ? 'bg-teal-100 dark:bg-teal-500/20 text-teal-700 dark:text-teal-300'
+                                            ? 'bg-teal-100 dark:bg-teal-500/20 text-teal-700 dark:text-teal-300 font-semibold'
                                             : 'text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-slate-700'
                                     }`}
                                 >
