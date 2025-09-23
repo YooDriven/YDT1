@@ -3,6 +3,7 @@ import { Page, UserProfile, Theme } from '../types';
 import DynamicIcon from './DynamicIcon';
 import ThemeToggle from './ThemeToggle';
 import { supabase } from '../lib/supabaseClient';
+import { useOnlineStatus } from '../hooks/useOnlineStatus';
 
 interface HeaderProps {
     user: UserProfile;
@@ -15,6 +16,7 @@ interface HeaderProps {
 const Header: React.FC<HeaderProps> = ({ user, navigateTo, theme, setTheme, appAssets }) => {
     const [isMenuOpen, setIsMenuOpen] = useState(false);
     const menuRef = useRef<HTMLDivElement>(null);
+    const isOnline = useOnlineStatus();
 
     useEffect(() => {
         const handleClickOutside = (event: MouseEvent) => {
@@ -44,6 +46,15 @@ const Header: React.FC<HeaderProps> = ({ user, navigateTo, theme, setTheme, appA
                     <DynamicIcon svgString={appAssets['logo_yoodrive']} />
                 </button>
                 <div className="flex items-center space-x-4">
+                    <div className="relative group flex items-center">
+                        <span 
+                            className={`h-3 w-3 rounded-full transition-colors duration-300 ${isOnline ? 'bg-green-500' : 'bg-slate-400'}`}
+                            aria-label={isOnline ? 'Online' : 'Offline'}
+                        />
+                        <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 w-max px-2 py-1 bg-slate-800 text-white text-xs rounded-md shadow-lg opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none">
+                            {isOnline ? 'Online' : 'Offline'}
+                        </div>
+                    </div>
                     <ThemeToggle theme={theme} setTheme={setTheme} />
                     <div className="relative" ref={menuRef}>
                         <button

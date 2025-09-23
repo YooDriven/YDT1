@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState } from 'react';
 import { supabase } from '../lib/supabaseClient';
 import DynamicIcon from './DynamicIcon';
 import { Button, Input } from './ui';
@@ -78,10 +78,49 @@ const LoginPage: React.FC<LoginPageProps> = ({ appAssets }) => {
         const loginEmail = role === 'admin' ? 'admin@drivetheory.pro' : 'test@drivetheory.pro';
         const loginPassword = 'password123';
 
-        const { error } = await supabase!.auth.signInWithPassword({ email: loginEmail, password: loginPassword });
-        if (error) {
-            setFormError(`Failed to one-click login as ${role}. Ensure the developer account is correctly set up.`);
+        // 1. Try to sign in
+        const { error: signInError } = await supabase!.auth.signInWithPassword({
+            email: loginEmail,
+            password: loginPassword
+        });
+
+        if (signInError) {
+            // 2. If sign-in fails, check if it's because the user doesn't exist
+            if (signInError.message === 'Invalid login credentials') {
+                setMessage(`Developer account not found. Attempting to create it...`);
+                // 3. Try to sign up the user instead
+                const { data: signUpData, error: signUpError } = await supabase!.auth.signUp({
+                    email: loginEmail,
+                    password: loginPassword,
+                    options: {
+                        data: {
+                            // This data goes into the auth.users.user_metadata column
+                            role: role,
+                            full_name: role === 'admin' ? 'Admin' : 'Test User'
+                        }
+                    }
+                });
+
+                if (signUpError) {
+                    // If sign-up also fails (e.g., password policy), show that error
+                    setFormError(`Failed to create developer account for ${role}: ${signUpError.message}`);
+                    setMessage(null);
+                } else {
+                    // Sign up successful. onAuthStateChange will handle the login.
+                    if (signUpData.session) {
+                        setMessage("Developer account created and logged in successfully!");
+                    } else {
+                        // This case happens if email verification is ON
+                        setMessage(`Developer account for '${role}' created. Please check for a verification email.`);
+                    }
+                }
+            } else {
+                // For other sign-in errors (network, etc.), just show them.
+                setFormError(`Login failed: ${signInError.message}`);
+            }
         }
+        // If signInError is null, the user is logged in automatically by the onAuthStateChange listener.
+
         setLoading(false);
     };
 
@@ -116,7 +155,7 @@ const LoginPage: React.FC<LoginPageProps> = ({ appAssets }) => {
                 </div>
 
                 {formError && <p className="text-sm text-red-500 text-center">{formError}</p>}
-                {message && <p className="text-sm text-green-500 text-center">{message}</p>}
+                {message && <p className="text-sm text-gray-600 dark:text-gray-400 text-center">{message}</p>}
 
                 <div className="flex flex-col sm:flex-row gap-3">
                      <Button
