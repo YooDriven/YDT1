@@ -18,22 +18,8 @@ const LoginPage: React.FC<LoginPageProps> = ({ appAssets }) => {
         setError(null);
         setMessage(null);
 
-        const isDevLogin = !isSignUp && (email.toLowerCase() === 'k' || email.toLowerCase() === 'admin');
-        let authEmail = email;
-        let authPassword = password;
-        
-        if (isDevLogin) {
-            if (email.toLowerCase() === 'k') {
-                authEmail = 'test@drivetheory.pro';
-                authPassword = 'password123';
-            } else if (email.toLowerCase() === 'admin') {
-                authEmail = 'admin@drivetheory.pro';
-                authPassword = 'password123';
-            }
-        }
-        
         if (isSignUp) {
-            const { data, error } = await supabase!.auth.signUp({ email: authEmail, password: authPassword });
+            const { data, error } = await supabase!.auth.signUp({ email, password });
             if (error) {
                 setError(error.message);
             } else if (data.user && data.user.identities && data.user.identities.length === 0) {
@@ -43,16 +29,30 @@ const LoginPage: React.FC<LoginPageProps> = ({ appAssets }) => {
                 setMessage('Check your email for the confirmation link!');
             }
         } else {
-            const { error } = await supabase!.auth.signInWithPassword({ email: authEmail, password: authPassword });
+            const { error } = await supabase!.auth.signInWithPassword({ email, password });
             if (error) {
-                if (isDevLogin) {
-                    setError("Invalid credentials. Please ensure the developer account is correctly set up in your Supabase project.");
-                } else {
-                    setError(error.message);
-                }
+                setError(error.message);
             }
             // On successful login, onAuthStateChange in App.tsx takes over.
         }
+
+        setLoading(false);
+    };
+
+    const handleOneClickLogin = async (role: 'user' | 'admin') => {
+        setLoading(true);
+        setError(null);
+        setMessage(null);
+
+        const loginEmail = role === 'admin' ? 'admin@drivetheory.pro' : 'test@drivetheory.pro';
+        const loginPassword = 'password123';
+
+        const { error } = await supabase!.auth.signInWithPassword({ email: loginEmail, password: loginPassword });
+
+        if (error) {
+            setError(`Failed to one-click login as ${role}. Ensure the developer account is correctly set up.`);
+        }
+        // On successful login, onAuthStateChange in App.tsx takes over.
 
         setLoading(false);
     };
@@ -104,6 +104,35 @@ const LoginPage: React.FC<LoginPageProps> = ({ appAssets }) => {
                         Sign Up
                     </button>
                 </div>
+
+                <div className="relative pt-4">
+                    <div className="absolute inset-0 flex items-center" aria-hidden="true">
+                        <div className="w-full border-t border-gray-300 dark:border-slate-600" />
+                    </div>
+                    <div className="relative flex justify-center text-sm">
+                        <span className="px-2 bg-white dark:bg-slate-800 text-gray-500 dark:text-gray-400">
+                            For Testing
+                        </span>
+                    </div>
+                </div>
+
+                <div className="flex flex-col sm:flex-row gap-3">
+                    <button
+                        onClick={() => handleOneClickLogin('user')}
+                        disabled={loading}
+                        className="w-full py-3 px-4 bg-sky-600 text-white font-bold rounded-lg hover:bg-sky-700 transition-colors disabled:opacity-50"
+                    >
+                        Login as User
+                    </button>
+                    <button
+                        onClick={() => handleOneClickLogin('admin')}
+                        disabled={loading}
+                        className="w-full py-3 px-4 bg-indigo-600 text-white font-bold rounded-lg hover:bg-indigo-700 transition-colors disabled:opacity-50"
+                    >
+                        Login as Admin
+                    </button>
+                </div>
+
             </div>
         </div>
     );

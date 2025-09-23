@@ -74,12 +74,16 @@ const HighwayCodePage: React.FC<HighwayCodePageProps> = ({ navigateTo }) => {
             { root: mainContentRef.current, rootMargin: "-20% 0px -80% 0px", threshold: 0 }
         );
 
-        Object.values(categoryRefs.current).forEach(el => {
+        // FIX: Use Object.keys to iterate and then access the ref. This avoids type inference issues with Object.values returning unknown[].
+        Object.keys(categoryRefs.current).forEach(key => {
+            const el = categoryRefs.current[key];
             if (el) observer.observe(el);
         });
 
         return () => {
-            Object.values(categoryRefs.current).forEach(el => {
+            // FIX: Use Object.keys here as well for consistency and type safety.
+            Object.keys(categoryRefs.current).forEach(key => {
+                const el = categoryRefs.current[key];
                 if (el) observer.unobserve(el);
             });
         };
@@ -99,7 +103,8 @@ const HighwayCodePage: React.FC<HighwayCodePageProps> = ({ navigateTo }) => {
             return <div className="text-center p-8 text-gray-500 dark:text-gray-400">No results found for "{searchTerm}".</div>;
         }
 
-        return Object.entries(groupedRules).map(([category, rulesInCategory]) => (
+        // FIX: Cast Object.entries result to the expected type to prevent '.map' does not exist on 'unknown' error.
+        return (Object.entries(groupedRules) as [string, HighwayCodeRule[]][]).map(([category, rulesInCategory]) => (
             <section
                 key={category}
                 id={category}

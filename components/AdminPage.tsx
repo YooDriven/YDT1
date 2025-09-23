@@ -1292,12 +1292,14 @@ const AppearanceManager: React.FC<{ onAssetsUpdate: () => void; showToast: (msg:
         e.preventDefault();
         e.stopPropagation();
         setIsDragOver(false);
-        const files = Array.from(e.dataTransfer.files);
+        // FIX: Cast the result of Array.from to File[] to address type inference issues.
+        const files = Array.from(e.dataTransfer.files) as File[];
         handleFiles(files);
     };
     
     const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
-        const files = e.target.files ? Array.from(e.target.files) : [];
+        // FIX: Cast the result of Array.from to File[] to address type inference issues.
+        const files = e.target.files ? Array.from(e.target.files) as File[] : [];
         handleFiles(files);
     };
 
