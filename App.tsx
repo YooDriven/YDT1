@@ -27,7 +27,6 @@ import Breadcrumbs, { Breadcrumb } from './components/Breadcrumbs';
 import LeaderboardPage from './components/LeaderboardPage';
 import { TOTAL_QUESTIONS, DAILY_GOAL_TARGET, MAX_SCORE_PER_CLIP } from './constants';
 import { supabase, isSupabaseConfigured } from './lib/supabaseClient';
-import { isGeminiConfigured } from './lib/gemini';
 import { QuestionsProvider } from './contexts/QuestionsContext';
 
 // Define the states for our application's loading lifecycle
@@ -71,16 +70,16 @@ const AppLoadingIndicator: React.FC<{ state: AppState }> = ({ state }) => {
 
 const AppError: React.FC<{ message: string; details?: string[] }> = ({ message, details }) => (
   <div className="min-h-screen bg-slate-50 dark:bg-slate-900 flex items-center justify-center p-4 text-gray-300 animate-fadeInUp">
-    <div className="max-w-2xl w-full bg-white dark:bg-slate-800 border border-red-500/50 rounded-2xl p-8 shadow-2xl shadow-red-500/10">
+    <div className="max-w-2xl w-full bg-white dark:bg-slate-800 border border-amber-500/50 rounded-2xl p-8 shadow-2xl shadow-amber-500/10">
       <div className="text-center">
-        <h1 className="text-4xl font-bold text-red-500 dark:text-red-400 mb-4 tracking-tight leading-tight">Application Error</h1>
+        <h1 className="text-4xl font-bold text-amber-500 dark:text-amber-400 mb-4 tracking-tight leading-tight">Application Configuration Needed</h1>
         <p className="text-base text-gray-600 dark:text-slate-400 mb-6 leading-relaxed">
           {message}
         </p>
         {details && details.length > 0 && (
           <>
             <p className="text-slate-500 dark:text-slate-400 mb-4 text-sm">
-              Please ensure the following environment variables are correctly set in your project configuration:
+              Please ensure the following environment variables are correctly set in your hosting environment:
             </p>
             <div className="flex flex-col items-center space-y-2">
               {details.map(key => (
@@ -158,9 +157,10 @@ const App: React.FC = () => {
   // Main application lifecycle effect
   useEffect(() => {
     // 1. Configuration Check
+    // The database is critical, so we check for it. The Gemini API key is an optional
+    // enhancement for the AI opponent, so we don't block the app if it's missing.
     const keys: string[] = [];
     if (!isSupabaseConfigured) keys.push('SUPABASE_URL', 'SUPABASE_ANON_KEY');
-    if (!isGeminiConfigured) keys.push('API_KEY');
     
     if (keys.length > 0) {
       setMissingKeys(keys);
@@ -477,7 +477,7 @@ const App: React.FC = () => {
   };
 
   if (appState === 'CONFIG_ERROR') {
-    return <AppError message="Application Configuration Error" details={missingKeys} />;
+    return <AppError message="This application requires a connection to a Supabase backend to function." details={missingKeys} />;
   }
   if (appState === 'ERROR') {
     return <AppError message={errorMessage} />;
