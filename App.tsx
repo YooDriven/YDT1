@@ -24,6 +24,7 @@ import ProfilePage from './components/ProfilePage';
 import SettingsPage from './components/SettingsPage';
 import AdminPage from './components/AdminPage';
 import Breadcrumbs, { Breadcrumb } from './components/Breadcrumbs';
+import LeaderboardPage from './components/LeaderboardPage';
 import { TOTAL_QUESTIONS, DAILY_GOAL_TARGET, MAX_SCORE_PER_CLIP } from './constants';
 import { supabase, isSupabaseConfigured } from './lib/supabaseClient';
 import { isGeminiConfigured } from './lib/gemini';
@@ -158,8 +159,8 @@ const App: React.FC = () => {
   useEffect(() => {
     // 1. Configuration Check
     const keys: string[] = [];
-    if (!isSupabaseConfigured) keys.push('VITE_SUPABASE_URL', 'VITE_SUPABASE_ANON_KEY');
-    if (!isGeminiConfigured) keys.push('VITE_GEMINI_API_KEY');
+    if (!isSupabaseConfigured) keys.push('SUPABASE_URL', 'SUPABASE_ANON_KEY');
+    if (!isGeminiConfigured) keys.push('API_KEY');
     
     if (keys.length > 0) {
       setMissingKeys(keys);
@@ -398,6 +399,8 @@ const App: React.FC = () => {
             return [home, { label: 'Settings' }];
         case Page.Admin:
              return [home, { label: 'Admin' }];
+        case Page.Leaderboard:
+            return [home, { label: 'Leaderboard' }];
         case Page.StudyHub:
             return [home, { label: 'Study Hub' }];
         case Page.TopicSelection:
@@ -465,6 +468,8 @@ const App: React.FC = () => {
         return <SettingsPage user={userProfile!} onProfileUpdate={(name) => setUserProfile(p => p ? {...p, name} : null)} session={session} navigateTo={navigateTo} theme={theme} setTheme={setTheme} />;
       case Page.Admin:
         return <AdminPage navigateTo={navigateTo} appAssets={appAssets} onAssetsUpdate={onAssetsUpdate} />;
+      case Page.Leaderboard:
+        return <LeaderboardPage navigateTo={navigateTo} currentUser={userProfile!} />;
       case Page.Dashboard:
       default:
         return <Dashboard onCardClick={handleCardClick} userProfile={userProfile!} navigateTo={navigateTo} handleDuel={handleDuel} appAssets={appAssets} />;

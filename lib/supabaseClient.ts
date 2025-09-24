@@ -1,10 +1,9 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 
-// Vite exposes environment variables on the `import.meta.env` object.
-// Only variables prefixed with VITE_ are exposed to your client-side code.
-// FIX: Cast import.meta to any to access Vite environment variables without TypeScript errors.
-const supabaseUrl = (import.meta as any).env.VITE_SUPABASE_URL;
-const supabaseAnonKey = (import.meta as any).env.VITE_SUPABASE_ANON_KEY;
+// Environment variables are expected to be available via `process.env` in this execution context.
+// The Vite-specific `import.meta.env` is not available.
+const supabaseUrl = process.env.SUPABASE_URL;
+const supabaseAnonKey = process.env.SUPABASE_ANON_KEY;
 
 export const isSupabaseConfigured = !!(supabaseUrl && supabaseAnonKey);
 

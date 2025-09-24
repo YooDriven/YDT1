@@ -23,6 +23,7 @@ export enum Page {
   Profile,
   Settings,
   Admin,
+  Leaderboard,
 }
 
 export type AdminSection = 'content' | 'appearance';

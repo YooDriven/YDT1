@@ -1,16 +1,14 @@
 import { GoogleGenAI, Type } from "https://esm.sh/@google/genai";
 import { Question } from '../types';
 
-const geminiApiKey = (import.meta as any).env.VITE_GEMINI_API_KEY;
-
-export const isGeminiConfigured = !!geminiApiKey;
+// The API key is sourced from `process.env.API_KEY` as per the guidelines.
+// It is assumed to be configured in the execution environment.
+export const isGeminiConfigured = !!process.env.API_KEY;
 
 let ai: GoogleGenAI | null = null;
 if (isGeminiConfigured) {
-    // The instructions specify using `process.env.API_KEY`, but in a Vite context,
-    // we use `import.meta.env.VITE_GEMINI_API_KEY` and assume it's correctly set.
-    // The key is passed directly to the constructor as required.
-    ai = new GoogleGenAI({ apiKey: geminiApiKey });
+    // Initialize the client directly with the environment variable.
+    ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
 }
 
 const responseSchema = {

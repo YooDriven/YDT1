@@ -2,6 +2,7 @@ import React, { memo } from 'react';
 import { LeaderboardEntry, Page, UserProfile } from '../types';
 import PerformanceChart from './PerformanceChart';
 import DynamicIcon from './DynamicIcon';
+import { Button } from './ui';
 
 interface StudentProfileCardProps {
   user: UserProfile;
@@ -17,11 +18,9 @@ const StudentProfileCard: React.FC<StudentProfileCardProps> = ({ user, navigateT
 
   const renderLeaderboard = (leaderboard: LeaderboardEntry[], title: string) => {
     const userIndex = leaderboard.findIndex(p => p.isUser);
-    if (userIndex === -1) return null;
+    if (userIndex === -1 && leaderboard.length === 0) return null;
 
-    const startIndex = Math.max(0, userIndex - 2);
-    const endIndex = Math.min(leaderboard.length, userIndex + 4);
-    const playersToShow = leaderboard.slice(startIndex, endIndex);
+    const playersToShow = leaderboard.slice(0, 5); // Show top 5
 
     return (
       <div className="flex-1">
@@ -138,6 +137,13 @@ const StudentProfileCard: React.FC<StudentProfileCardProps> = ({ user, navigateT
               {renderLeaderboard(nationalLeaderboard, "National")}
               {renderLeaderboard(regionalLeaderboard, "Regional")}
             </div>
+             <Button
+                onClick={() => navigateTo(Page.Leaderboard)}
+                variant="outline"
+                className="w-full mt-3 !py-1.5 text-xs"
+            >
+                View Full Leaderboard
+            </Button>
           </div>
       </div>
       <div className="mt-6">
