@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { Session } from 'https://esm.sh/@supabase/supabase-js@2';
 import { Page, Question, TestCardData, UserProfile, Theme, LeaderboardEntry, TestAttempt, Badge, CaseStudy } from './types';
 import Dashboard from './components/Dashboard';
@@ -203,6 +203,10 @@ const App: React.FC = () => {
   const [selectedCaseStudy, setSelectedCaseStudy] = useState<CaseStudy | null>(null);
   const [lastOpponent, setLastOpponent] = useState<Opponent | null>(null);
 
+  // Create a ref to hold the current appState to avoid stale closures in the subscription
+  const appStateRef = useRef(appState);
+  appStateRef.current = appState;
+
   useEffect(() => {
     if (theme === 'dark') {
       document.documentElement.classList.add('dark');
@@ -277,18 +281,20 @@ const App: React.FC = () => {
     }
 
     if (appState === 'AUTH_CHECKING') {
-      const { data: { subscription } } = supabase!.auth.onAuthStateChange((event, session) => {
-        if (event === 'SIGNED_OUT' || !session) {
+      const { data: { subscription } } = supabase!.auth.onAuthStateChange((_event, session) => {
+        if (!session) {
           setSession(null);
           setUserProfile(null);
           setAppState('UNAUTHENTICATED');
           setCurrentPage(Page.Dashboard);
-          return;
-        }
-        
-        setSession(session);
-        if (event === 'INITIAL_SESSION' || event === 'SIGNED_IN') {
+        } else {
+          setSession(session);
+          // If we get a session while the app is in a pre-authenticated state,
+          // it means the user has just logged in or a session was found on startup.
+          // We trigger the data loading sequence. Using a ref for appState avoids stale closures.
+          if (appStateRef.current === 'UNAUTHENTICATED' || appStateRef.current === 'AUTH_CHECKING') {
             loadInitialData(session);
+          }
         }
       });
 
@@ -307,276 +313,4 @@ const App: React.FC = () => {
     if (initializeSupabase(url, key)) {
         localStorage.setItem('SUPABASE_URL', url);
         localStorage.setItem('SUPABASE_ANON_KEY', key);
-        // This state change will trigger the useEffect to run the auth checks
-        setAppState('AUTH_CHECKING');
-    } else {
-        alert('Configuration failed. Please check the Supabase URL and Key and try again.');
-    }
-  };
-
-  const navigateTo = useCallback((page: Page) => {
-    if (page === Page.Dashboard) {
-      setCustomTest(null);
-      setTimeLimit(undefined);
-      setCurrentTopic(undefined);
-      setDuelOpponent(null);
-      setSelectedCaseStudy(null);
-      setCurrentTestId(undefined);
-    }
-    setCurrentPage(page);
-    setAnimationKey(prevKey => prevKey + 1);
-  }, []);
-  
-  const handleCardClick = useCallback((card: TestCardData) => {
-    setCustomTest(null); // Clear any previous custom tests
-    if (card.mode) {
-      setCurrentMode(card.mode);
-    }
-    setCurrentTopic(card.topic);
-    setTimeLimit(card.timeLimit);
-    setCurrentTestId(card.id);
-    navigateTo(card.page);
-  }, [navigateTo]);
-
-  const handleTopicSelect = useCallback((topic: string) => {
-      setCurrentTopic(topic);
-      if (currentMode === 'test') {
-        navigateTo(Page.Test);
-      } else {
-        navigateTo(Page.Study);
-      }
-  }, [navigateTo, currentMode]);
-
-  const handleCaseStudySelect = useCallback((caseStudy: CaseStudy) => {
-    setSelectedCaseStudy(caseStudy);
-    navigateTo(Page.CaseStudy);
-  }, [navigateTo]);
-
-  const handleTestComplete = useCallback(async (score: number, questions: Question[], userAnswers: (number | null)[], topic?: string, testId?: string) => {
-    if (!userProfile) return;
-    
-    let testTopic = topic;
-    if (selectedCaseStudy) {
-        testTopic = `Case Study: ${selectedCaseStudy.title}`;
-    } else if (testId === 'daily-challenge') {
-        testTopic = 'Daily Challenge';
-    } else if (!topic) {
-        testTopic = 'Mock Test';
-    }
-
-    const newAttempt: TestAttempt = {
-        userId: userProfile.id,
-        topic: testTopic,
-        score: score,
-        total: questions.length,
-        questionIds: questions.map(q => q.id),
-        userAnswers: userAnswers,
-    };
-
-    const updatedTestHistory = [...userProfile.testHistory, newAttempt];
-    const totalScoreSum = updatedTestHistory.reduce((sum, attempt) => sum + attempt.score, 0);
-    const totalQuestionsSum = updatedTestHistory.reduce((sum, attempt) => sum + attempt.total, 0);
-    const newAvgScore = totalQuestionsSum > 0 ? Math.round((totalScoreSum / totalQuestionsSum) * 100) : 0;
-    
-    supabase!.from('test_attempts').insert({
-        user_id: newAttempt.userId, topic: newAttempt.topic,
-        score: newAttempt.score, total: newAttempt.total,
-        question_ids: newAttempt.questionIds, user_answers: newAttempt.userAnswers,
-    }).then(({error}) => error && console.error('Error saving test attempt:', error));
-    
-    const isDailyChallenge = testId === 'daily-challenge';
-    const todayStr = new Date().toISOString().split('T')[0];
-
-    supabase!.from('profiles').update({ 
-        testsTaken: userProfile.testsTaken + 1,
-        dailyGoalProgress: userProfile.dailyGoalProgress + score,
-        lastDailyChallengeDate: isDailyChallenge ? todayStr : userProfile.lastDailyChallengeDate,
-        avgScore: newAvgScore,
-    }).eq('id', userProfile.id).then(({error}) => error && console.error("Error updating profile stats:", error));
-    
-    setUserProfile(prev => prev ? { 
-      ...prev,
-      testsTaken: prev.testsTaken + 1,
-      dailyGoalProgress: prev.dailyGoalProgress + score,
-      lastDailyChallengeDate: isDailyChallenge ? todayStr : prev.lastDailyChallengeDate,
-      testHistory: updatedTestHistory,
-      avgScore: newAvgScore,
-    } : null);
-    
-    setTestResult({ score, total: questions.length });
-    setReviewData({ questions, userAnswers });
-    navigateTo(Page.Results);
-  }, [navigateTo, userProfile, selectedCaseStudy]);
-
-  const handleBattleComplete = useCallback((playerScore: number, opponentScore: number, total: number, opponent: Opponent) => {
-    setUserProfile(prev => prev ? ({ ...prev, testsTaken: prev.testsTaken + 1, dailyGoalProgress: prev.dailyGoalProgress + playerScore }) : null);
-    setBattleResult({ playerScore, opponentScore, total, opponentName: opponent.name });
-    setLastOpponent(opponent);
-    navigateTo(Page.BattleResults);
-  }, [navigateTo]);
-
-  const handleRematch = useCallback(() => {
-    if (lastOpponent?.isUser) {
-        // This is a rough conversion for rematching a real player
-        setDuelOpponent(lastOpponent as LeaderboardEntry);
-    } else {
-        // For rematching a bot, just clear the duel opponent so a new one is generated
-        setDuelOpponent(null);
-    }
-    navigateTo(Page.BattleGround);
-  }, [lastOpponent, navigateTo]);
-
-
-  const handleHazardPerceptionComplete = useCallback((scores: number[], totalClips: number) => {
-    const totalScore = scores.reduce((acc, s) => acc + s, 0);
-    const maxScore = totalClips * MAX_SCORE_PER_CLIP;
-    setHazardPerceptionResult({ scores, totalScore, maxScore });
-    navigateTo(Page.HazardPerceptionResults);
-  }, [navigateTo]);
-
-  const handleDuel = useCallback((opponent: LeaderboardEntry) => {
-    setDuelOpponent(opponent);
-    navigateTo(Page.BattleGround);
-  }, [navigateTo]);
-
-  const handleToggleBookmark = async (questionId: string) => {
-    if (!userProfile) return;
-    const currentBookmarks = userProfile.bookmarkedQuestions || [];
-    const isBookmarked = currentBookmarks.includes(questionId);
-    const newBookmarks = isBookmarked ? currentBookmarks.filter(id => id !== questionId) : [...currentBookmarks, questionId];
-    setUserProfile(prev => prev ? { ...prev, bookmarkedQuestions: newBookmarks } : null);
-    const { error } = await supabase!.from('profiles').update({ bookmarked_questions: newBookmarks }).eq('id', userProfile.id);
-    if (error) {
-        console.error('Error updating bookmarks:', error);
-        setUserProfile(prev => prev ? { ...prev, bookmarkedQuestions: currentBookmarks } : null);
-    }
-  };
-
-  const onAssetsUpdate = useCallback(async () => {
-    const { data, error } = await supabase!.from('app_assets').select('asset_key, asset_value');
-    if (error) {
-      console.error("Failed to refresh assets:", error);
-      return;
-    }
-    const assetsMap = data.reduce((acc: Record<string, string>, asset) => {
-        acc[asset.asset_key] = asset.asset_value;
-        return acc;
-    }, {});
-    setAppAssets(assetsMap);
-  }, []);
-  
-  const generateBreadcrumbs = (): Breadcrumb[] => {
-    const home: Breadcrumb = { label: 'Dashboard', page: Page.Dashboard };
-    const studyHub: Breadcrumb = { label: 'Study Hub', page: Page.StudyHub };
-
-    switch (currentPage) {
-        case Page.Profile:
-            return [home, { label: 'My Profile' }];
-        case Page.Settings:
-            return [home, { label: 'Settings' }];
-        case Page.Admin:
-             return [home, { label: 'Admin' }];
-        case Page.Leaderboard:
-            return [home, { label: 'Leaderboard' }];
-        case Page.StudyHub:
-            return [home, { label: 'Study Hub' }];
-        case Page.TopicSelection:
-            return [home, studyHub, { label: 'Topics' }];
-        case Page.Study:
-            return [home, studyHub, { label: 'Topics', page: Page.TopicSelection }, { label: currentTopic || 'Study' }];
-        case Page.Test:
-             if (currentTopic) {
-                return [home, studyHub, { label: 'Topics', page: Page.TopicSelection }, { label: currentTopic }];
-            }
-            return []; // No breadcrumbs for general tests
-        case Page.RoadSigns:
-            return [home, studyHub, { label: 'Road Signs' }];
-        case Page.BookmarkedQuestions:
-            return [home, studyHub, { label: 'Bookmarked Questions' }];
-        case Page.HighwayCode:
-            return [home, studyHub, { label: 'Highway Code' }];
-        case Page.CaseStudySelection:
-            return [home, studyHub, { label: 'Case Studies' }];
-        case Page.CaseStudy:
-            return [home, studyHub, { label: 'Case Studies', page: Page.CaseStudySelection }, { label: selectedCaseStudy?.title || 'Case Study' }];
-        default:
-            return [];
-    }
-  };
-
-
-  const renderCurrentPage = () => {
-    switch (currentPage) {
-      case Page.Test:
-        return <TestPage navigateTo={navigateTo} onTestComplete={handleTestComplete} totalQuestions={TOTAL_QUESTIONS} customQuestions={customTest} testId={currentTestId} timeLimit={timeLimit} topic={currentTopic} bookmarkedQuestions={userProfile?.bookmarkedQuestions || []} onToggleBookmark={handleToggleBookmark} />;
-      case Page.Results:
-        return <ResultsPage navigateTo={navigateTo} score={testResult.score} totalQuestions={testResult.total} />;
-      case Page.Review:
-        return <ReviewPage navigateTo={navigateTo} reviewData={reviewData} />;
-      case Page.RoadSigns:
-        return <RoadSignsPage navigateTo={navigateTo} />;
-      case Page.Matchmaking:
-        return <MatchmakingPage navigateTo={navigateTo} />;
-      case Page.BattleGround:
-        return <BattleGroundPage navigateTo={navigateTo} onBattleComplete={handleBattleComplete} opponent={duelOpponent} />;
-      case Page.BattleResults:
-        return <BattleResultsPage navigateTo={navigateTo} onRematch={handleRematch} {...battleResult} />;
-      case Page.HazardPerception:
-        return <HazardPerceptionPage navigateTo={navigateTo} onTestComplete={handleHazardPerceptionComplete} />;
-      case Page.HazardPerceptionResults:
-        return <HazardPerceptionResultsPage navigateTo={navigateTo} {...hazardPerceptionResult} />;
-      case Page.StudyHub:
-        return <StudyHubPage navigateTo={navigateTo} onCardClick={handleCardClick} appAssets={appAssets} />;
-      case Page.TopicSelection:
-        return <TopicSelectionPage navigateTo={navigateTo} onTopicSelect={handleTopicSelect} mode={currentMode} />;
-      case Page.Study:
-        return <StudyPage navigateTo={navigateTo} topic={currentTopic || ''} />;
-      case Page.BookmarkedQuestions:
-        return <BookmarkedQuestionsPage navigateTo={navigateTo} bookmarkedQuestions={userProfile?.bookmarkedQuestions || []} onToggleBookmark={handleToggleBookmark} />;
-      case Page.HighwayCode:
-        return <HighwayCodePage navigateTo={navigateTo} />;
-      case Page.CaseStudySelection:
-        return <CaseStudySelectionPage navigateTo={navigateTo} onCaseStudySelect={handleCaseStudySelect} />;
-      case Page.CaseStudy:
-        return <CaseStudyPage navigateTo={navigateTo} caseStudy={selectedCaseStudy!} onTestComplete={handleTestComplete} />;
-      case Page.Profile:
-        return <ProfilePage user={userProfile!} navigateTo={navigateTo} appAssets={appAssets} />;
-      case Page.Settings:
-        return <SettingsPage user={userProfile!} onProfileUpdate={(name) => setUserProfile(p => p ? {...p, name} : null)} session={session} navigateTo={navigateTo} theme={theme} setTheme={setTheme} />;
-      case Page.Admin:
-        return <AdminPage navigateTo={navigateTo} appAssets={appAssets} onAssetsUpdate={onAssetsUpdate} />;
-      case Page.Leaderboard:
-        return <LeaderboardPage navigateTo={navigateTo} currentUser={userProfile!} />;
-      case Page.Dashboard:
-      default:
-        return <Dashboard onCardClick={handleCardClick} userProfile={userProfile!} navigateTo={navigateTo} handleDuel={handleDuel} appAssets={appAssets} />;
-    }
-  };
-
-  if (appState === 'AWAITING_CONFIG') {
-    return <SupabaseConfigPage onConfigured={handleConfigured} appAssets={appAssets} />;
-  }
-  if (appState === 'ERROR') {
-    return <AppError message={errorMessage} />;
-  }
-  if (appState === 'UNAUTHENTICATED') {
-    return <LoginPage appAssets={appAssets} />;
-  }
-  if (appState !== 'READY' || !userProfile) {
-    return <AppLoadingIndicator state={appState} />;
-  }
-
-  return (
-    <QuestionsProvider>
-      <div className="min-h-screen bg-slate-50 dark:bg-slate-900">
-        <Header user={userProfile} navigateTo={navigateTo} theme={theme} setTheme={setTheme} appAssets={appAssets} />
-        <Breadcrumbs path={generateBreadcrumbs()} navigateTo={navigateTo} />
-        <main key={animationKey} className="animate-fadeInUp">
-          {renderCurrentPage()}
-        </main>
-      </div>
-    </QuestionsProvider>
-  );
-};
-
-export default App;
+        
