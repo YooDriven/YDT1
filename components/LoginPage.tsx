@@ -75,7 +75,7 @@ const LoginPage: React.FC<LoginPageProps> = ({ appAssets }) => {
         setFormError(null);
         setMessage(null);
 
-        const loginEmail = role === 'admin' ? 'admin@drivetheory.pro' : 'test@drivetheory.pro';
+        const loginEmail = role === 'admin' ? 'admin.drivetheory@example.com' : 'user.drivetheory@example.com';
         const loginPassword = 'password123';
 
         // 1. Try to sign in
