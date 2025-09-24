@@ -1,14 +1,29 @@
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
+import { createClient, SupabaseClient } from 'https://esm.sh/@supabase/supabase-js@2';
 
-// Environment variables are expected to be available via `process.env` in this execution context.
-// The Vite-specific `import.meta.env` is not available.
-const supabaseUrl = process.env.SUPABASE_URL;
-const supabaseAnonKey = process.env.SUPABASE_ANON_KEY;
+export let supabase: SupabaseClient | null = null;
 
-export const isSupabaseConfigured = !!(supabaseUrl && supabaseAnonKey);
-
-// We export the client, and the App will handle the case where it's not configured.
-// Note: This will be null if the environment variables are not set.
-export const supabase = isSupabaseConfigured
-  ? createClient(supabaseUrl, supabaseAnonKey)
-  : null;
+/**
+ * Initializes the Supabase client. Can only be called once.
+ * @param url The Supabase project URL.
+ * @param key The Supabase anon key.
+ * @returns {boolean} True if initialization was successful, false otherwise.
+ */
+export const initializeSupabase = (url: string, key: string): boolean => {
+    // Avoid re-initializing
+    if (supabase) {
+        return true;
+    }
+    if (!url || !key) {
+        console.error("Supabase URL and Key are required for initialization.");
+        return false;
+    }
+    try {
+        // The createClient function can throw an error if the URL is invalid.
+        supabase = createClient(url, key);
+        return supabase !== null;
+    } catch (e) {
+        console.error("Failed to initialize Supabase client. Please check your URL and Key.", e);
+        supabase = null;
+        return false;
+    }
+};

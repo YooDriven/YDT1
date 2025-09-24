@@ -26,13 +26,15 @@ import AdminPage from './components/AdminPage';
 import Breadcrumbs, { Breadcrumb } from './components/Breadcrumbs';
 import LeaderboardPage from './components/LeaderboardPage';
 import { TOTAL_QUESTIONS, DAILY_GOAL_TARGET, MAX_SCORE_PER_CLIP } from './constants';
-import { supabase, isSupabaseConfigured } from './lib/supabaseClient';
+import { initializeSupabase, supabase } from './lib/supabaseClient';
 import { QuestionsProvider } from './contexts/QuestionsContext';
+import DynamicIcon from './components/DynamicIcon';
+import { Button, Input } from './components/ui';
 
 // Define the states for our application's loading lifecycle
 type AppState =
-  | 'CONFIG_CHECKING'
-  | 'CONFIG_ERROR'
+  | 'INIT'
+  | 'AWAITING_CONFIG'
   | 'AUTH_CHECKING'
   | 'UNAUTHENTICATED'
   | 'FETCHING_PROFILE'
@@ -42,10 +44,67 @@ type AppState =
 
 type Opponent = { name: string; avatarUrl: string; isUser?: boolean, rank?: number, score?: number, id?: string };
 
+const SupabaseConfigPage: React.FC<{ onConfigured: (url: string, key: string) => void, appAssets: Record<string, string> }> = ({ onConfigured, appAssets }) => {
+    const [url, setUrl] = useState('');
+    const [key, setKey] = useState('');
+    const [loading, setLoading] = useState(false);
+    const [error, setError] = useState('');
+
+    const handleSubmit = (e: React.FormEvent) => {
+        e.preventDefault();
+        if (!url || !key) {
+            setError('Both URL and Key are required.');
+            return;
+        }
+        setError('');
+        setLoading(true);
+        // Pass the credentials up to App.tsx to attempt initialization.
+        onConfigured(url, key);
+        // The loading state can be reset by the parent if config fails
+        setTimeout(() => setLoading(false), 1000); 
+    };
+
+    return (
+        <div className="min-h-screen bg-slate-50 dark:bg-slate-900 flex flex-col justify-center items-center p-4">
+            <div className="max-w-md w-full bg-white dark:bg-slate-800/50 rounded-2xl shadow-lg border border-gray-200 dark:border-slate-700 p-8 space-y-6">
+                <div className="text-center">
+                    <div className="h-10 w-auto mx-auto mb-4 flex justify-center">
+                        <DynamicIcon svgString={appAssets['logo_yoodrive']} />
+                    </div>
+                    <h2 className="text-3xl font-bold text-gray-900 dark:text-white tracking-tight">Backend Configuration</h2>
+                    <p className="mt-2 text-base text-gray-600 dark:text-gray-400">This app requires a Supabase backend to function. Please enter your project details.</p>
+                </div>
+
+                <form onSubmit={handleSubmit} className="space-y-4">
+                    <Input
+                        type="url"
+                        placeholder="Supabase Project URL"
+                        value={url}
+                        onChange={(e) => setUrl(e.target.value)}
+                        required
+                    />
+                    <Input
+                        type="text"
+                        placeholder="Supabase Anon Key"
+                        value={key}
+                        onChange={(e) => setKey(e.target.value)}
+                        required
+                    />
+                    {error && <p className="text-sm text-red-500 text-center">{error}</p>}
+                    <Button type="submit" variant="primary" className="w-full py-3" disabled={loading}>
+                        {loading ? 'Connecting...' : 'Save and Continue'}
+                    </Button>
+                </form>
+                 <p className="text-xs text-gray-500 dark:text-gray-400 text-center">Your keys will be stored in your browser's local storage and will not be shared.</p>
+            </div>
+        </div>
+    );
+};
+
 const AppLoadingIndicator: React.FC<{ state: AppState }> = ({ state }) => {
   const messages: Record<string, string> = {
-    CONFIG_CHECKING: 'Verifying configuration...',
-    CONFIG_ERROR: 'Configuration error.',
+    INIT: 'Initializing...',
+    AWAITING_CONFIG: 'Awaiting configuration...',
     AUTH_CHECKING: 'Securing connection...',
     UNAUTHENTICATED: 'Redirecting to login...',
     FETCHING_PROFILE: 'Loading your profile...',
@@ -122,8 +181,7 @@ const App: React.FC = () => {
   const [theme, setTheme] = useState<Theme>(
     () => (document.documentElement.classList.contains('dark') ? 'dark' : 'light')
   );
-  const [appState, setAppState] = useState<AppState>('CONFIG_CHECKING');
-  const [missingKeys, setMissingKeys] = useState<string[]>([]);
+  const [appState, setAppState] = useState<AppState>('INIT');
   const [errorMessage, setErrorMessage] = useState<string>('');
   
   const [session, setSession] = useState<Session | null>(null);
@@ -156,20 +214,6 @@ const App: React.FC = () => {
 
   // Main application lifecycle effect
   useEffect(() => {
-    // 1. Configuration Check
-    // The database is critical, so we check for it. The Gemini API key is an optional
-    // enhancement for the AI opponent, so we don't block the app if it's missing.
-    const keys: string[] = [];
-    if (!isSupabaseConfigured) keys.push('SUPABASE_URL', 'SUPABASE_ANON_KEY');
-    
-    if (keys.length > 0) {
-      setMissingKeys(keys);
-      setAppState('CONFIG_ERROR');
-      return;
-    }
-
-    setAppState('AUTH_CHECKING');
-    
     // Unified data loading function with timeouts
     const loadInitialData = async (session: Session) => {
         try {
@@ -214,28 +258,61 @@ const App: React.FC = () => {
         }
     };
 
-    // 2. Auth Listener
-    const { data: { subscription } } = supabase!.auth.onAuthStateChange((event, session) => {
-      if (event === 'SIGNED_OUT' || !session) {
-        setSession(null);
-        setUserProfile(null);
-        setAppState('UNAUTHENTICATED');
-        setCurrentPage(Page.Dashboard);
-        return;
+    if (appState === 'INIT') {
+      const envUrl = typeof process !== 'undefined' ? process.env.SUPABASE_URL : undefined;
+      const envKey = typeof process !== 'undefined' ? process.env.SUPABASE_ANON_KEY : undefined;
+      if (envUrl && envKey && initializeSupabase(envUrl, envKey)) {
+          setAppState('AUTH_CHECKING');
+          return;
+      }
+
+      const storedUrl = localStorage.getItem('SUPABASE_URL');
+      const storedKey = localStorage.getItem('SUPABASE_ANON_KEY');
+      if (storedUrl && storedKey && initializeSupabase(storedUrl, storedKey)) {
+          setAppState('AUTH_CHECKING');
+          return;
       }
       
-      setSession(session);
-      // Load data only once when the first valid session is detected.
-      if (event === 'INITIAL_SESSION' || event === 'SIGNED_IN') {
-          loadInitialData(session);
-      }
-    });
+      setAppState('AWAITING_CONFIG');
+    }
 
-    return () => {
-      subscription.unsubscribe();
-    };
-  }, []); // Empty dependency array ensures this runs only once.
+    if (appState === 'AUTH_CHECKING') {
+      const { data: { subscription } } = supabase!.auth.onAuthStateChange((event, session) => {
+        if (event === 'SIGNED_OUT' || !session) {
+          setSession(null);
+          setUserProfile(null);
+          setAppState('UNAUTHENTICATED');
+          setCurrentPage(Page.Dashboard);
+          return;
+        }
+        
+        setSession(session);
+        if (event === 'INITIAL_SESSION' || event === 'SIGNED_IN') {
+            loadInitialData(session);
+        }
+      });
 
+      return () => {
+        subscription.unsubscribe();
+      };
+    }
+  }, [appState]);
+
+
+  const handleConfigured = (url: string, key: string) => {
+    // Clear potentially invalid keys from local storage first
+    localStorage.removeItem('SUPABASE_URL');
+    localStorage.removeItem('SUPABASE_ANON_KEY');
+
+    if (initializeSupabase(url, key)) {
+        localStorage.setItem('SUPABASE_URL', url);
+        localStorage.setItem('SUPABASE_ANON_KEY', key);
+        // This state change will trigger the useEffect to run the auth checks
+        setAppState('AUTH_CHECKING');
+    } else {
+        alert('Configuration failed. Please check the Supabase URL and Key and try again.');
+    }
+  };
 
   const navigateTo = useCallback((page: Page) => {
     if (page === Page.Dashboard) {
@@ -476,8 +553,8 @@ const App: React.FC = () => {
     }
   };
 
-  if (appState === 'CONFIG_ERROR') {
-    return <AppError message="This application requires a connection to a Supabase backend to function." details={missingKeys} />;
+  if (appState === 'AWAITING_CONFIG') {
+    return <SupabaseConfigPage onConfigured={handleConfigured} appAssets={appAssets} />;
   }
   if (appState === 'ERROR') {
     return <AppError message={errorMessage} />;
