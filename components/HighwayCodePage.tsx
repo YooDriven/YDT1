@@ -19,7 +19,8 @@ const useHighwayCode = () => {
                     .select('*')
                     .order('rule_number', { ascending: true });
                 if (error) throw error;
-                setRules(data as HighwayCodeRule[]);
+                // FIX: Ensure that `data` is not null before setting state. If it is null, default to an empty array to prevent crashes on `.map` or `.filter`.
+                setRules(data || []);
             } catch (err: any) {
                 setError(err.message);
             } finally {

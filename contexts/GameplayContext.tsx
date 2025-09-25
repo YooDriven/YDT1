@@ -4,14 +4,18 @@ import { Page, Question, CaseStudy, Opponent, LeaderboardEntry, TestAttempt, Fri
 import { DAILY_GOAL_TARGET, MAX_SCORE_PER_CLIP } from '../constants';
 import { useAuth } from './AuthContext';
 import { useSocial } from './SocialContext';
-import { useAppContext } from './AppContext';
+import { AppContext } from './AppContext';
 
 const GameplayContext = createContext<GameplayContextType | undefined>(undefined);
 
 export const GameplayProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
     const { userProfile, setUserProfile } = useAuth() as any;
     const { grantAchievement } = useSocial();
-    const { navigateTo, showToast } = useAppContext();
+    const uiContext = useContext(AppContext);
+     if (!uiContext) {
+        throw new Error("GameplayProvider must be used within an AppUIProvider");
+    }
+    const { navigateTo, showToast } = uiContext;
 
     // Gameplay State
     const [testResult, setTestResult] = useState<{ score: number, total: number }>({ score: 0, total: 0 });

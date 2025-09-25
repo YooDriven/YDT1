@@ -4,13 +4,17 @@ import useAchievements from '../hooks/useAchievements';
 import useFriends from '../hooks/useFriends';
 import useNotifications from '../hooks/useNotifications';
 import { useAuth } from './AuthContext';
-import { useAppContext } from './AppContext';
+import { AppContext } from './AppContext';
 
 const SocialContext = createContext<SocialContextType | undefined>(undefined);
 
 export const SocialProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
     const { userProfile, setUserProfile } = useAuth() as any;
-    const { showToast } = useAppContext();
+    const uiContext = useContext(AppContext);
+    if (!uiContext) {
+        throw new Error("SocialProvider must be used within an AppUIProvider");
+    }
+    const { showToast } = uiContext;
     
     // Custom Hooks for social features
     const { friends, sendFriendRequest, acceptFriendRequest, declineFriendRequest, removeFriend } = useFriends(userProfile?.id, showToast);

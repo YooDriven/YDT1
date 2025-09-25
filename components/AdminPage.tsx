@@ -1680,7 +1680,8 @@ const AppearanceManager: React.FC<{
     };
     
     const categorizedCoreAssets = useMemo(() => {
-        return CORE_ASSETS.reduce((acc, asset) => {
+        // FIX: Explicitly type the accumulator to fix type inference issue.
+        return CORE_ASSETS.reduce((acc: Record<string, CoreAssetInfo[]>, asset) => {
             if (!acc[asset.category]) {
                 acc[asset.category] = [];
             }

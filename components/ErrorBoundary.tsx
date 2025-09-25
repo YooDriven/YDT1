@@ -10,19 +10,21 @@ interface State {
 }
 
 class ErrorBoundary extends Component<Props, State> {
-  public state: State = {
+  // FIX: Removed `public` keyword which can sometimes cause issues with certain TS/linter configurations.
+  state: State = {
     hasError: false,
   };
 
-  public static getDerivedStateFromError(error: Error): State {
+  // FIX: Removed `public` keyword which can sometimes cause issues with certain TS/linter configurations.
+  static getDerivedStateFromError(error: Error): State {
     return { hasError: true, error };
   }
 
-  public componentDidCatch(error: Error, errorInfo: React.ErrorInfo) {
+  // FIX: Removed `public` keyword which can sometimes cause issues with certain TS/linter configurations.
+  componentDidCatch(error: Error, errorInfo: React.ErrorInfo) {
     console.error("Uncaught error:", error, errorInfo);
   }
 
-  // FIX: Removed `public` keyword which can sometimes cause issues with certain TS/linter configurations.
   render() {
     if (this.state.hasError) {
       return (
