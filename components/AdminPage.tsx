@@ -1277,6 +1277,7 @@ const HighwayCodeManager: React.FC<{ showToast: (msg: string, type?: 'success' |
     );
 };
 
+
 // Appearance Manager Component
 type StagedFile = {
     file: File;
@@ -1298,7 +1299,83 @@ const toBase64 = (file: File): Promise<string> => new Promise((resolve, reject) 
     reader.onerror = error => reject(error);
 });
 
-const AppearanceManager: React.FC<{ onAssetsUpdate: () => void; showToast: (msg: string, type?: 'success' | 'error') => void; appAssets: AppAssetRecord; }> = ({ onAssetsUpdate, showToast, appAssets: initialAssets }) => {
+const IconUploader: React.FC<{
+    label: string;
+    assetKey: string;
+    currentAsset: AppAsset | undefined;
+    onUpload: (file: File, key: string) => Promise<void>;
+    showToast: (msg: string, type?: 'success' | 'error') => void;
+}> = ({ label, assetKey, currentAsset, onUpload, showToast }) => {
+    const [isUploading, setIsUploading] = useState(false);
+    const [isDragOver, setIsDragOver] = useState(false);
+    const inputRef = useRef<HTMLInputElement>(null);
+
+    const handleFile = async (file: File | null) => {
+        if (!file) return;
+        
+        const validMimeTypes = ['image/svg+xml', 'image/png', 'image/jpeg'];
+        if (!validMimeTypes.includes(file.type)) {
+            showToast(`Invalid file type for icon: ${file.name}. Please use SVG, PNG, or JPG.`, 'error');
+            return;
+        }
+
+        setIsUploading(true);
+        await onUpload(file, assetKey);
+        setIsUploading(false);
+    };
+
+    const handleFileDrop = (e: React.DragEvent<HTMLDivElement>) => {
+        e.preventDefault();
+        e.stopPropagation();
+        setIsDragOver(false);
+        if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
+            handleFile(e.dataTransfer.files[0]); // Handle single file drop
+        }
+    };
+    
+    const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+        if (e.target.files && e.target.files.length > 0) {
+            handleFile(e.target.files[0]);
+        }
+        e.target.value = '';
+    };
+
+    return (
+        <div className="bg-white dark:bg-slate-800 p-4 rounded-lg border border-gray-200 dark:border-slate-700 flex items-center justify-between">
+            <div className="flex items-center gap-4">
+                <div className="h-12 w-12 flex-shrink-0 bg-gray-100 dark:bg-slate-700 rounded-md flex items-center justify-center">
+                    {currentAsset ? (
+                        <DynamicAsset asset={currentAsset} className="h-8 w-8 text-gray-700 dark:text-gray-300" />
+                    ) : (
+                        <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>
+                    )}
+                </div>
+                <div>
+                    <p className="font-semibold text-gray-800 dark:text-white">{label}</p>
+                    <p className="text-xs text-gray-500 dark:text-gray-400">Key: <code>{assetKey}</code></p>
+                </div>
+            </div>
+            
+            <div 
+                className={`relative w-32 h-12 border-2 border-dashed rounded-md flex items-center justify-center text-sm font-semibold cursor-pointer transition-colors ${isDragOver ? 'border-teal-500 bg-teal-500/10 text-teal-600 dark:text-teal-400' : 'border-gray-300 dark:border-slate-600 text-gray-500 dark:text-gray-400 hover:border-teal-400'}`}
+                onDragOver={(e) => { e.preventDefault(); setIsDragOver(true); }}
+                onDragLeave={() => setIsDragOver(false)}
+                onDrop={handleFileDrop}
+                onClick={() => inputRef.current?.click()}
+            >
+                <input ref={inputRef} type="file" className="hidden" onChange={handleFileSelect} accept=".svg,.png,.jpg,.jpeg" />
+                {isUploading ? "Uploading..." : "Upload Icon"}
+            </div>
+        </div>
+    );
+};
+
+const AppearanceManager: React.FC<{
+    onAssetsUpdate: () => void;
+    showToast: (msg: string, type?: 'success' | 'error') => void;
+    appAssets: AppAssetRecord;
+    sidebarItems: Record<string, { name: string, icon: string }>;
+}> = ({ onAssetsUpdate, showToast, appAssets: initialAssets, sidebarItems }) => {
     const [assets, setAssets] = useState(initialAssets);
     const [stagedFiles, setStagedFiles] = useState<StagedFile[]>([]);
     const [isDeleting, setIsDeleting] = useState<string | null>(null);
@@ -1307,6 +1384,29 @@ const AppearanceManager: React.FC<{ onAssetsUpdate: () => void; showToast: (msg:
     useEffect(() => {
         setAssets(initialAssets);
     }, [initialAssets]);
+    
+    const handleIconUpload = async (file: File, key: string) => {
+        try {
+            if (!key) throw new Error('Asset key is missing.');
+            
+            const mime_type = file.type;
+            let asset_value: string;
+
+            if (mime_type === 'image/svg+xml') {
+                asset_value = await file.text();
+            } else {
+                asset_value = await toBase64(file);
+            }
+            
+            const { error } = await supabase!.from('app_assets').upsert({ asset_key: key, asset_value, mime_type });
+            if (error) throw error;
+            
+            showToast(`Uploaded icon for '${key}'.`);
+            onAssetsUpdate(); // Refresh assets
+        } catch(err: any) {
+             showToast(`Failed to upload icon: ${err.message}`, 'error');
+        }
+    };
 
     const handleFileDrop = (e: React.DragEvent<HTMLDivElement>) => {
         e.preventDefault();
@@ -1351,7 +1451,6 @@ const AppearanceManager: React.FC<{ onAssetsUpdate: () => void; showToast: (msg:
             return {
                 file,
                 key: key,
-                // Per user request, ensure createObjectURL is used for previews.
                 previewUrl: URL.createObjectURL(file),
                 status: 'idle',
             };
@@ -1387,31 +1486,25 @@ const AppearanceManager: React.FC<{ onAssetsUpdate: () => void; showToast: (msg:
             const { file, key } = stagedFile;
             if (!key) throw new Error('Asset key cannot be empty.');
             
-            // Per user request, explicitly handle SVG vs other image types
             const mime_type = file.type;
             let asset_value: string;
 
             if (mime_type === 'image/svg+xml') {
                 asset_value = await file.text();
-            } else if (mime_type === 'image/png' || mime_type === 'image/jpeg') {
-                asset_value = await toBase64(file);
             } else {
-                // This case is guarded by the `handleFiles` filter, but included for robustness.
-                throw new Error(`Unsupported file type: ${mime_type}`);
+                asset_value = await toBase64(file);
             }
             
-            // Per user request, ensure file.type is used for the mimeType
             const { error } = await supabase!.from('app_assets').upsert({ asset_key: key, asset_value, mime_type });
             if (error) throw error;
             
             showToast(`Uploaded '${file.name}' as '${key}'.`);
-            onAssetsUpdate(); // Refresh the main asset list
+            onAssetsUpdate();
             handleRemoveStaged(index);
         } catch(err: any) {
              showToast(`Failed to upload ${stagedFile.file.name}: ${err.message}`, 'error');
              setStagedFiles(prev => {
                 const updated = [...prev];
-                // Check if the item still exists before updating state
                 if (updated[index]) {
                     updated[index].status = 'error';
                     updated[index].error = err.message;
@@ -1420,7 +1513,6 @@ const AppearanceManager: React.FC<{ onAssetsUpdate: () => void; showToast: (msg:
             });
         }
     };
-
 
     const handleDeleteAsset = async (key: string) => {
         if (window.confirm(`Are you sure you want to delete the asset "${key}"? This cannot be undone.`)) {
@@ -1439,18 +1531,38 @@ const AppearanceManager: React.FC<{ onAssetsUpdate: () => void; showToast: (msg:
 
     return (
         <div>
-            <h2 className="text-2xl font-bold mb-4 text-gray-900 dark:text-white">Asset Management</h2>
-            <div 
-                className={`relative border-2 border-dashed rounded-lg p-8 text-center transition-colors ${isDragOver ? 'border-teal-500 bg-teal-500/10' : 'border-gray-300 dark:border-slate-600'}`}
-                onDragOver={(e) => { e.preventDefault(); setIsDragOver(true); }}
-                onDragLeave={() => setIsDragOver(false)}
-                onDrop={handleFileDrop}
-            >
-                 <input type="file" id="file-upload" multiple accept=".svg,.png,.jpg,.jpeg" className="hidden" onChange={handleFileSelect} />
-                 <label htmlFor="file-upload" className="cursor-pointer">
-                    <p className="font-semibold text-gray-700 dark:text-gray-300">Drag & Drop SVG, PNG, or JPG files here</p>
-                    <p className="text-sm text-gray-500 dark:text-gray-400">or click to select files</p>
-                 </label>
+            <h2 className="text-2xl font-bold mb-4 text-gray-900 dark:text-white">Appearance Settings</h2>
+            
+            <div className="mt-8">
+                <h3 className="text-xl font-bold mb-4 text-gray-900 dark:text-white">Admin Panel Icons</h3>
+                <div className="space-y-4">
+                    {Object.entries(sidebarItems).map(([key, { name, icon }]) => (
+                        <IconUploader
+                            key={key}
+                            label={name}
+                            assetKey={icon}
+                            currentAsset={assets[icon]}
+                            onUpload={handleIconUpload}
+                            showToast={showToast}
+                        />
+                    ))}
+                </div>
+            </div>
+
+            <div className="mt-8">
+                <h3 className="text-xl font-bold mb-4 text-gray-900 dark:text-white">General Asset Management</h3>
+                <div 
+                    className={`relative border-2 border-dashed rounded-lg p-8 text-center transition-colors ${isDragOver ? 'border-teal-500 bg-teal-500/10' : 'border-gray-300 dark:border-slate-600'}`}
+                    onDragOver={(e) => { e.preventDefault(); setIsDragOver(true); }}
+                    onDragLeave={() => setIsDragOver(false)}
+                    onDrop={handleFileDrop}
+                >
+                     <input type="file" id="file-upload" multiple accept=".svg,.png,.jpg,.jpeg" className="hidden" onChange={handleFileSelect} />
+                     <label htmlFor="file-upload" className="cursor-pointer">
+                        <p className="font-semibold text-gray-700 dark:text-gray-300">Drag & Drop SVG, PNG, or JPG files here</p>
+                        <p className="text-sm text-gray-500 dark:text-gray-400">or click to select files</p>
+                     </label>
+                </div>
             </div>
             
             {stagedFiles.length > 0 && (
@@ -1523,9 +1635,10 @@ const AdminPage: React.FC<AdminPageProps> = ({ navigateTo, appAssets, onAssetsUp
         setToast({ message, type });
     };
 
-    const sidebarItems = {
-        content: { name: 'Content Management', icon: 'icon_clipboard' },
-        appearance: { name: 'Appearance', icon: 'icon_lightbulb' }
+    // FIX: Explicitly type `sidebarItems` to fix type inference issue with `Object.entries`.
+    const sidebarItems: Record<AdminSection, { name: string, icon: string }> = {
+        content: { name: 'Content Management', icon: 'admin_icon_content' },
+        appearance: { name: 'Appearance', icon: 'admin_icon_appearance' }
     };
     
     const contentTabs: Record<ContentTab, { name: string }> = {
@@ -1558,7 +1671,6 @@ const AdminPage: React.FC<AdminPageProps> = ({ navigateTo, appAssets, onAssetsUp
                     return <CaseStudyManager showToast={showToast} />;
                 default:
                     return <div>
-                        {/* FIX: Add type assertion to prevent TS error from exhaustive switch narrowing variable to 'never'. */}
                         <h2 className="text-2xl font-bold mb-4 text-gray-900 dark:text-white">{contentTabs[activeContentTab as ContentTab].name}</h2>
                         <div className="p-8 text-center bg-gray-100 dark:bg-slate-800 rounded-lg border border-gray-200 dark:border-slate-700">
                             <p className="text-gray-500 dark:text-gray-400">Management for this section is coming soon.</p>
@@ -1567,7 +1679,7 @@ const AdminPage: React.FC<AdminPageProps> = ({ navigateTo, appAssets, onAssetsUp
             }
         }
         if (activeSection === 'appearance') {
-             return <AppearanceManager onAssetsUpdate={onAssetsUpdate} showToast={showToast} appAssets={appAssets} />;
+             return <AppearanceManager onAssetsUpdate={onAssetsUpdate} showToast={showToast} appAssets={appAssets} sidebarItems={sidebarItems} />;
         }
         return null;
     };
