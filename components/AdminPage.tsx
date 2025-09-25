@@ -1277,8 +1277,35 @@ const HighwayCodeManager: React.FC<{ showToast: (msg: string, type?: 'success' |
     );
 };
 
+// Core Asset Definition
+interface CoreAssetInfo {
+    key: string;
+    name: string;
+    description: string;
+    category: 'Logos' | 'UI Icons' | 'Badge Icons';
+}
 
-// Appearance Manager Component
+const CORE_ASSETS: CoreAssetInfo[] = [
+    { key: 'logo_yoodrive', name: 'Main Application Logo', description: 'Used in the header and on the login page.', category: 'Logos'},
+    { key: 'admin_icon_content', name: 'Admin: Content Icon', description: 'Icon for the Content Management section in the admin sidebar.', category: 'UI Icons'},
+    { key: 'admin_icon_appearance', name: 'Admin: Appearance Icon', description: 'Icon for the Appearance section in the admin sidebar.', category: 'UI Icons'},
+    { key: 'icon_calendar', name: 'Calendar Icon', description: 'Used for the Daily Challenge card and profile stats.', category: 'UI Icons'},
+    { key: 'icon_swords', name: 'Swords Icon', description: 'Used for the Battle Ground card and duels.', category: 'UI Icons'},
+    { key: 'icon_clock', name: 'Clock Icon', description: 'Used for timed challenge cards.', category: 'UI Icons'},
+    { key: 'icon_clipboard', name: 'Clipboard Icon', description: 'Used for Mock Test and Topic Test cards.', category: 'UI Icons'},
+    { key: 'icon_lightbulb', name: 'Lightbulb Icon', description: 'Used for Study Mode and Highway Code cards.', category: 'UI Icons'},
+    { key: 'icon_bookmark', name: 'Bookmark Icon', description: 'Used for the Bookmarked Questions card.', category: 'UI Icons'},
+    { key: 'icon_road_sign', name: 'Road Sign Icon', description: 'Used for the Road Signs study card.', category: 'UI Icons'},
+    { key: 'icon_construction', name: 'Hazard Icon', description: 'Used for the Hazard Perception study card.', category: 'UI Icons'},
+    { key: 'icon_handshake', name: 'Handshake Icon', description: 'Used on the battle results page for a draw.', category: 'UI Icons'},
+    { key: 'icon_chart_bar', name: 'Chart Bar Icon', description: 'Used in the profile for performance stats.', category: 'UI Icons'},
+    { key: 'badge_fire', name: 'Fire Badge', description: 'Represents the user\'s login streak.', category: 'Badge Icons'},
+    { key: 'badge_snowflake', name: 'Snowflake Badge', description: 'Represents the user\'s streak freezes.', category: 'Badge Icons'},
+    { key: 'badge_trophy', name: 'Trophy Badge', description: 'Represents leaderboard achievements and battle wins.', category: 'Badge Icons'},
+    { key: 'badge_generic', name: 'Generic Badge Icon', description: 'A default icon for miscellaneous badges.', category: 'Badge Icons'},
+];
+
+// Appearance Manager Components
 const toBase64 = (file: File): Promise<string> => new Promise((resolve, reject) => {
     const reader = new FileReader();
     reader.readAsDataURL(file);
@@ -1289,28 +1316,142 @@ const toBase64 = (file: File): Promise<string> => new Promise((resolve, reject) 
     reader.onerror = error => reject(error);
 });
 
-const AssetEditor: React.FC<{
-    assetKey: string;
-    asset: AppAsset;
-    onUpload: (file: File, key: string) => Promise<void>;
-    onDelete: (key: string) => Promise<void>;
+type StagedFile = { file: File; key: string; error?: string; assignedSlot: string; };
+
+const BulkAssetUploader: React.FC<{
+    onBulkUpload: (files: StagedFile[]) => Promise<void>;
     showToast: (msg: string, type?: 'success' | 'error') => void;
-}> = ({ assetKey, asset, onUpload, onDelete, showToast }) => {
+    existingKeys: string[];
+    coreAssets: CoreAssetInfo[];
+    appAssets: AppAssetRecord;
+}> = ({ onBulkUpload, showToast, existingKeys, coreAssets, appAssets }) => {
+    const [stagedFiles, setStagedFiles] = useState<StagedFile[]>([]);
+    const [isUploading, setIsUploading] = useState(false);
+    const [isDragOver, setIsDragOver] = useState(false);
+
+    const handleFiles = (files: FileList | null) => {
+        if (!files) return;
+        const newFiles: StagedFile[] = Array.from(files).map(file => {
+            const validMimeTypes = ['image/svg+xml', 'image/png', 'image/jpeg'];
+            if (!validMimeTypes.includes(file.type)) {
+                showToast(`Skipped invalid file type: ${file.name}`, 'error');
+                return null;
+            }
+            const key = file.name.split('.')[0].toLowerCase().replace(/[^a-z0-9_]/g, '_');
+            return {
+                file,
+                key,
+                error: existingKeys.includes(key) ? 'Key already exists' : undefined,
+                assignedSlot: 'new_asset'
+            };
+        }).filter(Boolean) as StagedFile[];
+        setStagedFiles(prev => [...prev, ...newFiles]);
+    };
+    
+    const handleDrop = (e: React.DragEvent<HTMLDivElement>) => {
+        e.preventDefault();
+        e.stopPropagation();
+        setIsDragOver(false);
+        handleFiles(e.dataTransfer.files);
+    };
+
+    const handleUpdateStagedFile = (index: number, field: keyof StagedFile, value: string) => {
+        setStagedFiles(prev => {
+            const newFiles = [...prev];
+            const fileToUpdate = { ...newFiles[index], [field]: value };
+            if (field === 'key') {
+                fileToUpdate.error = existingKeys.includes(value) ? 'Key already exists' : undefined;
+            }
+            newFiles[index] = fileToUpdate;
+            return newFiles;
+        });
+    };
+
+    const handleUploadAll = async () => {
+        if (stagedFiles.some(f => f.error)) {
+            showToast('Please fix errors before uploading.', 'error');
+            return;
+        }
+        setIsUploading(true);
+        await onBulkUpload(stagedFiles);
+        setIsUploading(false);
+        setStagedFiles([]);
+    };
+
+    return (
+        <section className="mb-8">
+            <h3 className="text-xl font-bold mb-4 text-gray-900 dark:text-white">Bulk Asset Uploader</h3>
+            <div
+                onDragOver={(e) => { e.preventDefault(); e.stopPropagation(); setIsDragOver(true); }}
+                onDragLeave={(e) => { e.preventDefault(); e.stopPropagation(); setIsDragOver(false); }}
+                onDrop={handleDrop}
+                className={`relative p-6 border-2 border-dashed rounded-lg text-center transition-colors ${isDragOver ? 'border-teal-500 bg-teal-50 dark:bg-teal-500/10' : 'border-gray-300 dark:border-slate-600'}`}
+            >
+                <input type="file" multiple onChange={(e) => handleFiles(e.target.files)} className="absolute inset-0 w-full h-full opacity-0 cursor-pointer" />
+                <p className="text-gray-500 dark:text-gray-400">Drag & drop files here, or click to select.</p>
+                <p className="text-xs text-gray-400 dark:text-gray-500 mt-1">Accepts SVG, PNG, JPG. Asset keys are generated from filenames.</p>
+            </div>
+            {stagedFiles.length > 0 && (
+                <div className="mt-4 space-y-3">
+                    {stagedFiles.map((stagedFile, index) => (
+                        <div key={index} className="flex items-center gap-3 p-2 bg-white dark:bg-slate-800 rounded-lg border border-gray-200 dark:border-slate-700">
+                            <img src={URL.createObjectURL(stagedFile.file)} alt="preview" className="h-10 w-10 rounded object-contain" />
+                            <div className="flex-1">
+                                <p className="text-sm font-semibold text-gray-800 dark:text-gray-200 truncate">{stagedFile.file.name}</p>
+                                <p className="text-xs text-gray-500 dark:text-gray-400">{stagedFile.file.type}</p>
+                            </div>
+                            <div className="w-1/3">
+                                 <Select value={stagedFile.assignedSlot} onChange={e => handleUpdateStagedFile(index, 'assignedSlot', e.target.value)}>
+                                    <option value="new_asset">Add as new asset</option>
+                                    <option disabled>--- Assign to Core Asset ---</option>
+                                    {coreAssets.map(core => (
+                                        <option key={core.key} value={core.key}>Replace: {core.name}</option>
+                                    ))}
+                                 </Select>
+                            </div>
+                            <div className="w-1/3">
+                                {stagedFile.assignedSlot === 'new_asset' && (
+                                     <Input 
+                                        value={stagedFile.key} 
+                                        onChange={e => handleUpdateStagedFile(index, 'key', e.target.value)} 
+                                        error={stagedFile.error}
+                                    />
+                                )}
+                            </div>
+                            <Button variant="danger" className="!p-2" onClick={() => setStagedFiles(prev => prev.filter((_, i) => i !== index))}>&times;</Button>
+                        </div>
+                    ))}
+                    <div className="flex justify-end gap-3 pt-2">
+                        <Button variant="secondary" onClick={() => setStagedFiles([])} disabled={isUploading}>Clear All</Button>
+                        <Button onClick={handleUploadAll} disabled={isUploading || stagedFiles.some(f => f.error)}>
+                            {isUploading ? 'Uploading...' : `Upload All (${stagedFiles.length})`}
+                        </Button>
+                    </div>
+                </div>
+            )}
+        </section>
+    );
+};
+
+const CoreAssetEditor: React.FC<{
+    assetInfo: CoreAssetInfo;
+    asset: AppAsset | undefined;
+    onUpload: (file: File, key: string) => Promise<void>;
+    showToast: (msg: string, type?: 'success' | 'error') => void;
+}> = ({ assetInfo, asset, onUpload, showToast }) => {
     const [isUploading, setIsUploading] = useState(false);
     const [isDragOver, setIsDragOver] = useState(false);
     const inputRef = useRef<HTMLInputElement>(null);
 
     const handleFile = async (file: File | null) => {
         if (!file) return;
-        
         const validMimeTypes = ['image/svg+xml', 'image/png', 'image/jpeg'];
         if (!validMimeTypes.includes(file.type)) {
-            showToast(`Invalid file type: ${file.name}. Please use SVG, PNG, or JPG.`, 'error');
+            showToast(`Invalid file type for ${assetInfo.name}. Please use SVG, PNG, or JPG.`, 'error');
             return;
         }
-
         setIsUploading(true);
-        await onUpload(file, assetKey);
+        await onUpload(file, assetInfo.key);
         setIsUploading(false);
     };
 
@@ -1318,111 +1459,29 @@ const AssetEditor: React.FC<{
         e.preventDefault();
         e.stopPropagation();
         setIsDragOver(false);
-        if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
-            handleFile(e.dataTransfer.files[0]);
-        }
-    };
-    
-    const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
-        if (e.target.files && e.target.files.length > 0) {
-            handleFile(e.target.files[0]);
-        }
-        e.target.value = '';
+        if (e.dataTransfer.files?.[0]) handleFile(e.dataTransfer.files[0]);
     };
 
     return (
         <div 
-            className={`group relative p-4 bg-white dark:bg-slate-800 rounded-lg flex flex-col items-center justify-center shadow-md border-2 transition-all duration-300 ${isDragOver ? 'border-teal-500 scale-105' : 'border-gray-200 dark:border-slate-700'}`}
+            className={`relative p-4 flex items-center gap-4 bg-white dark:bg-slate-800 rounded-lg border-2 transition-colors ${isDragOver ? 'border-teal-500' : 'border-gray-200 dark:border-slate-700'}`}
             onDragOver={(e) => { e.preventDefault(); e.stopPropagation(); setIsDragOver(true); }}
             onDragLeave={(e) => { e.preventDefault(); e.stopPropagation(); setIsDragOver(false); }}
             onDrop={handleDrop}
         >
-            <input ref={inputRef} type="file" className="hidden" onChange={handleFileSelect} accept=".svg,.png,.jpg,.jpeg" />
-            
-            <div className="h-16 w-16 flex items-center justify-center">
+             <input ref={inputRef} type="file" className="hidden" onChange={e => handleFile(e.target.files?.[0] || null)} accept=".svg,.png,.jpg,.jpeg" />
+             <div className="flex-shrink-0 h-16 w-16 bg-gray-100 dark:bg-slate-700 rounded-md flex items-center justify-center p-2">
                  <DynamicAsset asset={asset} className="max-h-full max-w-full text-gray-700 dark:text-gray-300" />
             </div>
-            <p className="mt-2 text-xs text-center text-gray-500 dark:text-gray-400 break-all">{assetKey}</p>
-            
-            <div className="absolute inset-0 bg-black/60 rounded-lg flex flex-col items-center justify-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
-                <Button variant="secondary" onClick={() => inputRef.current?.click()} disabled={isUploading}>
-                    {isUploading ? 'Uploading...' : 'Upload'}
-                </Button>
+            <div className="flex-1">
+                <h4 className="font-bold text-gray-900 dark:text-white">{assetInfo.name}</h4>
+                <p className="text-sm text-gray-500 dark:text-gray-400">{assetInfo.description}</p>
+                <code className="text-xs text-gray-400 dark:text-gray-500">{assetInfo.key}</code>
             </div>
-             <div className="absolute top-1 right-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                <Button
-                    onClick={() => onDelete(assetKey)}
-                    variant="danger"
-                    className="!p-1.5 !rounded-full"
-                >
-                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="w-4 h-4"><path fillRule="evenodd" d="M8.75 1A2.75 2.75 0 0 0 6 3.75v.443c-.795.077-1.58.22-2.365.468a.75.75 0 1 0 .23 1.482l.149-.022.841 10.518A2.75 2.75 0 0 0 7.596 19h4.807a2.75 2.75 0 0 0 2.742-2.53l.841-10.52.149.023a.75.75 0 0 0 .23-1.482A41.03 41.03 0 0 0 14 4.193v-.443A2.75 2.75 0 0 0 11.25 1h-2.5ZM10 4c.84 0 1.673.025 2.5.075V3.75c0-.69-.56-1.25-1.25-1.25h-2.5c-.69 0-1.25.56-1.25 1.25v.325C8.327 4.025 9.16 4 10 4ZM8.58 7.72a.75.75 0 0 0-1.5.06l.3 7.5a.75.75 0 1 0 1.5-.06l-.3-7.5Zm4.34.06a.75.75 0 1 0-1.5-.06l-.3 7.5a.75.75 0 1 0 1.5.06l.3-7.5Z" clipRule="evenodd" /></svg>
-                </Button>
-            </div>
+            <Button variant="secondary" onClick={() => inputRef.current?.click()} disabled={isUploading}>
+                {isUploading ? 'Uploading...' : 'Change'}
+            </Button>
         </div>
-    );
-};
-
-const AddAssetModal: React.FC<{
-    onSave: (file: File, key: string) => Promise<void>;
-    onClose: () => void;
-    showToast: (msg: string, type?: 'success' | 'error') => void;
-    existingKeys: string[];
-}> = ({ onSave, onClose, showToast, existingKeys }) => {
-    const [key, setKey] = useState('');
-    const [file, setFile] = useState<File | null>(null);
-    const [isSaving, setIsSaving] = useState(false);
-    const [keyError, setKeyError] = useState('');
-
-    const handleSubmit = async (e: React.FormEvent) => {
-        e.preventDefault();
-        if (!file || !key || keyError) return;
-        setIsSaving(true);
-        await onSave(file, key);
-        setIsSaving(false);
-    };
-
-    const handleKeyChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-        const newKey = e.target.value.toLowerCase().replace(/[^a-z0-9_]/g, '_');
-        setKey(newKey);
-        if (existingKeys.includes(newKey)) {
-            setKeyError('This key already exists.');
-        } else {
-            setKeyError('');
-        }
-    };
-
-    const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
-        const selectedFile = e.target.files?.[0];
-        if (!selectedFile) return;
-
-        const validMimeTypes = ['image/svg+xml', 'image/png', 'image/jpeg'];
-        if (!validMimeTypes.includes(selectedFile.type)) {
-            showToast(`Invalid file type. Please use SVG, PNG, or JPG.`, 'error');
-            return;
-        }
-        setFile(selectedFile);
-    };
-
-    return (
-        <Modal title="Add New Asset" onClose={onClose}>
-            <form onSubmit={handleSubmit}>
-                <FormRow>
-                    <Label htmlFor="assetKey">Asset Key</Label>
-                    <Input id="assetKey" value={key} onChange={handleKeyChange} required placeholder="e.g., new_promo_banner" error={keyError} />
-                    <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">Use lowercase letters, numbers, and underscores only.</p>
-                </FormRow>
-                <FormRow>
-                    <Label htmlFor="assetFile">Asset File</Label>
-                    <Input id="assetFile" type="file" onChange={handleFileSelect} accept=".svg,.png,.jpg,.jpeg" required />
-                </FormRow>
-                 <div className="flex justify-end gap-3 mt-6">
-                    <Button type="button" variant="secondary" onClick={onClose} disabled={isSaving}>Cancel</Button>
-                    <Button type="submit" variant="primary" disabled={isSaving || !file || !key || !!keyError}>
-                        {isSaving ? 'Saving...' : 'Add Asset'}
-                    </Button>
-                </div>
-            </form>
-        </Modal>
     );
 };
 
@@ -1431,15 +1490,11 @@ const AppearanceManager: React.FC<{
     showToast: (msg: string, type?: 'success' | 'error') => void;
     appAssets: AppAssetRecord;
 }> = ({ onAssetsUpdate, showToast, appAssets }) => {
-    const [isAddModalOpen, setIsAddModalOpen] = useState(false);
 
     const handleUpload = async (file: File, key: string) => {
         try {
-            if (!key) throw new Error('Asset key is missing.');
-            
             const mime_type = file.type;
             let asset_value: string;
-
             if (mime_type === 'image/svg+xml') {
                 asset_value = await file.text();
             } else {
@@ -1451,82 +1506,84 @@ const AppearanceManager: React.FC<{
             
             showToast(`Asset '${key}' updated successfully.`);
             onAssetsUpdate();
-            if(isAddModalOpen) setIsAddModalOpen(false);
         } catch(err: any) {
              showToast(`Failed to upload asset: ${err.message}`, 'error');
         }
     };
 
-    const handleDeleteAsset = async (key: string) => {
-        if (window.confirm(`Are you sure you want to delete the asset "${key}"? This cannot be undone.`)) {
-            try {
-                const { error } = await supabase!.from('app_assets').delete().eq('asset_key', key);
-                if (error) throw error;
-                showToast(`Asset "${key}" deleted successfully.`);
-                onAssetsUpdate();
-            } catch (err: any) {
-                showToast(`Error deleting asset: ${err.message}`, 'error');
-            }
+    const handleBulkUpload = async (stagedFiles: StagedFile[]) => {
+        try {
+            const uploads = stagedFiles.map(async stagedFile => {
+                const key = stagedFile.assignedSlot === 'new_asset' ? stagedFile.key : stagedFile.assignedSlot;
+                const file = stagedFile.file;
+                const mime_type = file.type;
+                let asset_value: string;
+                if (mime_type === 'image/svg+xml') {
+                    asset_value = await file.text();
+                } else {
+                    asset_value = await toBase64(file);
+                }
+                return { asset_key: key, asset_value, mime_type };
+            });
+            const upsertData = await Promise.all(uploads);
+            const { error } = await supabase!.from('app_assets').upsert(upsertData);
+            if (error) throw error;
+
+            showToast(`${stagedFiles.length} assets uploaded successfully.`);
+            onAssetsUpdate();
+        } catch (err: any) {
+            showToast(`Bulk upload failed: ${err.message}`, 'error');
         }
     };
     
-    const categorizedAssets = useMemo(() => {
-        type Categories = { [key: string]: AppAssetRecord };
-        const categories: Categories = {
-            'Logos': {},
-            'Badge Icons': {},
-            'UI Icons': {},
-            'Other': {},
-        };
-
-        // FIX: Explicitly cast the result of Object.entries to fix type inference issues where 'value' becomes unknown.
-        (Object.entries(appAssets) as [string, AppAsset][]).forEach(([key, value]) => {
-            if (key.startsWith('logo_')) categories['Logos'][key] = value;
-            else if (key.startsWith('badge_')) categories['Badge Icons'][key] = value;
-            else if (key.startsWith('icon_') || key.startsWith('admin_icon_')) categories['UI Icons'][key] = value;
-            else categories['Other'][key] = value;
-        });
-
-        return Object.entries(categories).filter(([_, assets]) => Object.keys(assets).length > 0);
-    }, [appAssets]);
+    const categorizedCoreAssets = useMemo(() => {
+        return CORE_ASSETS.reduce((acc, asset) => {
+            if (!acc[asset.category]) {
+                acc[asset.category] = [];
+            }
+            acc[asset.category].push(asset);
+            return acc;
+        }, {} as Record<string, CoreAssetInfo[]>);
+    }, []);
 
     return (
         <div>
-             {isAddModalOpen && (
-                <AddAssetModal 
-                    onClose={() => setIsAddModalOpen(false)}
-                    onSave={handleUpload}
-                    showToast={showToast}
-                    existingKeys={Object.keys(appAssets)}
-                />
-            )}
             <div className="flex justify-between items-center mb-4">
                 <h2 className="text-2xl font-bold text-gray-900 dark:text-white">Appearance Settings</h2>
-                <Button onClick={() => setIsAddModalOpen(true)}>Add New Asset</Button>
             </div>
             <p className="mt-1 text-sm text-gray-500 dark:text-gray-400 leading-relaxed mb-6">
-                Directly manage your application's visual assets. Drag & drop a file onto any item to replace it, or click the upload button that appears on hover.
+                Manage your application's visual assets. Upload multiple new assets at once, or replace a core asset by dragging a file onto its entry below.
             </p>
+
+            <BulkAssetUploader 
+                onBulkUpload={handleBulkUpload}
+                showToast={showToast}
+                existingKeys={Object.keys(appAssets)}
+                coreAssets={CORE_ASSETS}
+                appAssets={appAssets}
+            />
             
-            <div className="space-y-8">
-                {categorizedAssets.map(([categoryName, assets]) => (
-                    <section key={categoryName}>
-                        <h3 className="text-xl font-bold mb-4 text-gray-900 dark:text-white pb-2 border-b-2 border-slate-200 dark:border-slate-700">{categoryName}</h3>
-                        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
-                            {Object.entries(assets).map(([key, value]) => (
-                                <AssetEditor 
-                                    key={key}
-                                    assetKey={key}
-                                    asset={value}
-                                    onUpload={handleUpload}
-                                    onDelete={handleDeleteAsset}
-                                    showToast={showToast}
-                                />
-                            ))}
+            <section className="mt-8">
+                 <h3 className="text-xl font-bold mb-4 text-gray-900 dark:text-white">Core Application Assets</h3>
+                 <div className="space-y-6">
+                    {Object.entries(categorizedCoreAssets).map(([category, assets]) => (
+                        <div key={category}>
+                            <h4 className="font-semibold text-lg text-gray-600 dark:text-gray-300 mb-3">{category}</h4>
+                            <div className="space-y-3">
+                                {assets.map(assetInfo => (
+                                    <CoreAssetEditor
+                                        key={assetInfo.key}
+                                        assetInfo={assetInfo}
+                                        asset={appAssets[assetInfo.key]}
+                                        onUpload={handleUpload}
+                                        showToast={showToast}
+                                    />
+                                ))}
+                            </div>
                         </div>
-                    </section>
-                ))}
-            </div>
+                    ))}
+                 </div>
+            </section>
         </div>
     );
 };
@@ -1612,7 +1669,8 @@ const AdminPage: React.FC<AdminPageProps> = ({ navigateTo, appAssets, onAssetsUp
             <div className="flex">
                 <aside className="w-64 bg-white dark:bg-slate-800/50 p-4 border-r border-gray-200 dark:border-slate-700">
                     <nav className="space-y-2">
-                         {Object.entries(sidebarItems).map(([key, {name, icon}]) => (
+                         {/* FIX: Cast result of Object.entries to fix 'map does not exist on unknown' error. */}
+                         {(Object.entries(sidebarItems) as [string, { name: string; icon: string; }][]).map(([key, {name, icon}]) => (
                             <button
                                 key={key}
                                 onClick={() => setActiveSection(key as AdminSection)}
