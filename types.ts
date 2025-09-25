@@ -231,7 +231,6 @@ export interface TopicPopularityData {
 export interface AuthContextType {
   session: Session | null;
   userProfile: UserProfile | null;
-  // FIX: Use Dispatch and SetStateAction directly to avoid needing the 'React' namespace.
   setUserProfile: Dispatch<SetStateAction<UserProfile | null>>;
   handleProfileUpdate: (name: string) => void;
   markOnboardingComplete: () => void;
@@ -286,4 +285,6 @@ export interface AppContextType {
   navigateTo: (page: Page) => void;
   handleAssetsUpdate: () => void;
   showToast: (message: string, type?: 'success' | 'error') => void;
+  assetsLoading: boolean;
+  loadInitialAssets: () => Promise<void>;
 }

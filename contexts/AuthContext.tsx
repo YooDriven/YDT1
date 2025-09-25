@@ -1,9 +1,9 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode, useCallback } from 'react';
 import { supabase } from '../lib/supabaseClient';
 import { Session } from 'https://esm.sh/@supabase/supabase-js@2';
-import { UserProfile, Badge, AuthContextType, AppAssetRecord } from '../types';
+import { UserProfile, AuthContextType } from '../types';
 import { DAILY_GOAL_TARGET } from '../constants';
-import { AppContext } from './AppContext'; 
+import { useApp } from './AppContext';
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
@@ -12,23 +12,10 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
     const [loading, setLoading] = useState(true);
     
-    const appContext = useContext(AppContext);
-    if (!appContext) throw new Error("AuthProvider must be used within AppUIProvider");
-    const { setAppState, setErrorMessage, setAppAssets, showToast } = appContext as any;
+    const { showToast } = useApp();
 
-    const loadInitialData = useCallback(async (currentSession: Session) => {
-        setLoading(true);
+    const loadUserProfile = useCallback(async (currentSession: Session) => {
         try {
-            if (setAppState) setAppState('FETCHING_ASSETS');
-            const { data: assetsData, error: assetsError } = await supabase!.from('app_assets').select('asset_key, asset_value, mime_type');
-            if (assetsError) throw assetsError;
-            const assetsMap = (assetsData || []).reduce((acc: AppAssetRecord, asset) => {
-                acc[asset.asset_key] = { value: asset.asset_value, mimeType: asset.mime_type };
-                return acc;
-            }, {});
-            if (setAppAssets) setAppAssets(assetsMap);
-
-            if (setAppState) setAppState('FETCHING_PROFILE');
             let { data: profileData, error: profileError } = await supabase!.from('profiles').select('*, test_attempts(*), battle_history(*)').eq('id', currentSession.user.id).single();
             
             if (profileError && profileError.code !== 'PGRST116') throw profileError;
@@ -67,7 +54,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
                         console.error('Error updating streak:', error);
                     } else if (updatedProfile) {
                         profileData = { ...profileData, ...updatedProfile };
-                        showToast(`Welcome back! Your streak is now ${newStreak} days!`);
+                        // The toast is now handled reactively in the Header component
                     }
                 }
             }
@@ -77,31 +64,26 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
             profileData.bookmarkedQuestions = profileData.bookmarked_questions || [];
             setUserProfile(profileData as UserProfile);
 
-            if (setAppState) setAppState('READY');
         } catch (error: any) {
-            console.error("Error during data initialization:", error);
-            if(setErrorMessage) setErrorMessage(error.message || 'An unknown error occurred during startup.');
-            if(setAppState) setAppState('ERROR');
-        } finally {
-            setLoading(false);
+            console.error("Error loading user profile:", error);
+            showToast(`Error loading profile: ${error.message}`, 'error');
         }
-    }, [setAppState, setAppAssets, setErrorMessage, showToast]);
+    }, [showToast]);
 
     useEffect(() => {
-        if (setAppState) setAppState('AUTH_CHECKING');
+        setLoading(true);
         const { data: { subscription } } = supabase!.auth.onAuthStateChange(async (_event, session) => {
             setSession(session);
             if (session) {
-                await loadInitialData(session);
+                await loadUserProfile(session);
             } else {
                 setUserProfile(null);
-                setLoading(false);
-                if (setAppState) setAppState('UNAUTHENTICATED');
             }
+            setLoading(false);
         });
 
         return () => subscription.unsubscribe();
-    }, [loadInitialData, setAppState]);
+    }, [loadUserProfile]);
     
     const handleProfileUpdate = (name: string) => {
         if (userProfile) setUserProfile({ ...userProfile, name });
@@ -127,7 +109,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         loading
     };
 
-    return <AuthContext.Provider value={value as any}>{children}</AuthContext.Provider>;
+    return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 };
 
 export const useAuth = () => {

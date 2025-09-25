@@ -1,13 +1,14 @@
-import React, { Suspense } from 'react';
+import React, { Suspense, useEffect, useState } from 'react';
 import { Page } from './types';
 import Header from './components/Header';
 import LoginPage from './components/LoginPage';
-// Use a more robust type import for Breadcrumb
 import Breadcrumbs, { type Breadcrumb } from './components/Breadcrumbs';
-import { initializeSupabase } from './lib/supabaseClient';
+import { initializeSupabase, supabase } from './lib/supabaseClient';
 import { QuestionsProvider } from './contexts/QuestionsContext';
 import { AppProvider, useApp } from './contexts/AppContext';
-import { useAuth } from './contexts/AuthContext';
+import { AuthProvider, useAuth } from './contexts/AuthContext';
+import { SocialProvider } from './contexts/SocialContext';
+import { GameplayProvider } from './contexts/GameplayContext';
 import ErrorBoundary from './components/ErrorBoundary';
 import OnboardingGuide from './components/OnboardingGuide';
 import { Button, Input } from './components/ui';
@@ -39,23 +40,11 @@ const AchievementsPage = React.lazy(() => import('./pages/AchievementsPage'));
 const StatisticsPage = React.lazy(() => import('./pages/StatisticsPage'));
 
 
-// Define the states for our application's loading lifecycle
-type AppState =
-  | 'INIT'
-  | 'AWAITING_CONFIG'
-  | 'AUTH_CHECKING'
-  | 'UNAUTHENTICATED'
-  | 'FETCHING_PROFILE'
-  | 'FETCHING_ASSETS'
-  | 'READY'
-  | 'ERROR';
-
-
 const SupabaseConfigPage: React.FC<{ onConfigured: (url: string, key: string) => void }> = ({ onConfigured }) => {
-    const [url, setUrl] = React.useState('');
-    const [key, setKey] = React.useState('');
-    const [loading, setLoading] = React.useState(false);
-    const [error, setError] = React.useState('');
+    const [url, setUrl] = useState('');
+    const [key, setKey] = useState('');
+    const [loading, setLoading] = useState(false);
+    const [error, setError] = useState('');
 
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
@@ -91,18 +80,7 @@ const SupabaseConfigPage: React.FC<{ onConfigured: (url: string, key: string) =>
     );
 };
 
-const AppLoadingIndicator: React.FC<{ state: string }> = ({ state }) => {
-  const messages: Record<string, string> = {
-    INIT: 'Initializing...',
-    AWAITING_CONFIG: 'Awaiting configuration...',
-    AUTH_CHECKING: 'Securing connection...',
-    UNAUTHENTICATED: 'Redirecting to login...',
-    FETCHING_PROFILE: 'Loading your profile...',
-    FETCHING_ASSETS: 'Loading visual assets...',
-    READY: 'Ready!',
-    ERROR: 'An error occurred.'
-  };
-
+const AppLoadingIndicator: React.FC<{ message: string }> = ({ message }) => {
   return (
      <div className="flex items-center justify-center h-screen bg-slate-50 dark:bg-slate-900">
       <div className="text-center p-4">
@@ -111,7 +89,7 @@ const AppLoadingIndicator: React.FC<{ state: string }> = ({ state }) => {
           <div className="w-16 h-16 bg-teal-500 rounded-full absolute top-0 left-0 animate-ping"></div>
           <div className="w-16 h-16 bg-teal-500 rounded-full absolute top-0 left-0 animate-pulse"></div>
         </div>
-        <p className="text-lg text-gray-600 dark:text-gray-400 mt-6">{messages[state] || 'Loading application...'}</p>
+        <p className="text-lg text-gray-600 dark:text-gray-400 mt-6">{message}</p>
       </div>
     </div>
   );
@@ -126,31 +104,6 @@ const PageLoader: React.FC = () => (
         </div>
       </div>
     </div>
-);
-
-const AppError: React.FC<{ message: string; details?: string[] }> = ({ message, details }) => (
-  <div className="min-h-screen bg-slate-50 dark:bg-slate-900 flex items-center justify-center p-4 text-gray-300 animate-fadeInUp">
-    <div className="max-w-2xl w-full bg-white dark:bg-slate-800 border border-amber-500/50 rounded-2xl p-8 shadow-2xl shadow-amber-500/10">
-      <div className="text-center">
-        <h1 className="text-4xl font-bold text-amber-500 dark:text-amber-400 mb-4 tracking-tight leading-tight">Application Configuration Needed</h1>
-        <p className="text-base text-gray-600 dark:text-slate-400 mb-6 leading-relaxed">
-          {message}
-        </p>
-        {details && details.length > 0 && (
-          <>
-            <p className="text-slate-500 dark:text-slate-400 mb-4 text-sm">
-              Please ensure the following environment variables are correctly set in your hosting environment:
-            </p>
-            <div className="flex flex-col items-center space-y-2">
-              {details.map(key => (
-                <code key={key} className="bg-slate-100 dark:bg-slate-700 text-amber-600 dark:text-amber-400 font-mono text-sm p-2 rounded">{key}</code>
-              ))}
-            </div>
-          </>
-        )}
-      </div>
-    </div>
-  </div>
 );
 
 const MainApp: React.FC = () => {
@@ -234,17 +187,29 @@ const MainApp: React.FC = () => {
     );
 };
 
-const AppInitializer: React.FC<{ children: React.ReactNode; appState: AppState; }> = ({ children, appState }) => {
+const AppContent: React.FC = () => {
     const { loading: authLoading } = useAuth();
-    if (appState !== 'READY' || authLoading) {
-        return <AppLoadingIndicator state={appState} />;
+    const { assetsLoading, loadInitialAssets } = useApp();
+
+    useEffect(() => {
+        if (!authLoading) {
+            loadInitialAssets();
+        }
+    }, [authLoading, loadInitialAssets]);
+    
+    if (authLoading) {
+        return <AppLoadingIndicator message="Securing connection..." />;
     }
-    return <>{children}</>;
+
+    if (assetsLoading) {
+        return <AppLoadingIndicator message="Loading visual assets..." />;
+    }
+
+    return <MainApp />;
 };
 
 const App: React.FC = () => {
-  const [appState, setAppState] = React.useState<AppState>('INIT');
-  const [errorMessage, setErrorMessage] = React.useState<string>('');
+  const [isSupabaseInitialized, setIsSupabaseInitialized] = useState(false);
   
   const handleConfigured = (url: string, key: string) => {
     localStorage.removeItem('SUPABASE_URL');
@@ -252,46 +217,33 @@ const App: React.FC = () => {
     if (initializeSupabase(url, key)) {
         localStorage.setItem('SUPABASE_URL', url);
         localStorage.setItem('SUPABASE_ANON_KEY', key);
-        setAppState('AUTH_CHECKING');
-    } else {
-        setErrorMessage('Failed to connect to Supabase. Please check the URL and Key.');
-        setAppState('AWAITING_CONFIG');
+        setIsSupabaseInitialized(true);
     }
   };
 
-  React.useEffect(() => {
-    if (appState === 'INIT') {
+  useEffect(() => {
       const envUrl = typeof process !== 'undefined' ? process.env.SUPABASE_URL : undefined;
       const envKey = typeof process !== 'undefined' ? process.env.SUPABASE_ANON_KEY : undefined;
       if (envUrl && envKey && initializeSupabase(envUrl, envKey)) {
-          setAppState('AUTH_CHECKING');
+          setIsSupabaseInitialized(true);
       } else {
           const storedUrl = localStorage.getItem('SUPABASE_URL');
           const storedKey = localStorage.getItem('SUPABASE_ANON_KEY');
           if (storedUrl && storedKey && initializeSupabase(storedUrl, storedKey)) {
-              setAppState('AUTH_CHECKING');
-          } else {
-              setAppState('AWAITING_CONFIG');
+              setIsSupabaseInitialized(true);
           }
       }
-    }
-  }, [appState]);
+  }, []);
 
-  if (appState === 'AWAITING_CONFIG') {
+  if (!isSupabaseInitialized) {
     return <SupabaseConfigPage onConfigured={handleConfigured} />;
   }
-
-  if (appState === 'ERROR') {
-      return <AppError message={errorMessage} />;
-  }
-
+  
   return (
     <ErrorBoundary>
         <QuestionsProvider>
             <AppProvider>
-                <AppInitializer appState={appState}>
-                    <MainApp />
-                </AppInitializer>
+                <AppContent />
             </AppProvider>
         </QuestionsProvider>
     </ErrorBoundary>

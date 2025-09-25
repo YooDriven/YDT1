@@ -14,6 +14,7 @@ const AppUIProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
     const [currentPage, setCurrentPage] = useState<Page>(Page.Dashboard);
     const [animationKey, setAnimationKey] = useState<number>(0);
     const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
+    const [assetsLoading, setAssetsLoading] = useState(true);
 
     const setTheme = (newTheme: Theme) => {
         setThemeState(newTheme);
@@ -34,7 +35,8 @@ const AppUIProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
         setToast({ message, type });
     };
 
-    const handleAssetsUpdate = useCallback(async () => {
+    const loadInitialAssets = useCallback(async () => {
+        setAssetsLoading(true);
         try {
             const { data: assetsData, error: assetsError } = await supabase!.from('app_assets').select('asset_key, asset_value, mime_type');
             if (assetsError) throw assetsError;
@@ -43,26 +45,33 @@ const AppUIProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
                 return acc;
             }, {});
             setAppAssets(assetsMap);
-            showToast('Assets updated successfully!');
         } catch (error: any) {
-            showToast(`Error reloading assets: ${error.message}`, 'error');
+            showToast(`Error loading assets: ${error.message}`, 'error');
+        } finally {
+            setAssetsLoading(false);
         }
     }, [showToast]);
+
+    const handleAssetsUpdate = useCallback(async () => {
+        await loadInitialAssets();
+        showToast('Assets updated successfully!');
+    }, [loadInitialAssets, showToast]);
     
     const value = {
         theme,
         setTheme,
         appAssets,
-        setAppAssets, // Pass this down so AuthProvider can set it
         currentPage,
         animationKey,
         navigateTo,
         showToast,
-        handleAssetsUpdate
+        handleAssetsUpdate,
+        assetsLoading,
+        loadInitialAssets
     };
 
     return (
-        <AppContext.Provider value={value as any}>
+        <AppContext.Provider value={value}>
             {children}
             {toast && <Toast message={toast.message} type={toast.type} onDismiss={() => setToast(null)} />}
         </AppContext.Provider>
@@ -83,7 +92,6 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     );
 };
 
-// This hook is now for UI-specific context only.
 export const useApp = () => {
     const context = useContext(AppContext);
     if (context === undefined) throw new Error('useApp must be used within an AppProvider');

@@ -5,16 +5,16 @@ import ThemeToggle from './ThemeToggle';
 import { supabase } from '../lib/supabaseClient';
 import { useOnlineStatus } from '../hooks/useOnlineStatus';
 import { useAuth } from '../contexts/AuthContext';
-// FIX: Replace `useAppContext` with the correct `useApp` hook.
 import { useApp } from '../contexts/AppContext';
 import { useSocial } from '../contexts/SocialContext';
 import { Button } from './ui';
 
 const NotificationPanel: React.FC<{
     notifications: Notification[];
-    onAccept: (userId: string, notifId: string) => void;
-    onDecline: (userId: string, notifId: string) => void;
-}> = ({ notifications, onAccept, onDecline }) => {
+    onAcceptFriend: (userId: string, notifId: string) => void;
+    onDeclineFriend: (userId: string, notifId: string) => void;
+    onAcceptChallenge: (notification: Notification) => void;
+}> = ({ notifications, onAcceptFriend, onDeclineFriend, onAcceptChallenge }) => {
     if (notifications.length === 0) {
         return <p className="p-4 text-sm text-center text-gray-500 dark:text-gray-400">No new notifications.</p>;
     }
@@ -26,12 +26,19 @@ const NotificationPanel: React.FC<{
                     <div className="flex items-center space-x-3 mb-2">
                         <img src={notif.from_user_avatar_url} alt={notif.from_user_name} className="h-8 w-8 rounded-full" />
                         <p className="flex-1 text-sm text-gray-700 dark:text-gray-300">
-                            <span className="font-semibold">{notif.from_user_name}</span> sent you a friend request.
+                            <span className="font-semibold">{notif.from_user_name}</span> 
+                            {notif.type === 'friend_request' ? ' sent you a friend request.' : ' has challenged you to a battle!'}
                         </p>
                     </div>
                     <div className="flex justify-end gap-2">
-                        <Button variant="primary" className="!py-1 !px-2 !text-xs" onClick={() => onAccept(notif.from_user_id, notif.id)}>Accept</Button>
-                        <Button variant="secondary" className="!py-1 !px-2 !text-xs" onClick={() => onDecline(notif.from_user_id, notif.id)}>Decline</Button>
+                        {notif.type === 'friend_request' ? (
+                            <>
+                                <Button variant="primary" className="!py-1 !px-2 !text-xs" onClick={() => onAcceptFriend(notif.from_user_id, notif.id)}>Accept</Button>
+                                <Button variant="secondary" className="!py-1 !px-2 !text-xs" onClick={() => onDeclineFriend(notif.from_user_id, notif.id)}>Decline</Button>
+                            </>
+                        ) : (
+                             <Button variant="primary" className="!py-1 !px-2 !text-xs" onClick={() => onAcceptChallenge(notif)}>Accept Challenge</Button>
+                        )}
                     </div>
                 </li>
             ))}
@@ -42,14 +49,24 @@ const NotificationPanel: React.FC<{
 
 const Header: React.FC = () => {
     const { userProfile } = useAuth();
-    const { navigateTo, theme, setTheme, appAssets } = useApp();
-    const { notifications, acceptFriendRequest, declineFriendRequest, markNotificationAsRead } = useSocial();
+    const { navigateTo, theme, setTheme, appAssets, showToast } = useApp();
+    const { notifications, acceptFriendRequest, declineFriendRequest, markNotificationAsRead, acceptChallenge } = useSocial();
 
     const [isMenuOpen, setIsMenuOpen] = useState(false);
     const [isNotifOpen, setIsNotifOpen] = useState(false);
     const menuRef = useRef<HTMLDivElement>(null);
     const notifRef = useRef<HTMLDivElement>(null);
     const isOnline = useOnlineStatus();
+    const prevStreakRef = useRef(userProfile?.streak);
+
+    useEffect(() => {
+        if (userProfile && prevStreakRef.current !== undefined && userProfile.streak > prevStreakRef.current) {
+            showToast(`Welcome back! Your streak is now ${userProfile.streak} days!`);
+        }
+        if(userProfile) {
+            prevStreakRef.current = userProfile.streak;
+        }
+    }, [userProfile?.streak, showToast]);
 
     const useClickOutside = (ref: React.RefObject<HTMLDivElement>, handler: () => void) => {
         useEffect(() => {
@@ -79,14 +96,19 @@ const Header: React.FC = () => {
         await supabase!.auth.signOut();
     };
     
-    const handleAccept = async (userId: string, notifId: string) => {
+    const handleAcceptFriend = async (userId: string, notifId: string) => {
         await acceptFriendRequest(userId);
         await markNotificationAsRead(notifId);
     };
 
-    const handleDecline = async (userId: string, notifId: string) => {
+    const handleDeclineFriend = async (userId: string, notifId: string) => {
         await declineFriendRequest(userId);
         await markNotificationAsRead(notifId);
+    };
+    
+    const handleAcceptChallenge = async (notification: Notification) => {
+        await acceptChallenge(notification);
+        setIsNotifOpen(false);
     };
 
 
@@ -116,8 +138,8 @@ const Header: React.FC = () => {
                             {notifications.length > 0 && <span className="absolute -top-1 -right-1 h-4 w-4 bg-red-500 text-white text-xs rounded-full flex items-center justify-center">{notifications.length}</span>}
                         </button>
                          {isNotifOpen && (
-                            <div className="absolute top-full right-0 mt-2 w-72 bg-white dark:bg-slate-800 rounded-md shadow-lg border border-gray-200 dark:border-slate-700 z-50 overflow-hidden animate-fadeInUp" style={{ animationDuration: '0.2s' }}>
-                                <NotificationPanel notifications={notifications} onAccept={handleAccept} onDecline={handleDecline} />
+                            <div className="absolute top-full right-0 mt-2 w-80 bg-white dark:bg-slate-800 rounded-md shadow-lg border border-gray-200 dark:border-slate-700 z-50 overflow-hidden animate-fadeInUp" style={{ animationDuration: '0.2s' }}>
+                                <NotificationPanel notifications={notifications} onAcceptFriend={handleAcceptFriend} onDeclineFriend={handleDeclineFriend} onAcceptChallenge={handleAcceptChallenge} />
                             </div>
                         )}
                     </div>
