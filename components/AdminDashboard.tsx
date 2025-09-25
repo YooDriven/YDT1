@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import { supabase } from '../lib/supabaseClient';
 import { UserGrowthData, FailedQuestionData, TopicPopularityData } from '../types';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, BarChart, Bar } from 'recharts';
 import { Skeleton } from './ui';
+import { useApp } from '../contexts/AppContext';
 
 const StatCard: React.FC<{ title: string; value: string | number; isLoading: boolean }> = ({ title, value, isLoading }) => (
     <div className="bg-white dark:bg-slate-800 p-4 rounded-lg border border-gray-200 dark:border-slate-700">
@@ -12,6 +12,7 @@ const StatCard: React.FC<{ title: string; value: string | number; isLoading: boo
 );
 
 const AdminDashboard: React.FC<{ showToast: (msg: string, type?: 'success' | 'error') => void; }> = ({ showToast }) => {
+    const { supabase } = useApp();
     const [dau, setDau] = useState<number | null>(null);
     const [mau, setMau] = useState<number | null>(null);
     const [userGrowth, setUserGrowth] = useState<UserGrowthData[]>([]);
@@ -24,11 +25,11 @@ const AdminDashboard: React.FC<{ showToast: (msg: string, type?: 'success' | 'er
             setLoading(true);
             try {
                 const [dauRes, mauRes, growthRes, failedRes, popularityRes] = await Promise.all([
-                    supabase!.rpc('get_dau'),
-                    supabase!.rpc('get_mau'),
-                    supabase!.rpc('get_daily_user_growth'),
-                    supabase!.rpc('get_most_failed_questions'),
-                    supabase!.rpc('get_topic_popularity')
+                    supabase.rpc('get_dau'),
+                    supabase.rpc('get_mau'),
+                    supabase.rpc('get_daily_user_growth'),
+                    supabase.rpc('get_most_failed_questions'),
+                    supabase.rpc('get_topic_popularity')
                 ]);
 
                 if (dauRes.error) throw new Error(`DAU Error: ${dauRes.error.message}`);
@@ -54,7 +55,7 @@ const AdminDashboard: React.FC<{ showToast: (msg: string, type?: 'success' | 'er
         };
 
         fetchAllData();
-    }, [showToast]);
+    }, [showToast, supabase]);
 
     return (
         <div className="space-y-6">

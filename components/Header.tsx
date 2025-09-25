@@ -2,7 +2,6 @@ import React, { useState, useRef, useEffect, memo } from 'react';
 import { Page, Notification } from '../types';
 import DynamicAsset from './DynamicAsset';
 import ThemeToggle from './ThemeToggle';
-import { supabase } from '../lib/supabaseClient';
 import { useOnlineStatus } from '../hooks/useOnlineStatus';
 import { useAuth } from '../contexts/AuthContext';
 import { useApp } from '../contexts/AppContext';
@@ -49,7 +48,7 @@ const NotificationPanel: React.FC<{
 
 const Header: React.FC = () => {
     const { userProfile } = useAuth();
-    const { navigateTo, theme, setTheme, appAssets, showToast } = useApp();
+    const { navigateTo, theme, setTheme, appAssets, showToast, supabase } = useApp();
     const { notifications, acceptFriendRequest, declineFriendRequest, markNotificationAsRead, acceptChallenge } = useSocial();
 
     const [isMenuOpen, setIsMenuOpen] = useState(false);
@@ -93,7 +92,7 @@ const Header: React.FC = () => {
 
     const handleLogout = async () => {
         setIsMenuOpen(false);
-        await supabase!.auth.signOut();
+        await supabase.auth.signOut();
     };
     
     const handleAcceptFriend = async (userId: string, notifId: string) => {

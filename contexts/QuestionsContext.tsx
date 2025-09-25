@@ -1,7 +1,7 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { Question } from '../types';
-import { supabase } from '../lib/supabaseClient';
 import { MOCK_QUESTIONS } from '../constants';
+import { useApp } from './AppContext';
 
 interface QuestionsContextType {
   questions: Question[];
@@ -18,6 +18,7 @@ export const QuestionsProvider: React.FC<{ children: ReactNode }> = ({ children 
   const [questions, setQuestions] = useState<Question[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const { supabase } = useApp();
 
   useEffect(() => {
     const fetchQuestions = async () => {
@@ -55,7 +56,7 @@ export const QuestionsProvider: React.FC<{ children: ReactNode }> = ({ children 
         }
 
         try {
-            const { data, error } = await supabase!.from('questions').select('*');
+            const { data, error } = await supabase.from('questions').select('*');
             if (error) throw error;
 
             if (data && data.length > 0) {
@@ -82,7 +83,7 @@ export const QuestionsProvider: React.FC<{ children: ReactNode }> = ({ children 
     };
     
     fetchQuestions();
-  }, []);
+  }, [supabase]);
 
   return (
     <QuestionsContext.Provider value={{ questions, loading, error }}>

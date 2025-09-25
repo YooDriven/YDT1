@@ -1,14 +1,13 @@
 import React, { useState } from 'react';
 import { Page, Theme } from '../types';
 import { ChevronLeftIcon, SunIcon, MoonIcon } from './icons';
-import { supabase } from '../lib/supabaseClient';
 import { Button, Input, Label } from './ui';
 // FIX: Replace `useAppContext` with `useApp` and `useAuth` to get data from the correct contexts.
 import { useApp } from '../contexts/AppContext';
 import { useAuth } from '../contexts/AuthContext';
 
 const SettingsPage: React.FC = () => {
-    const { navigateTo, theme, setTheme } = useApp();
+    const { navigateTo, theme, setTheme, supabase } = useApp();
     const { userProfile, session, handleProfileUpdate } = useAuth();
     const user = userProfile!;
 
@@ -29,7 +28,7 @@ const SettingsPage: React.FC = () => {
         setNameError(null);
         setIsSaving(true);
         setMessage(null);
-        const { error } = await supabase!.from('profiles').update({ name }).eq('id', user.id);
+        const { error } = await supabase.from('profiles').update({ name }).eq('id', user.id);
         if (error) {
             setMessage({ text: `Error updating name: ${error.message}`, type: 'error' });
         } else {
@@ -49,7 +48,7 @@ const SettingsPage: React.FC = () => {
         setIsSaving(true);
         setMessage(null);
 
-        const { error } = await supabase!.auth.updateUser({ password: newPassword });
+        const { error } = await supabase.auth.updateUser({ password: newPassword });
 
         if (error) {
             setMessage({ text: `Error changing password: ${error.message}`, type: 'error' });
@@ -61,7 +60,7 @@ const SettingsPage: React.FC = () => {
     };
 
     const handleLogout = async () => {
-        await supabase!.auth.signOut();
+        await supabase.auth.signOut();
     };
 
     return (

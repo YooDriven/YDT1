@@ -1,7 +1,6 @@
 import React, { useState, useMemo, useEffect, useRef } from 'react';
 import { RoadSign, RoadSignCategory } from '../types';
 import { ChevronLeftIcon } from './icons';
-import { supabase } from '../lib/supabaseClient';
 import DynamicAsset from './DynamicAsset';
 import { useDebounce } from '../hooks/useDebounce';
 import useLocalStorage from '../hooks/useLocalStorage';
@@ -10,6 +9,7 @@ import { Input, Skeleton } from './ui';
 import { useApp } from '../contexts/AppContext';
 
 const useRoadSigns = () => {
+    const { supabase } = useApp();
     const [signs, setSigns] = useState<RoadSign[]>([]);
     const [categories, setCategories] = useState<RoadSignCategory[]>([]);
     const [loading, setLoading] = useState(true);
@@ -20,8 +20,8 @@ const useRoadSigns = () => {
             setLoading(true);
             setError(null);
             try {
-                const signsPromise = supabase!.from('road_signs').select('*');
-                const categoriesPromise = supabase!.from('road_sign_categories').select('*');
+                const signsPromise = supabase.from('road_signs').select('*');
+                const categoriesPromise = supabase.from('road_sign_categories').select('*');
                 const [{ data: signsData, error: signsError }, { data: categoriesData, error: categoriesError }] = await Promise.all([signsPromise, categoriesPromise]);
                 if (signsError) throw signsError;
                 if (categoriesError) throw categoriesError;
@@ -34,7 +34,7 @@ const useRoadSigns = () => {
             }
         };
         fetchData();
-    }, []);
+    }, [supabase]);
 
     return { signs, categories, loading, error };
 };

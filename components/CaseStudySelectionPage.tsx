@@ -1,13 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import { Page, CaseStudy } from '../types';
 import { ChevronLeftIcon } from './icons';
-import { supabase } from '../lib/supabaseClient';
 // FIX: Replace `useAppContext` with `useApp` and `useGameplay` to get data from the correct contexts.
 import { useApp } from '../contexts/AppContext';
 import { useGameplay } from '../contexts/GameplayContext';
 
 const CaseStudySelectionPage: React.FC = () => {
-    const { navigateTo } = useApp();
+    const { navigateTo, supabase } = useApp();
     const { handleCaseStudySelect } = useGameplay();
     const [caseStudies, setCaseStudies] = useState<CaseStudy[]>([]);
     const [loading, setLoading] = useState(true);
@@ -17,7 +16,7 @@ const CaseStudySelectionPage: React.FC = () => {
         const fetchCaseStudies = async () => {
             setLoading(true);
             try {
-                const { data, error } = await supabase!
+                const { data, error } = await supabase
                     .from('case_studies')
                     .select('*')
                     .order('title', { ascending: true });
@@ -30,7 +29,7 @@ const CaseStudySelectionPage: React.FC = () => {
             }
         };
         fetchCaseStudies();
-    }, []);
+    }, [supabase]);
 
     const renderContent = () => {
         if (loading) {

@@ -3,12 +3,12 @@ import StudentProfileCard from './StudentProfileCard';
 import TestCard from './TestCard';
 import { PRIMARY_TEST_CARDS } from '../constants';
 import type { LeaderboardEntry } from '../types';
-import { supabase } from '../lib/supabaseClient';
 import { useAuth } from '../contexts/AuthContext';
 import { useApp } from '../contexts/AppContext';
 import { useGameplay } from '../contexts/GameplayContext';
 
 const useLeaderboard = (userId: string | undefined) => {
+    const { supabase } = useApp();
     const [nationalLeaderboard, setNationalLeaderboard] = useState<LeaderboardEntry[]>([]);
     const [regionalLeaderboard, setRegionalLeaderboard] = useState<LeaderboardEntry[]>([]);
     const [loading, setLoading] = useState(true);
@@ -17,7 +17,7 @@ const useLeaderboard = (userId: string | undefined) => {
         const fetchLeaderboards = async () => {
             if (!userId) return;
             setLoading(true);
-            const { data, error } = await supabase!
+            const { data, error } = await supabase
                 .from('profiles')
                 .select('id, name, avgScore, avatarUrl')
                 .order('avgScore', { ascending: false })
@@ -40,7 +40,7 @@ const useLeaderboard = (userId: string | undefined) => {
             setLoading(false);
         };
         fetchLeaderboards();
-    }, [userId]);
+    }, [userId, supabase]);
     
     return { nationalLeaderboard, regionalLeaderboard, loading };
 };

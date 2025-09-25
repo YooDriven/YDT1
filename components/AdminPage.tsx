@@ -1,12 +1,12 @@
 import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { Page, Question, AdminSection, ContentTab, RoadSign, RoadSignCategory, HazardPerceptionClip, CaseStudy, HighwayCodeRule, AppAssetRecord, AppAsset } from '../types';
 import { ChevronLeftIcon } from './icons';
-import { supabase } from '../lib/supabaseClient';
 import DynamicAsset from './DynamicAsset';
 import { Toast, Modal, FormRow, Label, Input, Textarea, Select, Button } from './ui';
 import { useDebounce } from '../hooks/useDebounce';
 import { isRasterImage, removeImageBackground, convertRasterToSvg } from '../utils';
 import AdminDashboard from './AdminDashboard';
+import { useApp } from '../contexts/AppContext';
 
 
 // Question Form Component
@@ -88,6 +88,7 @@ const QuestionForm: React.FC<{ question: Question | null; onSave: (question: Omi
 
 // Question Manager Component
 const QuestionManager: React.FC<{ showToast: (msg: string, type?: 'success' | 'error') => void; }> = ({ showToast }) => {
+    const { supabase } = useApp();
     const [questions, setQuestions] = useState<Question[]>([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
@@ -100,7 +101,7 @@ const QuestionManager: React.FC<{ showToast: (msg: string, type?: 'success' | 'e
         setLoading(true);
         setError(null);
         try {
-            const { data, error } = await supabase!.from('questions').select('*').order('created_at', { ascending: false });
+            const { data, error } = await supabase.from('questions').select('*').order('created_at', { ascending: false });
             if (error) throw error;
             setQuestions(data || []);
         } catch (err: any) {
@@ -109,7 +110,7 @@ const QuestionManager: React.FC<{ showToast: (msg: string, type?: 'success' | 'e
         } finally {
             setLoading(false);
         }
-    }, [showToast]);
+    }, [supabase, showToast]);
 
     useEffect(() => {
         fetchQuestions();
@@ -118,7 +119,7 @@ const QuestionManager: React.FC<{ showToast: (msg: string, type?: 'success' | 'e
     const handleSave = async (questionData: Omit<Question, 'id'> | Question) => {
         try {
             const { id, created_at, ...upsertData } = questionData as Question;
-            const { error } = await supabase!.from('questions').upsert(upsertData);
+            const { error } = await supabase.from('questions').upsert(upsertData);
             if (error) throw error;
             showToast('Question saved successfully!');
             setIsModalOpen(false);
@@ -132,7 +133,7 @@ const QuestionManager: React.FC<{ showToast: (msg: string, type?: 'success' | 'e
     const handleDelete = async (questionId: string) => {
         if (window.confirm('Are you sure you want to delete this question?')) {
             try {
-                const { error } = await supabase!.from('questions').delete().eq('id', questionId);
+                const { error } = await supabase.from('questions').delete().eq('id', questionId);
                 if (error) throw error;
                 showToast('Question deleted successfully.');
                 fetchQuestions();
@@ -268,6 +269,7 @@ const CategoryDeleteModal: React.FC<{ category: CategoryInfo; otherCategories: s
 };
 
 const CategoryManager: React.FC<{ showToast: (msg: string, type?: 'success' | 'error') => void; }> = ({ showToast }) => {
+    const { supabase } = useApp();
     const [categories, setCategories] = useState<CategoryInfo[]>([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
@@ -278,7 +280,7 @@ const CategoryManager: React.FC<{ showToast: (msg: string, type?: 'success' | 'e
         setLoading(true);
         setError(null);
         try {
-            const { data, error } = await supabase!.from('questions').select('category');
+            const { data, error } = await supabase.from('questions').select('category');
             if (error) throw error;
 
             const categoryCounts = (data || []).reduce((acc: Record<string, number>, q: { category: string | null }) => {
@@ -298,7 +300,7 @@ const CategoryManager: React.FC<{ showToast: (msg: string, type?: 'success' | 'e
         } finally {
             setLoading(false);
         }
-    }, [showToast]);
+    }, [supabase, showToast]);
 
     useEffect(() => {
         fetchCategories();
@@ -307,7 +309,7 @@ const CategoryManager: React.FC<{ showToast: (msg: string, type?: 'success' | 'e
     const handleRename = async (newName: string) => {
         if (!selectedCategory || newName === selectedCategory.name) return;
         try {
-            const { error } = await supabase!.from('questions').update({ category: newName }).eq('category', selectedCategory.name);
+            const { error } = await supabase.from('questions').update({ category: newName }).eq('category', selectedCategory.name);
             if (error) throw error;
             showToast(`Category renamed to "${newName}"`);
             setModal(null);
@@ -321,7 +323,7 @@ const CategoryManager: React.FC<{ showToast: (msg: string, type?: 'success' | 'e
         if (!selectedCategory) return;
         try {
             if (selectedCategory.count > 0 && transferTo) {
-                const { error } = await supabase!.from('questions').update({ category: transferTo }).eq('category', selectedCategory.name);
+                const { error } = await supabase.from('questions').update({ category: transferTo }).eq('category', selectedCategory.name);
                 if (error) throw error;
             }
             showToast(`Category "${selectedCategory.name}" deleted successfully.`);
@@ -390,6 +392,7 @@ const BulkRoadSignUploader: React.FC<{
     existingSignNames: string[];
     categories: RoadSignCategory[];
 }> = ({ onUploadComplete, showToast, existingSignNames, categories }) => {
+    const { supabase } = useApp();
     const [stagedSigns, setStagedSigns] = useState<StagedSign[]>([]);
     const [isUploading, setIsUploading] = useState(false);
     const [isDragOver, setIsDragOver] = useState(false);
@@ -449,7 +452,7 @@ const BulkRoadSignUploader: React.FC<{
         }
         setIsUploading(true);
         const signsToInsert = stagedSigns.map(s => ({ name: s.name, svg_code: s.svg_code, description: 'Default description', category: s.categoryId }));
-        const { error } = await supabase!.from('road_signs').insert(signsToInsert);
+        const { error } = await supabase.from('road_signs').insert(signsToInsert);
         if (error) {
             showToast(`Bulk upload failed: ${error.message}`, 'error');
         } else {
@@ -571,6 +574,7 @@ const RoadSignForm: React.FC<{ sign: RoadSign | null; onSave: (signData: Omit<Ro
 };
 
 const RoadSignManager: React.FC<{ showToast: (msg: string, type?: 'success' | 'error') => void; }> = ({ showToast }) => {
+    const { supabase } = useApp();
     const [signs, setSigns] = useState<RoadSign[]>([]);
     const [categories, setCategories] = useState<RoadSignCategory[]>([]);
     const [loading, setLoading] = useState(true);
@@ -587,8 +591,8 @@ const RoadSignManager: React.FC<{ showToast: (msg: string, type?: 'success' | 'e
         setLoading(true);
         setError(null);
         try {
-            const signsPromise = supabase!.from('road_signs').select('*').order('name', { ascending: true });
-            const categoriesPromise = supabase!.from('road_sign_categories').select('*');
+            const signsPromise = supabase.from('road_signs').select('*').order('name', { ascending: true });
+            const categoriesPromise = supabase.from('road_sign_categories').select('*');
             const [{ data: signsData, error: signsError }, { data: categoriesData, error: categoriesError }] = await Promise.all([signsPromise, categoriesPromise]);
             
             if (signsError) throw signsError;
@@ -602,7 +606,7 @@ const RoadSignManager: React.FC<{ showToast: (msg: string, type?: 'success' | 'e
         } finally {
             setLoading(false);
         }
-    }, [showToast]);
+    }, [supabase, showToast]);
 
     useEffect(() => {
         fetchSignsAndCategories();
@@ -610,7 +614,7 @@ const RoadSignManager: React.FC<{ showToast: (msg: string, type?: 'success' | 'e
 
     const handleSave = async (signData: Omit<RoadSign, 'id'> | RoadSign) => {
         try {
-            const { error } = await supabase!.from('road_signs').upsert(signData);
+            const { error } = await supabase.from('road_signs').upsert(signData);
             if (error) throw error;
             showToast('Road sign saved successfully!');
             setIsModalOpen(false);
@@ -624,7 +628,7 @@ const RoadSignManager: React.FC<{ showToast: (msg: string, type?: 'success' | 'e
     const handleDelete = async (signId: string) => {
         if (window.confirm('Are you sure you want to delete this road sign?')) {
             try {
-                const { error } = await supabase!.from('road_signs').delete().eq('id', signId);
+                const { error } = await supabase.from('road_signs').delete().eq('id', signId);
                 if (error) throw error;
                 showToast('Road sign deleted successfully.');
                 fetchSignsAndCategories();
@@ -730,14 +734,15 @@ const SignCategoryFormModal: React.FC<{ category: RoadSignCategory | null; onSav
 };
 
 const SignCategoryDeleteModal: React.FC<{ category: RoadSignCategory; otherCategories: RoadSignCategory[]; onDelete: (transferToId: string | null) => Promise<void>; onClose: () => void; }> = ({ category, otherCategories, onDelete, onClose }) => {
+    const { supabase } = useApp();
     const [transferTo, setTransferTo] = useState('');
     const [isDeleting, setIsDeleting] = useState(false);
     const [signCount, setSignCount] = useState<number | null>(null);
 
     useEffect(() => {
-        supabase!.from('road_signs').select('id', { count: 'exact', head: true }).eq('category', category.id)
+        supabase.from('road_signs').select('id', { count: 'exact', head: true }).eq('category', category.id)
             .then(({ count }) => setSignCount(count));
-    }, [category.id]);
+    }, [category.id, supabase]);
     
     const needsTransfer = signCount !== null && signCount > 0;
 
@@ -781,6 +786,7 @@ const SignCategoryDeleteModal: React.FC<{ category: RoadSignCategory; otherCateg
 
 
 const RoadSignCategoryManager: React.FC<{ showToast: (msg: string, type?: 'success' | 'error') => void; }> = ({ showToast }) => {
+    const { supabase } = useApp();
     const [categories, setCategories] = useState<RoadSignCategory[]>([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
@@ -790,7 +796,7 @@ const RoadSignCategoryManager: React.FC<{ showToast: (msg: string, type?: 'succe
     const fetchCategories = useCallback(async () => {
         setLoading(true);
         try {
-            const { data, error } = await supabase!.from('road_sign_categories').select('*').order('name');
+            const { data, error } = await supabase.from('road_sign_categories').select('*').order('name');
             if (error) throw error;
             setCategories(data || []);
         } catch (err: any) {
@@ -798,13 +804,13 @@ const RoadSignCategoryManager: React.FC<{ showToast: (msg: string, type?: 'succe
         } finally {
             setLoading(false);
         }
-    }, []);
+    }, [supabase]);
 
     useEffect(() => { fetchCategories() }, [fetchCategories]);
 
     const handleSave = async (data: Partial<RoadSignCategory>) => {
         try {
-            const { error } = await supabase!.from('road_sign_categories').upsert(data);
+            const { error } = await supabase.from('road_sign_categories').upsert(data);
             if (error) throw error;
             showToast('Category saved!');
             setModal(null);
@@ -819,10 +825,10 @@ const RoadSignCategoryManager: React.FC<{ showToast: (msg: string, type?: 'succe
         if (!selectedCategory) return;
         try {
             if (transferToId) {
-                const { error: updateError } = await supabase!.from('road_signs').update({ category: transferToId }).eq('category', selectedCategory.id);
+                const { error: updateError } = await supabase.from('road_signs').update({ category: transferToId }).eq('category', selectedCategory.id);
                 if (updateError) throw updateError;
             }
-            const { error: deleteError } = await supabase!.from('road_sign_categories').delete().eq('id', selectedCategory.id);
+            const { error: deleteError } = await supabase.from('road_sign_categories').delete().eq('id', selectedCategory.id);
             if (deleteError) throw deleteError;
 
             showToast('Category deleted.');
@@ -1007,6 +1013,7 @@ const HazardClipForm: React.FC<{ clip: HazardPerceptionClip | null; onSave: (cli
 };
 
 const HazardClipManager: React.FC<{ showToast: (msg: string, type?: 'success' | 'error') => void; }> = ({ showToast }) => {
+    const { supabase } = useApp();
     const [clips, setClips] = useState<HazardPerceptionClip[]>([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
@@ -1017,7 +1024,7 @@ const HazardClipManager: React.FC<{ showToast: (msg: string, type?: 'success' | 
         setLoading(true);
         setError(null);
         try {
-            const { data, error } = await supabase!.from('hazard_clips').select('*').order('id', { ascending: true });
+            const { data, error } = await supabase.from('hazard_clips').select('*').order('id', { ascending: true });
             if (error) throw error;
             setClips((data || []).map(mapClipToCamelCase));
         } catch (err: any) {
@@ -1026,7 +1033,7 @@ const HazardClipManager: React.FC<{ showToast: (msg: string, type?: 'success' | 
         } finally {
             setLoading(false);
         }
-    }, [showToast]);
+    }, [supabase, showToast]);
 
     useEffect(() => {
         fetchClips();
@@ -1035,7 +1042,7 @@ const HazardClipManager: React.FC<{ showToast: (msg: string, type?: 'success' | 
     const handleSave = async (clipData: Omit<HazardPerceptionClip, 'id'> | HazardPerceptionClip) => {
         try {
             const snakeCaseData = mapClipToSnakeCase(clipData);
-            const { error } = await supabase!.from('hazard_clips').upsert(snakeCaseData);
+            const { error } = await supabase.from('hazard_clips').upsert(snakeCaseData);
             if (error) throw error;
             showToast('Hazard clip saved successfully!');
             setIsModalOpen(false);
@@ -1049,7 +1056,7 @@ const HazardClipManager: React.FC<{ showToast: (msg: string, type?: 'success' | 
     const handleDelete = async (clipId: number) => {
         if (window.confirm('Are you sure you want to delete this hazard clip?')) {
             try {
-                const { error } = await supabase!.from('hazard_clips').delete().eq('id', clipId);
+                const { error } = await supabase.from('hazard_clips').delete().eq('id', clipId);
                 if (error) throw error;
                 showToast('Hazard clip deleted successfully.');
                 fetchClips();
@@ -1114,6 +1121,7 @@ const DEFAULT_CASE_STUDY: Omit<CaseStudy, 'id'> = {
 };
 
 const CaseStudyForm: React.FC<{ study: CaseStudy | null; onSave: (studyData: Omit<CaseStudy, 'id'> | CaseStudy) => Promise<void>; onClose: () => void; }> = ({ study, onSave, onClose }) => {
+    const { supabase } = useApp();
     const [formData, setFormData] = useState(study || DEFAULT_CASE_STUDY);
     const [isSaving, setIsSaving] = useState(false);
     const [allQuestions, setAllQuestions] = useState<Question[]>([]);
@@ -1121,10 +1129,10 @@ const CaseStudyForm: React.FC<{ study: CaseStudy | null; onSave: (studyData: Omi
     const debouncedSearch = useDebounce(questionSearch, 300);
 
     useEffect(() => {
-        supabase!.from('questions').select('id, question, category').then(({ data }) => {
+        supabase.from('questions').select('id, question, category').then(({ data }) => {
             if (data) setAllQuestions(data);
         });
-    }, []);
+    }, [supabase]);
 
     const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
         const { name, value } = e.target;
@@ -1197,6 +1205,7 @@ const CaseStudyForm: React.FC<{ study: CaseStudy | null; onSave: (studyData: Omi
 };
 
 const CaseStudyManager: React.FC<{ showToast: (msg: string, type?: 'success' | 'error') => void; }> = ({ showToast }) => {
+    const { supabase } = useApp();
     const [studies, setStudies] = useState<CaseStudy[]>([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
@@ -1206,7 +1215,7 @@ const CaseStudyManager: React.FC<{ showToast: (msg: string, type?: 'success' | '
     const fetchStudies = useCallback(async () => {
         setLoading(true);
         try {
-            const { data, error } = await supabase!.from('case_studies').select('*').order('title');
+            const { data, error } = await supabase.from('case_studies').select('*').order('title');
             if (error) throw error;
             setStudies(data || []);
         } catch (err: any) {
@@ -1214,13 +1223,13 @@ const CaseStudyManager: React.FC<{ showToast: (msg: string, type?: 'success' | '
         } finally {
             setLoading(false);
         }
-    }, []);
+    }, [supabase]);
 
     useEffect(() => { fetchStudies() }, [fetchStudies]);
 
     const handleSave = async (studyData: Omit<CaseStudy, 'id'> | CaseStudy) => {
         try {
-            const { error } = await supabase!.from('case_studies').upsert(studyData);
+            const { error } = await supabase.from('case_studies').upsert(studyData);
             if (error) throw error;
             showToast('Case study saved!');
             setIsModalOpen(false);
@@ -1233,7 +1242,7 @@ const CaseStudyManager: React.FC<{ showToast: (msg: string, type?: 'success' | '
     const handleDelete = async (id: string) => {
         if (window.confirm('Delete this case study?')) {
             try {
-                const { error } = await supabase!.from('case_studies').delete().eq('id', id);
+                const { error } = await supabase.from('case_studies').delete().eq('id', id);
                 if (error) throw error;
                 showToast('Case study deleted.');
                 fetchStudies();
@@ -1328,6 +1337,7 @@ const HighwayCodeForm: React.FC<{ rule: HighwayCodeRule | null; onSave: (data: a
 };
 
 const HighwayCodeManager: React.FC<{ showToast: (msg: string, type?: 'success' | 'error') => void; }> = ({ showToast }) => {
+    const { supabase } = useApp();
     const [rules, setRules] = useState<HighwayCodeRule[]>([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
@@ -1337,7 +1347,7 @@ const HighwayCodeManager: React.FC<{ showToast: (msg: string, type?: 'success' |
     const fetchRules = useCallback(async () => {
         setLoading(true);
         try {
-            const { data, error } = await supabase!.from('highway_code').select('*').order('rule_number');
+            const { data, error } = await supabase.from('highway_code').select('*').order('rule_number');
             if (error) throw error;
             setRules(data || []);
         } catch (err: any) {
@@ -1345,13 +1355,13 @@ const HighwayCodeManager: React.FC<{ showToast: (msg: string, type?: 'success' |
         } finally {
             setLoading(false);
         }
-    }, []);
+    }, [supabase]);
 
     useEffect(() => { fetchRules() }, [fetchRules]);
 
     const handleSave = async (data: any) => {
         try {
-            const { error } = await supabase!.from('highway_code').upsert(data);
+            const { error } = await supabase.from('highway_code').upsert(data);
             if (error) throw error;
             showToast('Rule saved!');
             setIsModalOpen(false);
@@ -1364,7 +1374,7 @@ const HighwayCodeManager: React.FC<{ showToast: (msg: string, type?: 'success' |
     const handleDelete = async (id: number) => {
         if (window.confirm('Delete this rule?')) {
             try {
-                const { error } = await supabase!.from('highway_code').delete().eq('id', id);
+                const { error } = await supabase.from('highway_code').delete().eq('id', id);
                 if (error) throw error;
                 showToast('Rule deleted.');
                 fetchRules();
@@ -1627,6 +1637,7 @@ const AppearanceManager: React.FC<{
     showToast: (msg: string, type?: 'success' | 'error') => void;
     appAssets: AppAssetRecord;
 }> = ({ onAssetsUpdate, showToast, appAssets }) => {
+    const { supabase } = useApp();
 
     const handleUpload = async (file: File, key: string) => {
         try {
@@ -1641,7 +1652,7 @@ const AppearanceManager: React.FC<{
                 asset_value = await file.text();
             }
             
-            const { error } = await supabase!.from('app_assets').upsert({ asset_key: key, asset_value, mime_type });
+            const { error } = await supabase.from('app_assets').upsert({ asset_key: key, asset_value, mime_type });
             if (error) throw error;
             
             showToast(`Asset '${key}' updated successfully.`);
@@ -1670,7 +1681,7 @@ const AppearanceManager: React.FC<{
                 return { asset_key: key, asset_value, mime_type };
             });
             const upsertData = await Promise.all(uploads);
-            const { error } = await supabase!.from('app_assets').upsert(upsertData);
+            const { error } = await supabase.from('app_assets').upsert(upsertData);
             if (error) throw error;
 
             showToast(`${stagedFiles.length} assets uploaded successfully.`);
@@ -1737,11 +1748,12 @@ interface AdminPageProps {
 }
 
 const AdminPage: React.FC<AdminPageProps> = ({ navigateTo, appAssets, onAssetsUpdate }) => {
+    const { showToast } = useApp();
     const [activeSection, setActiveSection] = useState<AdminSection>('content');
     const [activeTab, setActiveTab] = useState<ContentTab>('dashboard');
     const [toast, setToast] = useState<{ message: string, type: 'success' | 'error' } | null>(null);
 
-    const showToast = (message: string, type: 'success' | 'error' = 'success') => {
+    const showToastInternal = (message: string, type: 'success' | 'error' = 'success') => {
         setToast({ message, type });
     };
 
@@ -1769,17 +1781,17 @@ const AdminPage: React.FC<AdminPageProps> = ({ navigateTo, appAssets, onAssetsUp
 
     const renderContent = () => {
         if (activeSection === 'appearance') {
-            return <AppearanceManager onAssetsUpdate={onAssetsUpdate} showToast={showToast} appAssets={appAssets} />;
+            return <AppearanceManager onAssetsUpdate={onAssetsUpdate} showToast={showToastInternal} appAssets={appAssets} />;
         }
         switch (activeTab) {
-            case 'dashboard': return <AdminDashboard showToast={showToast} />;
-            case 'questions': return <QuestionManager showToast={showToast} />;
-            case 'categories': return <CategoryManager showToast={showToast} />;
-            case 'road_signs': return <RoadSignManager showToast={showToast} />;
-            case 'road_sign_categories': return <RoadSignCategoryManager showToast={showToast} />;
-            case 'hazard': return <HazardClipManager showToast={showToast} />;
-            case 'case_studies': return <CaseStudyManager showToast={showToast} />;
-            case 'highway_code': return <HighwayCodeManager showToast={showToast} />;
+            case 'dashboard': return <AdminDashboard showToast={showToastInternal} />;
+            case 'questions': return <QuestionManager showToast={showToastInternal} />;
+            case 'categories': return <CategoryManager showToast={showToastInternal} />;
+            case 'road_signs': return <RoadSignManager showToast={showToastInternal} />;
+            case 'road_sign_categories': return <RoadSignCategoryManager showToast={showToastInternal} />;
+            case 'hazard': return <HazardClipManager showToast={showToastInternal} />;
+            case 'case_studies': return <CaseStudyManager showToast={showToastInternal} />;
+            case 'highway_code': return <HighwayCodeManager showToast={showToastInternal} />;
             default: return <div>Select a tab</div>;
         }
     };

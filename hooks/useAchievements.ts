@@ -1,13 +1,14 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { supabase } from '../lib/supabaseClient';
 import { UserProfile, Achievement, AchievementId } from '../types';
 import { ACHIEVEMENTS } from '../constants';
+import { useApp } from '../contexts/AppContext';
 
 const useAchievements = (
     userProfile: UserProfile | null, 
     setUserProfile: React.Dispatch<React.SetStateAction<UserProfile | null>>,
     showToast: (message: string, type?: 'success' | 'error') => void
 ) => {
+    const { supabase } = useApp();
     const [achievements, setAchievements] = useState<Achievement[]>([]);
 
     useEffect(() => {
@@ -35,7 +36,7 @@ const useAchievements = (
         setUserProfile(prev => prev ? { ...prev, unlocked_achievements: updatedAchievements } : null);
         showToast(`Achievement Unlocked: ${achievement.name}!`);
 
-        const { error } = await supabase!
+        const { error } = await supabase
             .from('profiles')
             .update({ unlocked_achievements: updatedAchievements })
             .eq('id', userProfile.id);
@@ -45,7 +46,7 @@ const useAchievements = (
             // Revert on failure
             setUserProfile(prev => prev ? { ...prev, unlocked_achievements: userProfile.unlocked_achievements } : null);
         }
-    }, [userProfile, setUserProfile, showToast]);
+    }, [userProfile, setUserProfile, showToast, supabase]);
 
     return { achievements, grantAchievement };
 };

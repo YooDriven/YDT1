@@ -1,5 +1,5 @@
 import { FC, SVGProps, ReactNode, Dispatch, SetStateAction } from 'react';
-import { Session } from 'https://esm.sh/@supabase/supabase-js@2';
+import { Session, SupabaseClient } from 'https://esm.sh/@supabase/supabase-js@2';
 
 export type Theme = 'light' | 'dark';
 
@@ -277,6 +277,7 @@ export interface GameplayContextType {
 }
 
 export interface AppContextType {
+  supabase: SupabaseClient;
   theme: Theme;
   setTheme: (theme: Theme) => void;
   appAssets: AppAssetRecord;
@@ -286,5 +287,4 @@ export interface AppContextType {
   handleAssetsUpdate: () => void;
   showToast: (message: string, type?: 'success' | 'error') => void;
   assetsLoading: boolean;
-  loadInitialAssets: () => Promise<void>;
 }

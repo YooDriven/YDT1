@@ -2,10 +2,10 @@ import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { Page, Question, ChatMessage, Opponent } from '../types';
 import { OPPONENT_CHAT_MESSAGES } from '../constants';
 import { useQuestions } from '../contexts/QuestionsContext';
-import { supabase } from '../lib/supabaseClient';
 import { RealtimeChannel } from 'https://esm.sh/@supabase/supabase-js@2';
 import { useAuth } from '../contexts/AuthContext';
 import { useGameplay } from '../contexts/GameplayContext';
+import { useApp } from '../contexts/AppContext';
 
 const getBotAnswer = (question: Question): number => {
     const isOpponentCorrect = Math.random() > 0.25; // 75% chance to be correct
@@ -49,6 +49,7 @@ const AnimatedScore: React.FC<{ score: number; isAnimating: boolean }> = ({ scor
 const BattleGroundPage: React.FC = () => {
     const { userProfile } = useAuth();
     const { onBattleComplete, currentBattleId, duelOpponent } = useGameplay();
+    const { supabase } = useApp();
     
     const user = userProfile!;
     const opponent = duelOpponent!;
@@ -114,7 +115,7 @@ const BattleGroundPage: React.FC = () => {
             setStatusText("Your turn...");
             addOpponentMessage(getRandomMessage('greetings'));
         } else {
-             const channel = supabase!.channel(battleId, { config: { presence: { key: user.id } } });
+             const channel = supabase.channel(battleId, { config: { presence: { key: user.id } } });
              channelRef.current = channel;
 
              channel.on('presence', { event: 'join' }, ({ newPresences }) => {
@@ -165,7 +166,7 @@ const BattleGroundPage: React.FC = () => {
                 channelRef.current = null;
             }
         };
-    }, [allQuestions, questionsLoading, opponent, battleId, user, isHost]);
+    }, [allQuestions, questionsLoading, opponent, battleId, user, isHost, supabase, onBattleComplete, playerScore, opponentScore, opponentDetails, addOpponentMessage, getRandomMessage]);
 
     const handlePlayerAnswer = (index: number) => {
         if (playerAnswer !== null) return;

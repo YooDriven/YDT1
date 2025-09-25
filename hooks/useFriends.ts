@@ -1,19 +1,20 @@
 import { useState, useEffect, useCallback } from 'react';
-import { supabase } from '../lib/supabaseClient';
 import { Friend } from '../types';
+import { useApp } from '../contexts/AppContext';
 
 const useFriends = (userId: string | undefined, showToast: (message: string, type?: 'success' | 'error') => void) => {
+    const { supabase } = useApp();
     const [friends, setFriends] = useState<Friend[]>([]);
 
     const fetchFriends = useCallback(async () => {
         if (!userId) return;
-        const { data, error } = await supabase!.rpc('get_friends_status', { p_user_id: userId });
+        const { data, error } = await supabase.rpc('get_friends_status', { p_user_id: userId });
         if (error) {
             console.error('Error fetching friends:', error);
         } else {
             setFriends(data as Friend[]);
         }
-    }, [userId]);
+    }, [userId, supabase]);
 
     useEffect(() => {
         fetchFriends();
@@ -22,7 +23,7 @@ const useFriends = (userId: string | undefined, showToast: (message: string, typ
     useEffect(() => {
         if (!userId) return;
 
-        const subscription = supabase!.channel(`friends-${userId}`)
+        const subscription = supabase.channel(`friends-${userId}`)
             .on('postgres_changes', {
                 event: '*',
                 schema: 'public',
@@ -40,11 +41,11 @@ const useFriends = (userId: string | undefined, showToast: (message: string, typ
         return () => {
             supabase?.removeChannel(subscription);
         };
-    }, [userId, fetchFriends]);
+    }, [userId, fetchFriends, supabase]);
 
     const sendFriendRequest = async (friendId: string) => {
         if (!userId) return;
-        const { error } = await supabase!.from('friends').insert({ user1_id: userId, user2_id: friendId, status: 'pending' });
+        const { error } = await supabase.from('friends').insert({ user1_id: userId, user2_id: friendId, status: 'pending' });
         if (error) {
             showToast('Failed to send friend request.', 'error');
         } else {
@@ -55,7 +56,7 @@ const useFriends = (userId: string | undefined, showToast: (message: string, typ
     
     const acceptFriendRequest = async (friendId: string) => {
         if (!userId) return;
-        const { error } = await supabase!.from('friends').update({ status: 'friends' }).match({ user1_id: friendId, user2_id: userId });
+        const { error } = await supabase.from('friends').update({ status: 'friends' }).match({ user1_id: friendId, user2_id: userId });
         if (error) {
             showToast('Failed to accept friend request.', 'error');
         } else {
@@ -66,7 +67,7 @@ const useFriends = (userId: string | undefined, showToast: (message: string, typ
 
     const declineFriendRequest = async (friendId: string) => {
         if (!userId) return;
-        const { error } = await supabase!.from('friends').delete().match({ user1_id: friendId, user2_id: userId });
+        const { error } = await supabase.from('friends').delete().match({ user1_id: friendId, user2_id: userId });
         if (error) {
             showToast('Failed to decline friend request.', 'error');
         } else {
@@ -77,7 +78,7 @@ const useFriends = (userId: string | undefined, showToast: (message: string, typ
     
     const removeFriend = async (friendId: string) => {
         if (!userId) return;
-        const { error } = await supabase!.rpc('remove_friend', { p_user_id: userId, p_friend_id: friendId });
+        const { error } = await supabase.rpc('remove_friend', { p_user_id: userId, p_friend_id: friendId });
         if (error) {
             showToast('Failed to remove friend.', 'error');
         } else {

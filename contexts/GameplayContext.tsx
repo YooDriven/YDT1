@@ -1,21 +1,16 @@
 import React, { createContext, useContext, useState, ReactNode } from 'react';
-import { supabase } from '../lib/supabaseClient';
 import { Page, Question, CaseStudy, Opponent, LeaderboardEntry, TestAttempt, Friend, GameplayContextType, TestCardData } from '../types';
 import { DAILY_GOAL_TARGET, MAX_SCORE_PER_CLIP } from '../constants';
 import { useAuth } from './AuthContext';
 import { useSocial } from './SocialContext';
-import { AppContext } from './AppContext';
+import { useApp } from './AppContext';
 
 const GameplayContext = createContext<GameplayContextType | undefined>(undefined);
 
 export const GameplayProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
-    const { userProfile, setUserProfile } = useAuth() as any;
+    const { userProfile, setUserProfile } = useAuth();
     const { grantAchievement } = useSocial();
-    const uiContext = useContext(AppContext);
-     if (!uiContext) {
-        throw new Error("GameplayProvider must be used within an AppUIProvider");
-    }
-    const { navigateTo, showToast } = uiContext;
+    const { supabase, navigateTo, showToast } = useApp();
 
     // Gameplay State
     const [testResult, setTestResult] = useState<{ score: number, total: number }>({ score: 0, total: 0 });
@@ -66,7 +61,7 @@ export const GameplayProvider: React.FC<{ children: ReactNode }> = ({ children }
 
         if (userProfile) {
             const attempt = { user_id: userProfile.id, topic: topic || testId || 'Mock Test', score, total: questions.length, question_ids: questions.map(q => q.id), user_answers: userAnswers };
-            const { error } = await supabase!.from('test_attempts').insert(attempt);
+            const { error } = await supabase.from('test_attempts').insert(attempt);
             if (error) {
                 showToast('Error saving test attempt.', 'error');
             } else {
@@ -78,7 +73,7 @@ export const GameplayProvider: React.FC<{ children: ReactNode }> = ({ children }
                     const isDaily = testId === 'daily-challenge';
                     const todayStr = new Date().toISOString().split('T')[0];
                     const updatedProfile = { ...prev, testHistory: updatedHistory, testsTaken: newTestsTaken, avgScore: isNaN(newAvgScore) ? 0 : newAvgScore, lastDailyChallengeDate: isDaily ? todayStr : prev.lastDailyChallengeDate, dailyGoalProgress: isDaily ? DAILY_GOAL_TARGET : Math.min(DAILY_GOAL_TARGET, prev.dailyGoalProgress + questions.length) };
-                    supabase!.from('profiles').update({ testsTaken: updatedProfile.testsTaken, avgScore: updatedProfile.avgScore, lastDailyChallengeDate: updatedProfile.lastDailyChallengeDate, dailyGoalProgress: updatedProfile.dailyGoalProgress }).eq('id', userProfile.id).then(({error}) => { if (error) console.error(error); });
+                    supabase.from('profiles').update({ testsTaken: updatedProfile.testsTaken, avgScore: updatedProfile.avgScore, lastDailyChallengeDate: updatedProfile.lastDailyChallengeDate, dailyGoalProgress: updatedProfile.dailyGoalProgress }).eq('id', userProfile.id).then(({error}) => { if (error) console.error(error); });
                     if ((score / questions.length) === 1) grantAchievement('perfect_score');
                     if (topic && (score / questions.length) > 0.9) {
                         if (topic === 'Alertness') grantAchievement('topic_master_alertness');
@@ -97,7 +92,7 @@ export const GameplayProvider: React.FC<{ children: ReactNode }> = ({ children }
         setLastOpponent(opponent);
         if (userProfile) {
             const newHistoryEntry = { user_id: userProfile.id, opponent_name: opponent.name, opponent_avatar_url: opponent.avatarUrl, user_score: playerScore, opponent_score: opponentScore, total_questions: total };
-            const { data, error } = await supabase!.from('battle_history').insert(newHistoryEntry).select().single();
+            const { data, error } = await supabase.from('battle_history').insert(newHistoryEntry).select().single();
             if (error) {
                 showToast('Error saving battle history.', 'error');
             } else {
@@ -139,7 +134,7 @@ export const GameplayProvider: React.FC<{ children: ReactNode }> = ({ children }
         const isBookmarked = userProfile.bookmarkedQuestions.includes(questionId);
         const updatedBookmarks = isBookmarked ? userProfile.bookmarkedQuestions.filter(id => id !== questionId) : [...userProfile.bookmarkedQuestions, questionId];
         setUserProfile({ ...userProfile, bookmarkedQuestions: updatedBookmarks });
-        const { error } = await supabase!.from('profiles').update({ bookmarked_questions: updatedBookmarks }).eq('id', userProfile.id);
+        const { error } = await supabase.from('profiles').update({ bookmarked_questions: updatedBookmarks }).eq('id', userProfile.id);
         if (error) {
             showToast('Error updating bookmarks.', 'error');
             setUserProfile({ ...userProfile, bookmarkedQuestions: userProfile.bookmarkedQuestions });

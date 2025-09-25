@@ -1,13 +1,14 @@
 import { useState, useEffect, useCallback } from 'react';
-import { supabase } from '../lib/supabaseClient';
 import { Notification } from '../types';
+import { useApp } from '../contexts/AppContext';
 
 const useNotifications = (userId: string | undefined) => {
+    const { supabase } = useApp();
     const [notifications, setNotifications] = useState<Notification[]>([]);
 
     const fetchNotifications = useCallback(async () => {
         if (!userId) return;
-        const { data, error } = await supabase!
+        const { data, error } = await supabase
             .from('notifications')
             .select('*')
             .eq('user_id', userId)
@@ -17,7 +18,7 @@ const useNotifications = (userId: string | undefined) => {
         } else {
             setNotifications(data as Notification[]);
         }
-    }, [userId]);
+    }, [userId, supabase]);
 
     useEffect(() => {
         fetchNotifications();
@@ -26,7 +27,7 @@ const useNotifications = (userId: string | undefined) => {
     useEffect(() => {
         if (!userId) return;
 
-        const channel = supabase!.channel(`notifications-${userId}`);
+        const channel = supabase.channel(`notifications-${userId}`);
         channel
             .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'notifications', filter: `user_id=eq.${userId}` }, 
             (payload) => {
@@ -39,12 +40,12 @@ const useNotifications = (userId: string | undefined) => {
             .subscribe();
 
         return () => {
-            supabase!.removeChannel(channel);
+            supabase.removeChannel(channel);
         };
-    }, [userId]);
+    }, [userId, supabase]);
     
     const markNotificationAsRead = async (notificationId: string) => {
-        const { error } = await supabase!.from('notifications').delete().eq('id', notificationId);
+        const { error } = await supabase.from('notifications').delete().eq('id', notificationId);
         if (error) {
             console.error("Error deleting notification:", error);
         }

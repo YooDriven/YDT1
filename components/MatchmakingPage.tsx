@@ -1,6 +1,5 @@
 import React, { useEffect, useState, useRef } from 'react';
 import { Page, Opponent } from '../types';
-import { supabase } from '../lib/supabaseClient';
 import { RealtimeChannel } from 'https://esm.sh/@supabase/supabase-js@2';
 import { useApp } from '../contexts/AppContext';
 import { useAuth } from '../contexts/AuthContext';
@@ -9,7 +8,7 @@ import { useGameplay } from '../contexts/GameplayContext';
 const opponentNames = ["RoadRunner", "DriftKing", "CaptainClutch", "SpeedyGonzales"];
 
 const MatchmakingPage: React.FC = () => {
-    const { navigateTo } = useApp();
+    const { navigateTo, supabase } = useApp();
     const { userProfile } = useAuth();
     const { handleMatchFound } = useGameplay();
     const user = userProfile!;
@@ -19,7 +18,7 @@ const MatchmakingPage: React.FC = () => {
     const timeoutRef = useRef<number | null>(null);
 
     useEffect(() => {
-        const lobbyChannel = supabase!.channel('public-lobby', {
+        const lobbyChannel = supabase.channel('public-lobby', {
             config: {
                 presence: {
                     key: user.id,
@@ -79,7 +78,7 @@ const MatchmakingPage: React.FC = () => {
             }
         };
 
-    }, [user, handleMatchFound, navigateTo]);
+    }, [user, handleMatchFound, navigateTo, supabase]);
 
   return (
     <div className="p-4 sm:p-6 lg:p-8 flex flex-col items-center justify-center min-h-[calc(100vh-120px)] text-center">

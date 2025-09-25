@@ -3,12 +3,17 @@ import { Page, Theme, AppAssetRecord, AppContextType } from '../types';
 import { Toast } from '../components/ui';
 import { AuthProvider } from './AuthContext';
 import { SocialProvider } from './SocialContext';
-import { GameplayProvider } from './GameplayContext';
-import { supabase } from '../lib/supabaseClient';
+import { GameplayProvider } from './GameplayProvider';
+import { SupabaseClient } from 'https://esm.sh/@supabase/supabase-js@2';
 
 export const AppContext = createContext<AppContextType | undefined>(undefined);
 
-const AppUIProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
+interface AppProviderProps {
+    children: ReactNode;
+    supabaseClient: SupabaseClient;
+}
+
+const AppUIProvider: React.FC<AppProviderProps> = ({ children, supabaseClient }) => {
     const [theme, setThemeState] = useState<Theme>(() => (document.documentElement.classList.contains('dark') ? 'dark' : 'light'));
     const [appAssets, setAppAssets] = useState<AppAssetRecord>({});
     const [currentPage, setCurrentPage] = useState<Page>(Page.Dashboard);
@@ -38,7 +43,7 @@ const AppUIProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
     const loadInitialAssets = useCallback(async () => {
         setAssetsLoading(true);
         try {
-            const { data: assetsData, error: assetsError } = await supabase!.from('app_assets').select('asset_key, asset_value, mime_type');
+            const { data: assetsData, error: assetsError } = await supabaseClient.from('app_assets').select('asset_key, asset_value, mime_type');
             if (assetsError) throw assetsError;
             const assetsMap = (assetsData || []).reduce((acc: AppAssetRecord, asset) => {
                 acc[asset.asset_key] = { value: asset.asset_value, mimeType: asset.mime_type };
@@ -50,7 +55,7 @@ const AppUIProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
         } finally {
             setAssetsLoading(false);
         }
-    }, [showToast]);
+    }, [supabaseClient, showToast]);
 
     const handleAssetsUpdate = useCallback(async () => {
         await loadInitialAssets();
@@ -58,6 +63,7 @@ const AppUIProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
     }, [loadInitialAssets, showToast]);
     
     const value = {
+        supabase: supabaseClient,
         theme,
         setTheme,
         appAssets,
@@ -67,7 +73,6 @@ const AppUIProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
         showToast,
         handleAssetsUpdate,
         assetsLoading,
-        loadInitialAssets
     };
 
     return (
@@ -78,9 +83,9 @@ const AppUIProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
     );
 };
 
-export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
+export const AppProvider: React.FC<AppProviderProps> = ({ children, supabaseClient }) => {
     return (
-        <AppUIProvider>
+        <AppUIProvider supabaseClient={supabaseClient}>
             <AuthProvider>
                 <SocialProvider>
                     <GameplayProvider>

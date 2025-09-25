@@ -3,7 +3,7 @@ import { Page } from './types';
 import Header from './components/Header';
 import LoginPage from './components/LoginPage';
 import Breadcrumbs, { type Breadcrumb } from './components/Breadcrumbs';
-import { initializeSupabase, supabase } from './lib/supabaseClient';
+import { createClient, SupabaseClient } from 'https://esm.sh/@supabase/supabase-js@2';
 import { QuestionsProvider } from './contexts/QuestionsContext';
 import { AppProvider, useApp } from './contexts/AppContext';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
@@ -208,44 +208,76 @@ const AppContent: React.FC = () => {
     return <MainApp />;
 };
 
+type SupabaseConfig = {
+    url: string;
+    key: string;
+}
+
 const App: React.FC = () => {
-  const [isSupabaseInitialized, setIsSupabaseInitialized] = useState(false);
+  const [supabaseClient, setSupabaseClient] = useState<SupabaseClient | null>(null);
+  const [config, setConfig] = useState<SupabaseConfig | null>(null);
   
   const handleConfigured = (url: string, key: string) => {
-    localStorage.removeItem('SUPABASE_URL');
-    localStorage.removeItem('SUPABASE_ANON_KEY');
-    if (initializeSupabase(url, key)) {
-        localStorage.setItem('SUPABASE_URL', url);
-        localStorage.setItem('SUPABASE_ANON_KEY', key);
-        setIsSupabaseInitialized(true);
-    }
+    localStorage.setItem('SUPABASE_URL', url);
+    localStorage.setItem('SUPABASE_ANON_KEY', key);
+    setConfig({ url, key });
   };
 
   useEffect(() => {
-      const envUrl = typeof process !== 'undefined' ? process.env.SUPABASE_URL : undefined;
-      const envKey = typeof process !== 'undefined' ? process.env.SUPABASE_ANON_KEY : undefined;
-      if (envUrl && envKey && initializeSupabase(envUrl, envKey)) {
-          setIsSupabaseInitialized(true);
-      } else {
-          const storedUrl = localStorage.getItem('SUPABASE_URL');
-          const storedKey = localStorage.getItem('SUPABASE_ANON_KEY');
-          if (storedUrl && storedKey && initializeSupabase(storedUrl, storedKey)) {
-              setIsSupabaseInitialized(true);
+      let active = true;
+      const setupSupabase = () => {
+        try {
+            const envUrl = typeof process !== 'undefined' ? process.env.SUPABASE_URL : undefined;
+            const envKey = typeof process !== 'undefined' ? process.env.SUPABASE_ANON_KEY : undefined;
+            if (envUrl && envKey) {
+                if (active) setConfig({ url: envUrl, key: envKey });
+                return;
+            } 
+            
+            const storedUrl = localStorage.getItem('SUPABASE_URL');
+            const storedKey = localStorage.getItem('SUPABASE_ANON_KEY');
+            if (storedUrl && storedKey) {
+                if (active) setConfig({ url: storedUrl, key: storedKey });
+                return;
+            }
+        } catch(e) {
+            console.error("Error setting up Supabase config:", e);
+        }
+      }
+      setupSupabase();
+      return () => { active = false; };
+  }, []);
+  
+  useEffect(() => {
+      if (config) {
+          try {
+              const client = createClient(config.url, config.key);
+              setSupabaseClient(client);
+          } catch(e) {
+              console.error("Failed to create Supabase client:", e);
+              // Clear bad config
+              localStorage.removeItem('SUPABASE_URL');
+              localStorage.removeItem('SUPABASE_ANON_KEY');
+              setConfig(null);
           }
       }
-  }, []);
+  }, [config]);
 
-  if (!isSupabaseInitialized) {
+  if (!config) {
     return <SupabaseConfigPage onConfigured={handleConfigured} />;
+  }
+
+  if (!supabaseClient) {
+      return <AppLoadingIndicator message="Initializing connection..." />;
   }
   
   return (
     <ErrorBoundary>
-        <QuestionsProvider>
-            <AppProvider>
+        <AppProvider supabaseClient={supabaseClient}>
+            <QuestionsProvider>
                 <AppContent />
-            </AppProvider>
-        </QuestionsProvider>
+            </QuestionsProvider>
+        </AppProvider>
     </ErrorBoundary>
   );
 };

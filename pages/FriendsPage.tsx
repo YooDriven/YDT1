@@ -1,7 +1,6 @@
 import React, { useState, useMemo } from 'react';
 import { Page } from '../types';
 import { ChevronLeftIcon } from '../components/icons';
-import { supabase } from '../lib/supabaseClient';
 import { useDebounce } from '../hooks/useDebounce';
 import { Button, Input, Skeleton } from '../components/ui';
 import { useApp } from '../contexts/AppContext';
@@ -10,7 +9,7 @@ import { useSocial } from '../contexts/SocialContext';
 import { useGameplay } from '../contexts/GameplayContext';
 
 const FriendsPage: React.FC = () => {
-    const { navigateTo } = useApp();
+    const { navigateTo, supabase } = useApp();
     const { userProfile } = useAuth();
     const { friends, acceptFriendRequest, declineFriendRequest, removeFriend, sendFriendRequest, sendChallenge } = useSocial();
     const { handleDuel } = useGameplay();
@@ -24,7 +23,7 @@ const FriendsPage: React.FC = () => {
     React.useEffect(() => {
         if (debouncedSearchTerm.length > 2) {
             setSearchLoading(true);
-            supabase!.rpc('search_users', { p_search_term: debouncedSearchTerm, p_user_id: userProfile!.id })
+            supabase.rpc('search_users', { p_search_term: debouncedSearchTerm, p_user_id: userProfile!.id })
                 .then(({ data, error }) => {
                     if (error) console.error(error);
                     else setSearchResults(data || []);
@@ -33,7 +32,7 @@ const FriendsPage: React.FC = () => {
         } else {
             setSearchResults([]);
         }
-    }, [debouncedSearchTerm, userProfile]);
+    }, [debouncedSearchTerm, userProfile, supabase]);
 
     const myFriends = useMemo(() => friends.filter(f => f.status === 'friends'), [friends]);
     const pendingRequests = useMemo(() => friends.filter(f => f.status === 'pending_received'), [friends]);

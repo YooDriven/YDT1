@@ -1,12 +1,13 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { HazardPerceptionClip } from '../types';
-import { supabase } from '../lib/supabaseClient';
 import { MAX_SCORE_PER_CLIP } from '../constants';
 import Tooltip from './Tooltip';
 import { useGameplay } from '../contexts/GameplayContext';
+import { useApp } from '../contexts/AppContext';
 
 const HazardPerceptionPage: React.FC = () => {
   const { handleHazardPerceptionComplete } = useGameplay();
+  const { supabase } = useApp();
   const [clips, setClips] = useState<HazardPerceptionClip[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -23,7 +24,7 @@ const HazardPerceptionPage: React.FC = () => {
   useEffect(() => {
     const fetchClips = async () => {
       setLoading(true);
-      const { data, error } = await supabase!.from('hazard_clips').select('*');
+      const { data, error } = await supabase.from('hazard_clips').select('*');
       if (error) {
         setError(error.message);
       } else if (data) {
@@ -41,7 +42,7 @@ const HazardPerceptionPage: React.FC = () => {
       setLoading(false);
     };
     fetchClips();
-  }, []);
+  }, [supabase]);
 
   const currentClip = clips[currentClipIndex];
 

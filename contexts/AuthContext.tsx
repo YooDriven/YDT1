@@ -1,5 +1,4 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode, useCallback } from 'react';
-import { supabase } from '../lib/supabaseClient';
 import { Session } from 'https://esm.sh/@supabase/supabase-js@2';
 import { UserProfile, AuthContextType } from '../types';
 import { DAILY_GOAL_TARGET } from '../constants';
@@ -12,11 +11,11 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
     const [loading, setLoading] = useState(true);
     
-    const { showToast } = useApp();
+    const { supabase, showToast } = useApp();
 
     const loadUserProfile = useCallback(async (currentSession: Session) => {
         try {
-            let { data: profileData, error: profileError } = await supabase!.from('profiles').select('*, test_attempts(*), battle_history(*)').eq('id', currentSession.user.id).single();
+            let { data: profileData, error: profileError } = await supabase.from('profiles').select('*, test_attempts(*), battle_history(*)').eq('id', currentSession.user.id).single();
             
             if (profileError && profileError.code !== 'PGRST116') throw profileError;
       
@@ -39,7 +38,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
                     onboarding_completed: false,
                     last_login_date: new Date().toISOString().split('T')[0],
                 };
-                const { data: newProfile, error } = await supabase!.from('profiles').insert({ id: currentSession.user.id, ...newUserProfileData }).select('*, test_attempts(*), battle_history(*)').single();
+                const { data: newProfile, error } = await supabase.from('profiles').insert({ id: currentSession.user.id, ...newUserProfileData }).select('*, test_attempts(*), battle_history(*)').single();
                 if (error) throw error;
                 profileData = newProfile;
             } else {
@@ -49,12 +48,11 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
                 if (lastLogin !== today) {
                     const yesterday = new Date(Date.now() - 86400000).toISOString().split('T')[0];
                     const newStreak = lastLogin === yesterday ? profileData.streak + 1 : 1;
-                    const { data: updatedProfile, error } = await supabase!.from('profiles').update({ streak: newStreak, last_login_date: today }).eq('id', currentSession.user.id).select().single();
+                    const { data: updatedProfile, error } = await supabase.from('profiles').update({ streak: newStreak, last_login_date: today }).eq('id', currentSession.user.id).select().single();
                     if (error) {
                         console.error('Error updating streak:', error);
                     } else if (updatedProfile) {
                         profileData = { ...profileData, ...updatedProfile };
-                        // The toast is now handled reactively in the Header component
                     }
                 }
             }
@@ -68,11 +66,11 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
             console.error("Error loading user profile:", error);
             showToast(`Error loading profile: ${error.message}`, 'error');
         }
-    }, [showToast]);
+    }, [supabase, showToast]);
 
     useEffect(() => {
         setLoading(true);
-        const { data: { subscription } } = supabase!.auth.onAuthStateChange(async (_event, session) => {
+        const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event, session) => {
             setSession(session);
             if (session) {
                 await loadUserProfile(session);
@@ -83,7 +81,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         });
 
         return () => subscription.unsubscribe();
-    }, [loadUserProfile]);
+    }, [supabase, loadUserProfile]);
     
     const handleProfileUpdate = (name: string) => {
         if (userProfile) setUserProfile({ ...userProfile, name });
@@ -92,7 +90,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     const markOnboardingComplete = async () => {
         if (userProfile) {
             setUserProfile({ ...userProfile, onboarding_completed: true });
-            const { error } = await supabase!.from('profiles').update({ onboarding_completed: true }).eq('id', userProfile.id);
+            const { error } = await supabase.from('profiles').update({ onboarding_completed: true }).eq('id', userProfile.id);
             if (error) {
                 showToast('Error saving progress.', 'error');
                 setUserProfile({ ...userProfile, onboarding_completed: false }); // Revert on failure

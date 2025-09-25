@@ -1,29 +1,10 @@
 import { createClient, SupabaseClient } from 'https://esm.sh/@supabase/supabase-js@2';
 
-export let supabase: SupabaseClient | null = null;
+// The Supabase client is now initialized and managed within the main App component
+// and provided via React Context. This file is kept for any potential utility
+// functions or direct type exports in the future.
 
-/**
- * Initializes the Supabase client. Can only be called once.
- * @param url The Supabase project URL.
- * @param key The Supabase anon key.
- * @returns {boolean} True if initialization was successful, false otherwise.
- */
-export const initializeSupabase = (url: string, key: string): boolean => {
-    // Avoid re-initializing
-    if (supabase) {
-        return true;
-    }
-    if (!url || !key) {
-        console.error("Supabase URL and Key are required for initialization.");
-        return false;
-    }
-    try {
-        // The createClient function can throw an error if the URL is invalid.
-        supabase = createClient(url, key);
-        return supabase !== null;
-    } catch (e) {
-        console.error("Failed to initialize Supabase client. Please check your URL and Key.", e);
-        supabase = null;
-        return false;
-    }
-};
+// Re-export for convenience if needed elsewhere, although direct imports
+// from the library are preferred.
+export { createClient };
+export type { SupabaseClient };

@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Page } from '../types';
 import { ChevronLeftIcon } from './icons';
-import { supabase } from '../lib/supabaseClient';
 import { Button, Skeleton } from './ui';
 import { useApp } from '../contexts/AppContext';
 import { useAuth } from '../contexts/AuthContext';
@@ -16,7 +15,7 @@ interface LeaderboardPlayer {
 const PAGE_SIZE = 20;
 
 const LeaderboardPage: React.FC = () => {
-    const { navigateTo } = useApp();
+    const { navigateTo, supabase } = useApp();
     const { userProfile } = useAuth();
     const currentUser = userProfile!;
 
@@ -35,7 +34,7 @@ const LeaderboardPage: React.FC = () => {
             const to = from + PAGE_SIZE - 1;
 
             try {
-                const { data, error } = await supabase!
+                const { data, error } = await supabase
                     .from('profiles')
                     .select('id, name, avatarUrl, avgScore')
                     .order('avgScore', { ascending: false })
@@ -57,7 +56,7 @@ const LeaderboardPage: React.FC = () => {
         };
 
         fetchPlayers();
-    }, [page]);
+    }, [page, supabase]);
 
     return (
         <div className="p-4 sm:p-6 lg:p-8 max-w-4xl mx-auto">

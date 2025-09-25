@@ -49,8 +49,7 @@ class ErrorBoundary extends Component<Props, State> {
       );
     }
 
-    // FIX: Wrapping children in a fragment to potentially address an obscure typing issue with 'this.props'.
-    return this.props.children;
+    return <>{this.props.children}</>;
   }
 }
 

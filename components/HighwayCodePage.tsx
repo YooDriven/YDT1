@@ -1,11 +1,11 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { Page, HighwayCodeRule } from '../types';
 import { ChevronLeftIcon } from './icons';
-import { supabase } from '../lib/supabaseClient';
 import { useApp } from '../contexts/AppContext';
 import { Skeleton } from './ui';
 
 const useHighwayCode = () => {
+    const { supabase } = useApp();
     const [rules, setRules] = useState<HighwayCodeRule[]>([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
@@ -14,7 +14,7 @@ const useHighwayCode = () => {
         const fetchCode = async () => {
             setLoading(true);
             try {
-                const { data, error } = await supabase!
+                const { data, error } = await supabase
                     .from('highway_code')
                     .select('*')
                     .order('rule_number', { ascending: true });
@@ -27,7 +27,7 @@ const useHighwayCode = () => {
             }
         };
         fetchCode();
-    }, []);
+    }, [supabase]);
 
     return { rules, loading, error };
 };

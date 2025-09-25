@@ -1,14 +1,15 @@
 import React, { useState } from 'react';
-import { supabase } from '../lib/supabaseClient';
 import DynamicAsset from './DynamicAsset';
 import { Button, Input } from './ui';
 import { AppAssetRecord } from '../types';
+import { useApp } from '../contexts/AppContext';
 
 interface LoginPageProps {
     appAssets: AppAssetRecord;
 }
 
 const LoginPage: React.FC<LoginPageProps> = ({ appAssets }) => {
+    const { supabase } = useApp();
     const [loading, setLoading] = useState(false);
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
@@ -50,7 +51,7 @@ const LoginPage: React.FC<LoginPageProps> = ({ appAssets }) => {
         setMessage(null);
 
         if (isSignUp) {
-            const { data, error } = await supabase!.auth.signUp({ email, password });
+            const { data, error } = await supabase.auth.signUp({ email, password });
 
             if (error) {
                 setFormError(error.message);
@@ -62,7 +63,7 @@ const LoginPage: React.FC<LoginPageProps> = ({ appAssets }) => {
                 setMessage('Account created! Please check your email to verify your account. For a smoother development experience, you can disable "Confirm email" in your Supabase project\'s Auth settings.');
             }
         } else { // Sign in logic
-            const { error } = await supabase!.auth.signInWithPassword({ email, password });
+            const { error } = await supabase.auth.signInWithPassword({ email, password });
             if (error) {
                 setFormError(error.message);
             }
@@ -80,7 +81,7 @@ const LoginPage: React.FC<LoginPageProps> = ({ appAssets }) => {
         const loginPassword = 'password123';
 
         // 1. Try to sign in
-        const { error: signInError } = await supabase!.auth.signInWithPassword({
+        const { error: signInError } = await supabase.auth.signInWithPassword({
             email: loginEmail,
             password: loginPassword
         });
@@ -90,7 +91,7 @@ const LoginPage: React.FC<LoginPageProps> = ({ appAssets }) => {
             if (signInError.message === 'Invalid login credentials') {
                 setMessage(`Developer account not found. Attempting to create it...`);
                 // 3. Try to sign up the user instead
-                const { data: signUpData, error: signUpError } = await supabase!.auth.signUp({
+                const { data: signUpData, error: signUpError } = await supabase.auth.signUp({
                     email: loginEmail,
                     password: loginPassword,
                     options: {
