@@ -1,13 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import { Page, UserProfile } from '../types';
+import { Page } from '../types';
 import { ChevronLeftIcon } from './icons';
 import { supabase } from '../lib/supabaseClient';
-import { Button } from './ui';
-
-interface LeaderboardPageProps {
-    navigateTo: (page: Page) => void;
-    currentUser: UserProfile;
-}
+import { Button, Skeleton } from './ui';
+import { useAppContext } from '../contexts/AppContext';
 
 interface LeaderboardPlayer {
     id: string;
@@ -18,7 +14,10 @@ interface LeaderboardPlayer {
 
 const PAGE_SIZE = 20;
 
-const LeaderboardPage: React.FC<LeaderboardPageProps> = ({ navigateTo, currentUser }) => {
+const LeaderboardPage: React.FC = () => {
+    const { navigateTo, userProfile } = useAppContext();
+    const currentUser = userProfile!;
+
     const [players, setPlayers] = useState<LeaderboardPlayer[]>([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
@@ -83,11 +82,18 @@ const LeaderboardPage: React.FC<LeaderboardPageProps> = ({ navigateTo, currentUs
                                 </tr>
                             </thead>
                             <tbody>
-                                {loading && (
-                                    <tr>
-                                        <td colSpan={3} className="text-center p-8 text-gray-500 dark:text-gray-400">Loading rankings...</td>
+                                {loading && Array.from({ length: 10 }).map((_, i) => (
+                                    <tr key={i} className="border-b dark:border-slate-700">
+                                        <td className="px-6 py-3 text-center"><Skeleton className="h-6 w-6 mx-auto" /></td>
+                                        <td className="px-6 py-3">
+                                            <div className="flex items-center space-x-3">
+                                                <Skeleton className="h-10 w-10 rounded-full" />
+                                                <Skeleton className="h-4 w-32" />
+                                            </div>
+                                        </td>
+                                        <td className="px-6 py-3 text-right"><Skeleton className="h-6 w-12 ml-auto" /></td>
                                     </tr>
-                                )}
+                                ))}
                                 {error && (
                                      <tr>
                                         <td colSpan={3} className="text-center p-8 text-red-500">Error: {error}</td>

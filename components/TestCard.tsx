@@ -36,8 +36,8 @@ const TestCard: React.FC<TestCardProps> = ({ card, index, onClick, completed, ap
           </div>
         )}
         <div className="flex flex-col h-full items-center">
-          <div className="mb-3">
-            <DynamicAsset asset={appAssets[iconKey]} className={`h-14 w-14 ${color} transition-colors`} />
+          <div className="mb-4">
+            <DynamicAsset asset={appAssets[iconKey]} className={`h-20 w-20 ${color} transition-colors`} />
           </div>
           <h3 className="text-xl font-semibold leading-tight text-gray-900 dark:text-white tracking-tight">{title}</h3>
           <p className="text-sm text-gray-500 dark:text-gray-400 mt-2 flex-grow leading-relaxed">{description}</p>

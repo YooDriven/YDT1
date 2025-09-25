@@ -1,15 +1,14 @@
 import React, { useMemo } from 'react';
-import { Page, Question } from '../types';
+import { Page } from '../types';
 import { ChevronLeftIcon, BookmarkIcon, FlagIcon } from './icons';
 import { useQuestions } from '../contexts/QuestionsContext';
+import { useAppContext } from '../contexts/AppContext';
 
-interface BookmarkedQuestionsPageProps {
-    navigateTo: (page: Page) => void;
-    bookmarkedQuestions: string[];
-    onToggleBookmark: (questionId: string) => void;
-}
-
-const BookmarkedQuestionsPage: React.FC<BookmarkedQuestionsPageProps> = ({ navigateTo, bookmarkedQuestions, onToggleBookmark }) => {
+const BookmarkedQuestionsPage: React.FC = () => {
+    const { navigateTo, userProfile, handleToggleBookmark } = useAppContext();
+    const bookmarkedQuestions = userProfile?.bookmarkedQuestions || [];
+    const onToggleBookmark = handleToggleBookmark;
+    
     const { questions: allQuestions, loading } = useQuestions();
 
     const bookmarked = useMemo(() => {
@@ -21,12 +20,6 @@ const BookmarkedQuestionsPage: React.FC<BookmarkedQuestionsPageProps> = ({ navig
     return (
         <div className="p-4 sm:p-6 lg:p-8 max-w-4xl mx-auto">
             <header className="mb-8">
-                <div className="flex items-center justify-between mb-4">
-                <button onClick={() => navigateTo(Page.StudyHub)} className="flex items-center space-x-2 text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white transition-colors duration-200 group">
-                    <ChevronLeftIcon className="h-6 w-6 transform group-hover:-translate-x-1 transition-transform" />
-                    <span className="text-base">Back to Study Hub</span>
-                </button>
-                </div>
                 <h1 className="text-4xl font-bold text-gray-900 dark:text-white tracking-tight leading-tight">Bookmarked Questions</h1>
                 <p className="text-lg text-gray-500 dark:text-gray-400 mt-2 leading-relaxed">
                     Review questions you have saved. The correct answer is highlighted in green.

@@ -1,26 +1,17 @@
 import React, { useEffect, useState, useRef } from 'react';
-import { Page, UserProfile, Opponent } from '../types';
+import { Page, Opponent } from '../types';
 import { supabase } from '../lib/supabaseClient';
 import { RealtimeChannel } from 'https://esm.sh/@supabase/supabase-js@2';
-
-interface MatchmakingPageProps {
-  navigateTo: (page: Page) => void;
-  onMatchFound: (battleId: string, opponent: Opponent) => void;
-  user: UserProfile;
-}
-
-const matchmakingSteps = [
-    { text: "Searching for opponent...", duration: 20000 },
-    { text: "Opponent found!", duration: 1500 },
-    { text: "Starting match...", duration: 1000 },
-];
+import { useAppContext } from '../contexts/AppContext';
 
 const opponentNames = ["RoadRunner", "DriftKing", "CaptainClutch", "SpeedyGonzales"];
 
-const MatchmakingPage: React.FC<MatchmakingPageProps> = ({ navigateTo, onMatchFound, user }) => {
+const MatchmakingPage: React.FC = () => {
+    const { navigateTo, onMatchFound, userProfile } = useAppContext();
+    const user = userProfile!;
+
     const [statusText, setStatusText] = useState("Connecting to lobby...");
     const channelRef = useRef<RealtimeChannel | null>(null);
-    // FIX: Changed NodeJS.Timeout to number, as setTimeout in browsers returns a number.
     const timeoutRef = useRef<number | null>(null);
 
     useEffect(() => {
@@ -35,7 +26,6 @@ const MatchmakingPage: React.FC<MatchmakingPageProps> = ({ navigateTo, onMatchFo
 
         const handleMatchBroadcast = ({ payload }: { payload: any }) => {
             if (payload.player1.id === user.id || payload.player2.id === user.id) {
-                // We've been matched by someone else
                 if (timeoutRef.current) clearTimeout(timeoutRef.current);
                 const opponent = payload.player1.id === user.id ? payload.player2 : payload.player1;
                 setStatusText(`Opponent found: ${opponent.name}!`);
@@ -46,23 +36,14 @@ const MatchmakingPage: React.FC<MatchmakingPageProps> = ({ navigateTo, onMatchFo
         lobbyChannel.on('broadcast', { event: 'match-found' }, handleMatchBroadcast);
         
         lobbyChannel.on('presence', { event: 'sync' }, () => {
-            // FIX: Call presenceState() without generics and cast the result to handle potential type definition issues.
             const presenceState = lobbyChannel.presenceState() as { [key: string]: { user_id: string; name: string; avatar_url: string }[] };
             const otherPlayers = Object.values(presenceState).map(p => p[0]).filter(p => p.user_id !== user.id);
             
             if (otherPlayers.length > 0) {
-                 // Found an opponent, initiate the match
                 if (timeoutRef.current) clearTimeout(timeoutRef.current);
-
                 const opponentData = otherPlayers[0];
                 const battleId = `battle-${[user.id, opponentData.user_id].sort().join('-')}`;
-                
-                const matchPayload = {
-                    battleId,
-                    player1: { id: user.id, name: user.name, avatarUrl: user.avatarUrl },
-                    player2: { id: opponentData.user_id, name: opponentData.name, avatarUrl: opponentData.avatar_url },
-                };
-                
+                const matchPayload = { battleId, player1: { id: user.id, name: user.name, avatarUrl: user.avatarUrl }, player2: { id: opponentData.user_id, name: opponentData.name, avatarUrl: opponentData.avatar_url }};
                 lobbyChannel.send({ type: 'broadcast', event: 'match-found', payload: matchPayload });
             }
         });
@@ -72,19 +53,14 @@ const MatchmakingPage: React.FC<MatchmakingPageProps> = ({ navigateTo, onMatchFo
                 setStatusText("Searching for opponent...");
                 await lobbyChannel.track({ user_id: user.id, name: user.name, avatar_url: user.avatarUrl });
 
-                // Set a timeout to match with a bot if no one is found
                 if (!timeoutRef.current) {
                     timeoutRef.current = setTimeout(() => {
                         const botName = opponentNames[Math.floor(Math.random() * opponentNames.length)];
-                        const botOpponent: Opponent = {
-                            name: botName,
-                            avatarUrl: `https://api.dicebear.com/8.x/bottts/svg?seed=${botName}`,
-                            isBot: true,
-                        };
+                        const botOpponent: Opponent = { name: botName, avatarUrl: `https://api.dicebear.com/8.x/bottts/svg?seed=${botName}`, isBot: true };
                         const battleId = `battle-bot-${user.id}-${Date.now()}`;
                         setStatusText("No players found, matching with a bot...");
                         setTimeout(() => onMatchFound(battleId, botOpponent), 1000);
-                    }, 20000); // 20-second timeout
+                    }, 20000);
                 }
             } else {
                  setStatusText("Failed to connect to lobby. Please try again.");

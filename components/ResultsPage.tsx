@@ -3,12 +3,8 @@ import { Page } from '../types';
 import { PASS_PERCENTAGE } from '../constants';
 import { XMarkIcon } from './icons';
 import { Button } from './ui';
-
-interface ResultsPageProps {
-  navigateTo: (page: Page) => void;
-  score: number;
-  totalQuestions: number;
-}
+import { useAppContext } from '../contexts/AppContext';
+import { useGameplay } from '../contexts/GameplayContext';
 
 const CircularProgress: React.FC<{ percentage: number; passed: boolean; score: number; totalQuestions: number; }> = ({ percentage, passed, score, totalQuestions }) => {
   const radius = 50;
@@ -53,7 +49,11 @@ const CircularProgress: React.FC<{ percentage: number; passed: boolean; score: n
 };
 
 
-const ResultsPage: React.FC<ResultsPageProps> = ({ navigateTo, score, totalQuestions }) => {
+const ResultsPage: React.FC = () => {
+  const { navigateTo } = useAppContext();
+  const { testResult } = useGameplay();
+  const { score, total: totalQuestions } = testResult;
+
   const percentage = totalQuestions > 0 ? Math.round((score / totalQuestions) * 100) : 0;
   const passed = percentage >= PASS_PERCENTAGE;
   

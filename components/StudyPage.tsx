@@ -1,14 +1,12 @@
 import React, { useState, useMemo } from 'react';
-import { Page, Question } from '../types';
+import { Page } from '../types';
 import { ChevronLeftIcon } from './icons';
 import { useQuestions } from '../contexts/QuestionsContext';
+import { useAppContext } from '../contexts/AppContext';
 
-interface StudyPageProps {
-    navigateTo: (page: Page) => void;
-    topic: string;
-}
-
-const StudyPage: React.FC<StudyPageProps> = ({ navigateTo, topic }) => {
+const StudyPage: React.FC = () => {
+    const { navigateTo, currentTopic } = useAppContext();
+    const topic = currentTopic!;
     const { questions: allQuestions, loading } = useQuestions();
     const [currentIndex, setCurrentIndex] = useState(0);
 

@@ -3,20 +3,25 @@ import { Page, Question } from '../types';
 import { ChevronLeftIcon, FlagIcon } from './icons';
 import { useQuestions } from '../contexts/QuestionsContext';
 import { getDailyChallengeQuestions } from '../utils';
+import { useAppContext } from '../contexts/AppContext';
+import { useAuth } from '../contexts/AuthContext';
+import { useGameplay } from '../contexts/GameplayContext';
 
-interface TestPageProps {
-  navigateTo: (page: Page) => void;
-  onTestComplete: (score: number, questions: Question[], userAnswers: (number | null)[], topic?: string, testId?: string) => void;
-  totalQuestions: number;
-  customQuestions?: Question[] | null;
-  testId?: string;
-  timeLimit?: number;
-  topic?: string;
-  bookmarkedQuestions: string[];
-  onToggleBookmark: (questionId: string) => void;
-}
+const TestPage: React.FC = () => {
+    const { navigateTo } = useAppContext();
+    const { userProfile } = useAuth();
+    const {
+        handleTestComplete,
+        customTest,
+        currentTestId,
+        timeLimit = 3570,
+        currentTopic,
+        handleToggleBookmark
+    } = useGameplay();
+    
+    const totalQuestions = customTest ? customTest.length : 50;
+    const bookmarkedQuestions = userProfile?.bookmarkedQuestions || [];
 
-const TestPage: React.FC<TestPageProps> = ({ navigateTo, onTestComplete, totalQuestions, customQuestions, testId, timeLimit = 3570, topic, bookmarkedQuestions, onToggleBookmark }) => {
     const [questions, setQuestions] = useState<Question[]>([]);
     const [userAnswers, setUserAnswers] = useState<(number | null)[]>([]);
     const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
@@ -29,18 +34,18 @@ const TestPage: React.FC<TestPageProps> = ({ navigateTo, onTestComplete, totalQu
         if (questionsLoading) return;
 
         let testQuestions: Question[];
-        if (testId === 'daily-challenge') {
+        if (currentTestId === 'daily-challenge') {
             testQuestions = getDailyChallengeQuestions(allQuestions, 10);
-        } else if (customQuestions) {
-            testQuestions = customQuestions;
-        } else if (topic) {
-            testQuestions = allQuestions.filter(q => q.category === topic);
+        } else if (customTest) {
+            testQuestions = customTest;
+        } else if (currentTopic) {
+            testQuestions = allQuestions.filter(q => q.category === currentTopic);
         } else {
             testQuestions = [...allQuestions].sort(() => 0.5 - Math.random()).slice(0, totalQuestions);
         }
         setQuestions(testQuestions);
         setUserAnswers(new Array(testQuestions.length).fill(null));
-    }, [totalQuestions, customQuestions, topic, allQuestions, questionsLoading, testId]);
+    }, [totalQuestions, customTest, currentTopic, allQuestions, questionsLoading, currentTestId]);
 
     useEffect(() => {
         finishTestHandlerRef.current = () => {
@@ -50,9 +55,9 @@ const TestPage: React.FC<TestPageProps> = ({ navigateTo, onTestComplete, totalQu
                     score++;
                 }
             });
-            onTestComplete(score, questions, userAnswers, topic, testId);
+            handleTestComplete(score, questions, userAnswers, currentTopic, currentTestId);
         };
-    }, [userAnswers, questions, onTestComplete, topic, testId]);
+    }, [userAnswers, questions, handleTestComplete, currentTopic, currentTestId]);
 
 
     useEffect(() => {
@@ -101,7 +106,7 @@ const TestPage: React.FC<TestPageProps> = ({ navigateTo, onTestComplete, totalQu
                         <ChevronLeftIcon className="h-4 w-4 mr-1" />
                         Exit Test
                     </button>
-                    <h1 className="text-3xl font-bold text-gray-900 dark:text-white text-center sm:text-left tracking-tight">{topic ? `Topic: ${topic}`: 'Theory Test'}</h1>
+                    <h1 className="text-3xl font-bold text-gray-900 dark:text-white text-center sm:text-left tracking-tight">{currentTopic ? `Topic: ${currentTopic}`: 'Theory Test'}</h1>
                     <div className="text-right bg-gray-100 dark:bg-slate-800 p-2 rounded-lg self-end sm:self-center">
                         <span className="text-sm text-gray-600 dark:text-gray-400">Time Remaining:</span>
                         <span className="font-bold text-red-600 dark:text-red-500 text-lg ml-2">{formatTime(timeLeft)}</span>
@@ -123,7 +128,7 @@ const TestPage: React.FC<TestPageProps> = ({ navigateTo, onTestComplete, totalQu
                     </button>
                     <div className="font-semibold text-lg text-gray-900 dark:text-white">{currentQuestionIndex + 1} of {questions.length}</div>
                     <button 
-                        onClick={() => onToggleBookmark(currentQuestion.id)}
+                        onClick={() => handleToggleBookmark(currentQuestion.id)}
                         className={`transition-colors p-2 rounded-md hover:bg-yellow-100 dark:hover:bg-yellow-500/10 ${isBookmarked ? 'text-amber-500' : 'text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white'}`}
                         aria-label={isBookmarked ? 'Remove bookmark' : 'Add bookmark'}
                     >

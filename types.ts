@@ -1,4 +1,5 @@
 import { FC, SVGProps, ReactNode } from 'react';
+import { Session } from 'https://esm.sh/@supabase/supabase-js@2';
 
 export type Theme = 'light' | 'dark';
 
@@ -24,6 +25,9 @@ export enum Page {
   Settings,
   Admin,
   Leaderboard,
+  Friends,
+  Achievements,
+  Statistics,
 }
 
 export type AdminSection = 'content' | 'appearance';
@@ -107,24 +111,65 @@ export interface TestAttempt {
   total: number;
   questionIds: string[];
   userAnswers: (number | null)[];
+  created_at?: string;
+}
+
+export interface BattleHistoryEntry {
+  opponent_name: string;
+  opponent_avatar_url: string;
+  user_score: number;
+  opponent_score: number;
+  total_questions: number;
+  created_at: string;
+}
+
+export type AchievementId = 'first_win' | 'streak_3' | 'streak_7' | 'perfect_score' | 'topic_master_alertness' | 'topic_master_attitude' | 'topic_master_signs';
+export type AchievementStatus = 'locked' | 'unlocked';
+
+export interface Achievement {
+    id: AchievementId;
+    name: string;
+    description: string;
+    status: AchievementStatus;
+    icon: string;
+}
+
+export interface Friend {
+    id: string;
+    name: string;
+    avatarUrl: string;
+    avgScore: number;
+    status: 'friends' | 'pending_sent' | 'pending_received';
+}
+
+export interface Notification {
+    id: string;
+    type: 'friend_request' | 'challenge';
+    from_user_id: string;
+    from_user_name: string;
+    from_user_avatar_url: string;
+    created_at: string;
 }
 
 export interface UserProfile {
   id:string;
   name: string;
   avatarUrl: string;
-  avgScore: number; // This would be calculated dynamically in a real app
+  avgScore: number;
   testsTaken: number;
   timeSpent: string;
   streak: number;
   freezes: number;
   badges: Badge[];
   testHistory: TestAttempt[];
+  battleHistory: BattleHistoryEntry[];
   dailyGoalProgress: number;
   dailyGoalTarget: number;
   lastDailyChallengeDate: string | null;
   bookmarkedQuestions: string[];
   role?: 'user' | 'admin';
+  unlocked_achievements: AchievementId[];
+  friends: Friend[];
 }
 
 export interface RoadSign {
@@ -162,3 +207,60 @@ export interface AppAsset {
 }
 
 export type AppAssetRecord = Record<string, AppAsset>;
+
+// New Context Types
+export interface AuthContextType {
+  session: Session | null;
+  userProfile: UserProfile | null;
+  handleProfileUpdate: (name: string) => void;
+  loading: boolean;
+}
+
+export interface SocialContextType {
+  friends: Friend[];
+  notifications: Notification[];
+  achievements: Achievement[];
+  sendFriendRequest: (userId: string) => Promise<void>;
+  acceptFriendRequest: (userId: string) => Promise<void>;
+  declineFriendRequest: (userId: string) => Promise<void>;
+  removeFriend: (userId: string) => Promise<void>;
+  markNotificationAsRead: (id: string) => Promise<void>;
+  grantAchievement: (achievementId: AchievementId) => Promise<void>;
+}
+
+export interface GameplayContextType {
+  testResult: { score: number; total: number };
+  reviewData: { questions: Question[]; userAnswers: (number | null)[] };
+  battleResult: { playerScore: number, opponentScore: number, total: number, opponentName: string };
+  hazardPerceptionResult: { scores: number[]; totalScore: number; maxScore: number };
+  customTest: Question[] | null;
+  currentTestId?: string;
+  timeLimit?: number;
+  currentTopic?: string;
+  currentMode: 'test' | 'study';
+  duelOpponent: Opponent | null;
+  currentBattleId: string | null;
+  selectedCaseStudy: CaseStudy | null;
+  handleCardClick: (card: TestCardData) => void;
+  handleDuel: (opponent: LeaderboardEntry | Friend) => void;
+  handleMatchFound: (battleId: string, opponent: Opponent) => void;
+  handleTestComplete: (score: number, questions: Question[], userAnswers: (number | null)[], topic?: string, testId?: string) => void;
+  handleBattleComplete: (playerScore: number, opponentScore: number, total: number, opponent: Opponent) => void;
+  handleRematch: () => void;
+  handleHazardPerceptionComplete: (scores: number[], totalClips: number) => void;
+  handleTopicSelect: (topic: string) => void;
+  handleCaseStudySelect: (caseStudy: CaseStudy) => void;
+  handleToggleBookmark: (questionId: string) => void;
+}
+
+export interface AppContextType {
+  theme: Theme;
+  setTheme: (theme: Theme) => void;
+  appAssets: AppAssetRecord;
+  currentPage: Page;
+  animationKey: number;
+  appState: string;
+  navigateTo: (page: Page) => void;
+  handleAssetsUpdate: () => void;
+  showToast: (message: string, type?: 'success' | 'error') => void;
+}

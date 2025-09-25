@@ -1,13 +1,8 @@
 import React from 'react';
-import { Page, UserProfile, AppAssetRecord } from '../types';
+import { Page } from '../types';
 import { ChevronLeftIcon } from './icons';
 import DynamicAsset from './DynamicAsset';
-
-interface ProfilePageProps {
-    user: UserProfile;
-    navigateTo: (page: Page) => void;
-    appAssets: AppAssetRecord;
-}
+import { useAppContext } from '../contexts/AppContext';
 
 const StatCard: React.FC<{ icon: React.ReactNode; label: string; value: string | number; }> = ({ icon, label, value }) => (
     <div className="bg-gray-100 dark:bg-slate-700/50 p-4 rounded-lg flex items-center">
@@ -19,16 +14,19 @@ const StatCard: React.FC<{ icon: React.ReactNode; label: string; value: string |
     </div>
 );
 
-const ProfilePage: React.FC<ProfilePageProps> = ({ user, navigateTo, appAssets }) => {
+const ProfilePage: React.FC = () => {
+    const { userProfile, navigateTo, appAssets } = useAppContext();
+    const user = userProfile!;
+
+    const navigationItems = [
+        { page: Page.Friends, label: 'Friends', icon: 'icon_swords' },
+        { page: Page.Achievements, label: 'Achievements', icon: 'badge_trophy' },
+        { page: Page.Statistics, label: 'Statistics', icon: 'icon_chart_bar' },
+    ];
+
     return (
         <div className="p-4 sm:p-6 lg:p-8 max-w-4xl mx-auto">
             <header className="mb-8">
-                <div className="flex items-center justify-between mb-4">
-                    <button onClick={() => navigateTo(Page.Dashboard)} className="flex items-center space-x-2 text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white transition-colors duration-200 group">
-                        <ChevronLeftIcon className="h-6 w-6 transform group-hover:-translate-x-1 transition-transform" />
-                        <span className="text-base">Back to Dashboard</span>
-                    </button>
-                </div>
                 <div className="flex items-center space-x-4">
                     <img src={user.avatarUrl} alt={user.name} className="h-20 w-20 rounded-full border-4 border-teal-400" />
                     <div>
@@ -39,33 +37,74 @@ const ProfilePage: React.FC<ProfilePageProps> = ({ user, navigateTo, appAssets }
             </header>
 
             <main className="space-y-8">
-                {/* Stats Section */}
+                <section className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                    {navigationItems.map(item => (
+                         <button
+                            key={item.page}
+                            onClick={() => navigateTo(item.page)}
+                            className="p-4 bg-white dark:bg-slate-800 rounded-lg flex flex-col items-center justify-center hover:bg-gray-50 dark:hover:bg-slate-700/50 border border-gray-200 dark:border-slate-700 transition-all transform hover:-translate-y-1"
+                        >
+                            <DynamicAsset asset={appAssets[item.icon]} className="h-8 w-8 text-gray-500 dark:text-gray-400 mb-2" />
+                            <span className="font-semibold text-gray-800 dark:text-gray-200">{item.label}</span>
+                        </button>
+                    ))}
+                </section>
+                
                 <section>
                     <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-4 leading-tight">Statistics</h2>
                     <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                        <StatCard icon={<DynamicAsset asset={appAssets['icon_chart_bar']} className="h-8 w-8" />} label="Avg. Score" value={`${user.avgScore}%`} />
+                        <StatCard icon={<DynamicAsset asset={appAssets['icon_chart_bar']} className="h-8 w-8" />} label="Avg. Score" value={user.testsTaken > 0 ? `${user.avgScore}%` : 'N/A'} />
                         <StatCard icon={<DynamicAsset asset={appAssets['badge_trophy']} className="h-8 w-8" />} label="Tests Taken" value={user.testsTaken} />
                         <StatCard icon={<DynamicAsset asset={appAssets['badge_fire']} className="h-8 w-8 text-orange-400" />} label="Streak" value={user.streak} />
                         <StatCard icon={<DynamicAsset asset={appAssets['badge_snowflake']} className="h-8 w-8 text-sky-400" />} label="Freezes" value={user.freezes} />
                     </div>
                 </section>
 
-                {/* Badges Section */}
                 <section>
-                    <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-4 leading-tight">Badges</h2>
-                     <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
-                        {user.badges.map((badge, index) => {
-                            return (
-                                <div key={index} className="bg-gray-100 dark:bg-slate-700/50 p-4 rounded-lg text-center">
-                                    <DynamicAsset asset={appAssets[badge.icon]} className={`h-10 w-10 mx-auto ${badge.color}`} />
-                                    <p className="mt-2 text-sm font-semibold text-gray-800 dark:text-gray-200">{badge.name}</p>
-                                </div>
-                            );
-                        })}
+                    <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-4 leading-tight">Battle History</h2>
+                    <div className="bg-white dark:bg-slate-800/50 rounded-lg border border-gray-200 dark:border-slate-700 overflow-hidden">
+                        <div className="overflow-x-auto">
+                            <table className="w-full text-sm text-left text-gray-500 dark:text-gray-400">
+                                <thead className="text-xs text-gray-700 uppercase bg-gray-50 dark:bg-slate-700 dark:text-gray-400 tracking-wider">
+                                    <tr>
+                                        <th scope="col" className="px-6 py-3">Opponent</th>
+                                        <th scope="col" className="px-6 py-3">Result</th>
+                                        <th scope="col" className="px-6 py-3">Score</th>
+                                        <th scope="col" className="px-6 py-3">Date</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {user.battleHistory?.length > 0 ? (
+                                        user.battleHistory.map((battle, index) => {
+                                            const isWin = battle.user_score > battle.opponent_score;
+                                            const isDraw = battle.user_score === battle.opponent_score;
+                                            return (
+                                                <tr key={index} className="bg-white dark:bg-slate-800 border-b dark:border-slate-700">
+                                                    <td className="px-6 py-4">
+                                                        <div className="flex items-center space-x-3">
+                                                            <img src={battle.opponent_avatar_url} alt={battle.opponent_name} className="h-8 w-8 rounded-full" />
+                                                            <span className="font-semibold text-gray-900 dark:text-white">{battle.opponent_name}</span>
+                                                        </div>
+                                                    </td>
+                                                    <td className={`px-6 py-4 font-semibold ${isWin ? 'text-teal-500' : isDraw ? 'text-gray-500' : 'text-red-500'}`}>
+                                                        {isWin ? 'Win' : isDraw ? 'Draw' : 'Loss'}
+                                                    </td>
+                                                    <td className="px-6 py-4 font-semibold text-gray-800 dark:text-white">{battle.user_score} - {battle.opponent_score}</td>
+                                                    <td className="px-6 py-4">{new Date(battle.created_at).toLocaleDateString()}</td>
+                                                </tr>
+                                            );
+                                        })
+                                    ) : (
+                                        <tr>
+                                            <td colSpan={4} className="text-center p-8">No battle history yet. Go challenge someone!</td>
+                                        </tr>
+                                    )}
+                                </tbody>
+                            </table>
+                        </div>
                     </div>
                 </section>
 
-                {/* Test History Section */}
                 <section>
                     <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-4 leading-tight">Test History</h2>
                     <div className="bg-white dark:bg-slate-800/50 rounded-lg border border-gray-200 dark:border-slate-700 overflow-hidden">
@@ -79,18 +118,24 @@ const ProfilePage: React.FC<ProfilePageProps> = ({ user, navigateTo, appAssets }
                                     </tr>
                                 </thead>
                                 <tbody>
-                                    {user.testHistory.slice().reverse().map((attempt, index) => {
-                                        const percentage = Math.round((attempt.score / attempt.total) * 100);
-                                        return (
-                                            <tr key={index} className="bg-white dark:bg-slate-800 border-b dark:border-slate-700">
-                                                <th scope="row" className="px-6 py-4 font-semibold text-gray-900 whitespace-nowrap dark:text-white">
-                                                    {attempt.topic}
-                                                </th>
-                                                <td className="px-6 py-4">{attempt.score}/{attempt.total}</td>
-                                                <td className="px-6 py-4 font-semibold">{percentage}%</td>
-                                            </tr>
-                                        );
-                                    })}
+                                    {user.testHistory?.length > 0 ? (
+                                        user.testHistory.slice().reverse().map((attempt, index) => {
+                                            const percentage = Math.round((attempt.score / attempt.total) * 100);
+                                            return (
+                                                <tr key={index} className="bg-white dark:bg-slate-800 border-b dark:border-slate-700">
+                                                    <th scope="row" className="px-6 py-4 font-semibold text-gray-900 whitespace-nowrap dark:text-white">
+                                                        {attempt.topic}
+                                                    </th>
+                                                    <td className="px-6 py-4">{attempt.score}/{attempt.total}</td>
+                                                    <td className="px-6 py-4 font-semibold">{percentage}%</td>
+                                                </tr>
+                                            );
+                                        })
+                                    ) : (
+                                        <tr>
+                                            <td colSpan={3} className="text-center p-8">No test history yet. Complete a test to see your results here.</td>
+                                        </tr>
+                                    )}
                                 </tbody>
                             </table>
                         </div>

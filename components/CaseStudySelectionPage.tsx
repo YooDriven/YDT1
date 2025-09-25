@@ -2,13 +2,10 @@ import React, { useState, useEffect } from 'react';
 import { Page, CaseStudy } from '../types';
 import { ChevronLeftIcon } from './icons';
 import { supabase } from '../lib/supabaseClient';
+import { useAppContext } from '../contexts/AppContext';
 
-interface CaseStudySelectionPageProps {
-    navigateTo: (page: Page) => void;
-    onCaseStudySelect: (caseStudy: CaseStudy) => void;
-}
-
-const CaseStudySelectionPage: React.FC<CaseStudySelectionPageProps> = ({ navigateTo, onCaseStudySelect }) => {
+const CaseStudySelectionPage: React.FC = () => {
+    const { navigateTo, handleCaseStudySelect } = useAppContext();
     const [caseStudies, setCaseStudies] = useState<CaseStudy[]>([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
@@ -51,7 +48,7 @@ const CaseStudySelectionPage: React.FC<CaseStudySelectionPageProps> = ({ navigat
                 {caseStudies.map((study, index) => (
                     <button
                         key={study.id}
-                        onClick={() => onCaseStudySelect(study)}
+                        onClick={() => handleCaseStudySelect(study)}
                         className="stagger-fade-in p-6 bg-white dark:bg-slate-800 rounded-lg text-left hover:bg-gray-50 dark:hover:bg-slate-700/50 border border-gray-200 dark:border-slate-700 transition-all transform hover:-translate-y-1"
                         style={{ animationDelay: `${index * 50}ms` }}
                     >
@@ -66,12 +63,6 @@ const CaseStudySelectionPage: React.FC<CaseStudySelectionPageProps> = ({ navigat
     return (
         <div className="p-4 sm:p-6 lg:p-8 max-w-4xl mx-auto">
             <header className="mb-8">
-                <div className="flex items-center justify-between mb-4">
-                <button onClick={() => navigateTo(Page.StudyHub)} className="flex items-center space-x-2 text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white transition-colors duration-200 group">
-                    <ChevronLeftIcon className="h-6 w-6 transform group-hover:-translate-x-1 transition-transform" />
-                    <span className="text-base">Back to Study Hub</span>
-                </button>
-                </div>
                 <h1 className="text-4xl font-bold text-gray-900 dark:text-white tracking-tight leading-tight">Case Studies</h1>
                 <p className="text-lg text-gray-500 dark:text-gray-400 mt-2 leading-relaxed">Select a scenario to test your knowledge with a related set of questions.</p>
             </header>

@@ -1,33 +1,60 @@
 import React, { memo } from 'react';
-import { LeaderboardEntry, Page, UserProfile, AppAssetRecord } from '../types';
+import { LeaderboardEntry, Page } from '../types';
 import PerformanceChart from './PerformanceChart';
 import DynamicAsset from './DynamicAsset';
-import { Button } from './ui';
+import { Button, Skeleton } from './ui';
+import { useAuth } from '../contexts/AuthContext';
+import { useAppContext } from '../contexts/AppContext';
+import { useGameplay } from '../contexts/GameplayContext';
 
 interface StudentProfileCardProps {
-  user: UserProfile;
-  navigateTo: (page: Page) => void;
+  loading: boolean;
   nationalLeaderboard: LeaderboardEntry[];
   regionalLeaderboard: LeaderboardEntry[];
-  handleDuel: (opponent: LeaderboardEntry) => void;
-  appAssets: AppAssetRecord;
 }
 
-const StudentProfileCard: React.FC<StudentProfileCardProps> = ({ user, navigateTo, nationalLeaderboard, regionalLeaderboard, handleDuel, appAssets }) => {
+const StudentProfileCard: React.FC<StudentProfileCardProps> = ({ loading, nationalLeaderboard, regionalLeaderboard }) => {
+  const { userProfile: user } = useAuth();
+  const { navigateTo, appAssets } = useAppContext();
+  const { handleDuel } = useGameplay();
+  
+  if (loading || !user) {
+    return (
+        <div className="space-y-4 p-6 bg-white dark:bg-slate-800 rounded-xl border border-gray-200 dark:border-slate-700 h-full">
+            <div className="flex items-center space-x-4">
+                <Skeleton className="h-16 w-16 rounded-full" />
+                <div className="space-y-2">
+                    <Skeleton className="h-6 w-32" />
+                    <Skeleton className="h-4 w-24" />
+                </div>
+            </div>
+            <div className="grid grid-cols-3 gap-3">
+                <Skeleton className="h-20 w-full" />
+                <Skeleton className="h-20 w-full" />
+                <Skeleton className="h-20 w-full" />
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+                <Skeleton className="h-12 w-full" />
+                <Skeleton className="h-12 w-full" />
+            </div>
+            <Skeleton className="h-24 w-full" />
+            <Skeleton className="h-32 w-full" />
+            <Skeleton className="h-12 w-full" />
+        </div>
+    );
+  }
+
   const dailyGoalProgressPercent = Math.min((user.dailyGoalProgress / user.dailyGoalTarget) * 100, 100);
 
   const renderLeaderboard = (leaderboard: LeaderboardEntry[], title: string) => {
-    const userIndex = leaderboard.findIndex(p => p.isUser);
-    if (userIndex === -1 && leaderboard.length === 0) return null;
-
-    const playersToShow = leaderboard.slice(0, 5); // Show top 5
+    const playersToShow = leaderboard.slice(0, 5);
 
     return (
       <div className="flex-1">
         <h4 className="font-semibold text-center text-sm mb-2 text-gray-800 dark:text-gray-200">{title}</h4>
         <div className="space-y-1.5">
           {playersToShow.map(player => (
-            <div key={`${title}-${player.rank}`} className={`flex items-center p-1.5 rounded-lg ${player.isUser ? 'bg-teal-500/20 dark:bg-teal-500/20' : 'bg-gray-100 dark:bg-slate-700/50'}`}>
+            <div key={`${title}-${player.rank}`} className={`flex items-center p-1.5 rounded-lg ${player.isUser ? 'bg-teal-500/20' : 'bg-gray-100 dark:bg-slate-700/50'}`}>
               <span className="text-xs font-bold w-6 text-center text-gray-500 dark:text-gray-400">{player.rank}</span>
               <img src={player.avatarUrl} alt={player.name} className="h-6 w-6 rounded-full mx-1.5"/>
               <span className="flex-1 text-sm text-gray-700 dark:text-gray-300 truncate">{player.name}</span>
@@ -62,7 +89,6 @@ const StudentProfileCard: React.FC<StudentProfileCardProps> = ({ user, navigateT
       </div>
 
       <div className="grid grid-cols-3 gap-3 mb-6">
-        {/* Daily Goal */}
         <div className="flex flex-col items-center justify-center text-center p-2 rounded-lg bg-gray-100 dark:bg-slate-700/50">
             <div className="relative h-10 w-10">
               <svg className="h-full w-full" viewBox="0 0 36 36">
@@ -76,9 +102,8 @@ const StudentProfileCard: React.FC<StudentProfileCardProps> = ({ user, navigateT
             <p className="text-xs text-gray-500 dark:text-gray-400 mt-1.5 leading-tight">{`${Math.round(dailyGoalProgressPercent)}% Daily`}</p>
         </div>
 
-        {/* Avg. Score */}
         <div className="relative group flex flex-col items-center justify-center text-center p-2 rounded-lg bg-gray-100 dark:bg-slate-700/50">
-            <p className="text-2xl font-bold text-gray-900 dark:text-white">{`${user.avgScore}%`}</p>
+            <p className="text-2xl font-bold text-gray-900 dark:text-white">{user.testsTaken > 0 ? `${user.avgScore}%` : 'N/A'}</p>
             <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5 leading-tight">Avg. Score</p>
             <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 w-72 p-4 bg-white dark:bg-slate-800 border border-gray-200 dark:border-slate-700 rounded-lg shadow-xl opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none group-hover:pointer-events-auto z-20">
               <h3 className="text-base font-semibold text-gray-500 dark:text-gray-400 mb-2 flex items-center text-left">
@@ -89,20 +114,17 @@ const StudentProfileCard: React.FC<StudentProfileCardProps> = ({ user, navigateT
             </div>
         </div>
         
-        {/* Tests Taken */}
         <div className="flex flex-col items-center justify-center text-center p-2 rounded-lg bg-gray-100 dark:bg-slate-700/50">
             <p className="text-2xl font-bold text-gray-900 dark:text-white">{user.testsTaken}</p>
             <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5 leading-tight">Tests</p>
         </div>
       </div>
        <div className="grid grid-cols-2 gap-3 mb-6">
-          {/* Streak */}
           <div className="flex items-center justify-center text-center p-2 rounded-lg bg-orange-500/10 dark:bg-orange-500/20">
               <DynamicAsset asset={appAssets['badge_fire']} className="h-6 w-6 text-orange-400" />
               <p className="text-xl font-bold text-gray-900 dark:text-white ml-2">{user.streak}</p>
               <p className="text-sm text-orange-500 dark:text-orange-400 ml-1.5">Streak</p>
           </div>
-          {/* Freezes */}
           <div className="flex items-center justify-center text-center p-2 rounded-lg bg-sky-500/10 dark:bg-sky-500/20">
               <DynamicAsset asset={appAssets['badge_snowflake']} className="h-6 w-6 text-sky-400" />
               <p className="text-xl font-bold text-gray-900 dark:text-white ml-2">{user.freezes}</p>

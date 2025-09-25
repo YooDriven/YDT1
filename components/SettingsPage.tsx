@@ -1,21 +1,14 @@
 import React, { useState } from 'react';
-import { Page, Theme, UserProfile } from '../types';
+import { Page, Theme } from '../types';
 import { ChevronLeftIcon, SunIcon, MoonIcon } from './icons';
 import { supabase } from '../lib/supabaseClient';
-import { Session } from 'https://esm.sh/@supabase/supabase-js@2';
-// FIX: Import 'Label' component from the UI library.
 import { Button, Input, Label } from './ui';
+import { useAppContext } from '../contexts/AppContext';
 
-interface SettingsPageProps {
-    user: UserProfile;
-    navigateTo: (page: Page) => void;
-    session: Session | null;
-    theme: Theme;
-    setTheme: (theme: Theme) => void;
-    onProfileUpdate: (name: string) => void;
-}
+const SettingsPage: React.FC = () => {
+    const { userProfile, navigateTo, session, theme, setTheme, handleProfileUpdate } = useAppContext();
+    const user = userProfile!;
 
-const SettingsPage: React.FC<SettingsPageProps> = ({ user, navigateTo, session, theme, setTheme, onProfileUpdate }) => {
     const [name, setName] = useState(user.name);
     const [newPassword, setNewPassword] = useState('');
     const [message, setMessage] = useState<{ text: string, type: 'success' | 'error'} | null>(null);
@@ -24,7 +17,7 @@ const SettingsPage: React.FC<SettingsPageProps> = ({ user, navigateTo, session, 
     const [nameError, setNameError] = useState<string | null>(null);
     const [passwordError, setPasswordError] = useState<string | null>(null);
 
-    const handleProfileUpdate = async (e: React.FormEvent) => {
+    const onProfileUpdate = async (e: React.FormEvent) => {
         e.preventDefault();
         if (name.trim().length === 0) {
             setNameError("Display name cannot be empty.");
@@ -38,7 +31,7 @@ const SettingsPage: React.FC<SettingsPageProps> = ({ user, navigateTo, session, 
             setMessage({ text: `Error updating name: ${error.message}`, type: 'error' });
         } else {
             setMessage({ text: 'Display name updated successfully!', type: 'success' });
-            onProfileUpdate(name);
+            handleProfileUpdate(name);
         }
         setIsSaving(false);
     };
@@ -71,12 +64,6 @@ const SettingsPage: React.FC<SettingsPageProps> = ({ user, navigateTo, session, 
     return (
         <div className="p-4 sm:p-6 lg:p-8 max-w-2xl mx-auto">
             <header className="mb-8">
-                <div className="flex items-center justify-between mb-4">
-                    <button onClick={() => navigateTo(Page.Dashboard)} className="flex items-center space-x-2 text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white transition-colors duration-200 group">
-                        <ChevronLeftIcon className="h-6 w-6 transform group-hover:-translate-x-1 transition-transform" />
-                        <span className="text-base">Back to Dashboard</span>
-                    </button>
-                </div>
                 <h1 className="text-4xl font-bold text-gray-900 dark:text-white tracking-tight leading-tight">Settings</h1>
                 <p className="text-lg text-gray-500 dark:text-gray-400 mt-2 leading-relaxed">Manage your account and app preferences.</p>
             </header>
@@ -114,7 +101,7 @@ const SettingsPage: React.FC<SettingsPageProps> = ({ user, navigateTo, session, 
                 <section>
                     <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-4 leading-tight">Account</h2>
                     <div className="bg-white dark:bg-slate-800/50 p-6 rounded-xl border border-gray-200 dark:border-slate-700 space-y-4">
-                         <form onSubmit={handleProfileUpdate} className="space-y-4">
+                         <form onSubmit={onProfileUpdate} className="space-y-4">
                              <div>
                                 <Label htmlFor="displayName">Display Name</Label>
                                 <Input

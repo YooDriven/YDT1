@@ -1,5 +1,5 @@
 import React from 'react';
-import { Page, TestCardData, Question, RoadSignCategory, TestAttempt, LeaderboardEntry } from './types';
+import { Page, TestCardData, Question, RoadSignCategory, TestAttempt, LeaderboardEntry, Achievement, AchievementStatus } from './types';
 
 // This file will now primarily hold static configuration data.
 // Dynamic data like questions and user profiles are fetched from Supabase.
@@ -138,6 +138,16 @@ export const STUDY_CARDS: TestCardData[] = [
     hoverColor: '',
     page: Page.CaseStudySelection,
   },
+];
+
+export const ACHIEVEMENTS: Omit<Achievement, 'status'>[] = [
+    { id: 'first_win', name: 'First Victory', description: 'Win your first battle against an opponent.', icon: 'badge_trophy' },
+    { id: 'streak_3', name: 'On a Roll', description: 'Achieve a 3-day login streak.', icon: 'badge_fire' },
+    { id: 'streak_7', name: 'Week-Long Warrior', description: 'Achieve a 7-day login streak.', icon: 'badge_fire' },
+    { id: 'perfect_score', name: 'Perfectionist', description: 'Get a 100% score on any mock or topic test.', icon: 'badge_generic' },
+    { id: 'topic_master_alertness', name: 'Alertness Ace', description: 'Score over 90% on an Alertness topic test.', icon: 'badge_generic' },
+    { id: 'topic_master_attitude', name: 'Attitude Expert', description: 'Score over 90% on an Attitude topic test.', icon: 'badge_generic' },
+    { id: 'topic_master_signs', name: 'Sign Scholar', description: 'Score over 90% on a Road and Traffic Signs topic test.', icon: 'badge_generic' },
 ];
 
 export const HAZARD_PERCEPTION_PASS_MARK = 15; // Official test is 44/75. We'll use a proportional value.

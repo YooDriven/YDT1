@@ -5,6 +5,8 @@ import { supabase } from '../lib/supabaseClient';
 import DynamicAsset from './DynamicAsset';
 import { Toast, Modal, FormRow, Label, Input, Textarea, Select, Button } from './ui';
 import { useDebounce } from '../hooks/useDebounce';
+import { isRasterImage, removeImageBackground, convertRasterToSvg } from '../utils';
+
 
 // Question Form Component
 const DEFAULT_QUESTION: Omit<Question, 'id'> = {
@@ -278,12 +280,12 @@ const CategoryManager: React.FC<{ showToast: (msg: string, type?: 'success' | 'e
             const { data, error } = await supabase!.from('questions').select('category');
             if (error) throw error;
 
-            // FIX: Explicitly type `categoryCounts` and `q` to prevent type inference issues where `count` becomes `unknown`.
-            const categoryCounts: Record<string, number> = (data || []).reduce((acc: Record<string, number>, q: any) => {
+            // FIX: Explicitly type the accumulator and item parameters in `reduce` to fix type inference issues.
+            const categoryCounts = (data || []).reduce((acc: Record<string, number>, q: { category: string | null }) => {
                 const cat = q.category || 'Uncategorized';
                 acc[cat] = (acc[cat] || 0) + 1;
                 return acc;
-            }, {} as Record<string, number>);
+            }, {});
 
             const categoriesData = Object.entries(categoryCounts)
                 .map(([name, count]) => ({ name, count }))
@@ -395,12 +397,20 @@ const BulkRoadSignUploader: React.FC<{
     const handleFiles = async (files: FileList | null) => {
         if (!files) return;
         const newFilesPromises = Array.from(files).map(async file => {
-            if (file.type !== 'image/svg+xml') {
-                showToast(`Skipped non-SVG file: ${file.name}`, 'error');
+            const validMimeTypes = ['image/svg+xml', 'image/png', 'image/jpeg'];
+            if (!validMimeTypes.includes(file.type)) {
+                showToast(`Skipped invalid file type: ${file.name}`, 'error');
                 return null;
             }
             const name = generateSignName(file.name);
-            const svg_code = await file.text();
+            let svg_code;
+            if (isRasterImage(file)) {
+                const { base64, width, height } = await removeImageBackground(file);
+                svg_code = convertRasterToSvg(base64, width, height);
+            } else {
+                svg_code = await file.text();
+            }
+            
             return {
                 file,
                 name,
@@ -459,9 +469,9 @@ const BulkRoadSignUploader: React.FC<{
                 onDrop={handleDrop}
                 className={`relative p-6 border-2 border-dashed rounded-lg text-center transition-colors ${isDragOver ? 'border-teal-500 bg-teal-50 dark:bg-teal-500/10' : 'border-gray-300 dark:border-slate-600'}`}
             >
-                <input type="file" multiple onChange={(e) => handleFiles(e.target.files)} className="absolute inset-0 w-full h-full opacity-0 cursor-pointer" accept="image/svg+xml" />
-                <p className="text-gray-500 dark:text-gray-400">Drag & drop SVG files here, or click to select.</p>
-                <p className="text-xs text-gray-400 dark:text-gray-500 mt-1">Names are generated from filenames.</p>
+                <input type="file" multiple onChange={(e) => handleFiles(e.target.files)} className="absolute inset-0 w-full h-full opacity-0 cursor-pointer" accept=".svg,.png,.jpg,.jpeg" />
+                <p className="text-gray-500 dark:text-gray-400">Drag & drop SVG, PNG, or JPG files here, or click to select.</p>
+                <p className="text-xs text-gray-400 dark:text-gray-500 mt-1">Names are generated from filenames. JPG/PNG backgrounds are auto-removed.</p>
             </div>
             {stagedSigns.length > 0 && (
                 <div className="mt-4 space-y-3">
@@ -1619,12 +1629,15 @@ const AppearanceManager: React.FC<{
 
     const handleUpload = async (file: File, key: string) => {
         try {
-            const mime_type = file.type;
+            let mime_type = file.type;
             let asset_value: string;
-            if (mime_type === 'image/svg+xml') {
-                asset_value = await file.text();
+            
+            if (isRasterImage(file)) {
+                const { base64 } = await removeImageBackground(file);
+                asset_value = base64;
+                mime_type = 'image/png'; // Background removal converts to PNG
             } else {
-                asset_value = await toBase64(file);
+                asset_value = await file.text();
             }
             
             const { error } = await supabase!.from('app_assets').upsert({ asset_key: key, asset_value, mime_type });
@@ -1642,13 +1655,17 @@ const AppearanceManager: React.FC<{
             const uploads = stagedFiles.map(async stagedFile => {
                 const key = stagedFile.assignedSlot === 'new_asset' ? stagedFile.key : stagedFile.assignedSlot;
                 const file = stagedFile.file;
-                const mime_type = file.type;
+                let mime_type = file.type;
                 let asset_value: string;
-                if (mime_type === 'image/svg+xml') {
-                    asset_value = await file.text();
+                
+                if (isRasterImage(file)) {
+                    const { base64 } = await removeImageBackground(file);
+                    asset_value = base64;
+                    mime_type = 'image/png';
                 } else {
-                    asset_value = await toBase64(file);
+                    asset_value = await file.text();
                 }
+
                 return { asset_key: key, asset_value, mime_type };
             });
             const upsertData = await Promise.all(uploads);
@@ -1811,13 +1828,14 @@ const AdminPage: React.FC<AdminPageProps> = ({ navigateTo, appAssets, onAssetsUp
                 <main className="flex-1 p-6 bg-gray-50 dark:bg-slate-900/50">
                     {activeSection === 'content' && (
                         <div className="mb-6 flex items-center gap-2 border-b border-gray-200 dark:border-slate-700 overflow-x-auto">
-                            {Object.entries(contentTabs).map(([key, { name }]) => (
+                            {/* FIX: Use Object.keys with a type assertion to prevent type inference issues. */}
+                            {(Object.keys(contentTabs) as ContentTab[]).map((key) => (
                                 <button
                                     key={key}
-                                    onClick={() => setActiveContentTab(key as ContentTab)}
+                                    onClick={() => setActiveContentTab(key)}
                                     className={`px-4 py-2 font-semibold border-b-2 transition-colors whitespace-nowrap ${activeContentTab === key ? 'border-teal-500 text-teal-600 dark:text-teal-400' : 'border-transparent text-gray-500 dark:text-gray-400 hover:border-gray-300 dark:hover:border-slate-600 hover:text-gray-800 dark:hover:text-gray-200'}`}
                                 >
-                                    {name}
+                                    {contentTabs[key].name}
                                 </button>
                             ))}
                         </div>

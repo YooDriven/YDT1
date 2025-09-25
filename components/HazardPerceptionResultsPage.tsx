@@ -1,13 +1,7 @@
 import React from 'react';
 import { Page } from '../types';
 import { HAZARD_PERCEPTION_PASS_MARK } from '../constants';
-
-interface HazardPerceptionResultsPageProps {
-  navigateTo: (page: Page) => void;
-  scores: number[];
-  totalScore: number;
-  maxScore: number;
-}
+import { useAppContext } from '../contexts/AppContext';
 
 const Button: React.FC<{ children: React.ReactNode; onClick: () => void; className?: string }> = ({ children, onClick, className = '' }) => (
     <button
@@ -18,7 +12,9 @@ const Button: React.FC<{ children: React.ReactNode; onClick: () => void; classNa
     </button>
 );
 
-const HazardPerceptionResultsPage: React.FC<HazardPerceptionResultsPageProps> = ({ navigateTo, scores, totalScore, maxScore }) => {
+const HazardPerceptionResultsPage: React.FC = () => {
+  const { navigateTo, hazardPerceptionResult } = useAppContext();
+  const { scores, totalScore, maxScore } = hazardPerceptionResult;
   const passed = totalScore >= HAZARD_PERCEPTION_PASS_MARK;
 
   return (

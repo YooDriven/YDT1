@@ -1,17 +1,15 @@
 import React, { useState, useMemo } from 'react';
-import { Page, Question, CaseStudy } from '../types';
+import { Page, Question } from '../types';
 import { ChevronLeftIcon } from './icons';
 import { useQuestions } from '../contexts/QuestionsContext';
-
-interface CaseStudyPageProps {
-  navigateTo: (page: Page) => void;
-  onTestComplete: (score: number, questions: Question[], userAnswers: (number | null)[]) => void;
-  caseStudy: CaseStudy;
-}
+import { useAppContext } from '../contexts/AppContext';
 
 type ViewState = 'scenario' | 'questions';
 
-const CaseStudyPage: React.FC<CaseStudyPageProps> = ({ navigateTo, onTestComplete, caseStudy }) => {
+const CaseStudyPage: React.FC = () => {
+    const { navigateTo, handleTestComplete, selectedCaseStudy } = useAppContext();
+    const caseStudy = selectedCaseStudy!;
+
     const { questions: allQuestions, loading } = useQuestions();
     const [viewState, setViewState] = useState<ViewState>('scenario');
     const [userAnswers, setUserAnswers] = useState<(number | null)[]>([]);
@@ -38,7 +36,7 @@ const CaseStudyPage: React.FC<CaseStudyPageProps> = ({ navigateTo, onTestComplet
                 score++;
             }
         });
-        onTestComplete(score, studyQuestions, userAnswers);
+        handleTestComplete(score, studyQuestions, userAnswers);
     };
 
     if (loading) {

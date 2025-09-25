@@ -1,24 +1,19 @@
 import React from 'react';
 import { Page } from '../types';
 import { Button } from './ui';
+import { useAppContext } from '../contexts/AppContext';
 
-interface BattleResultsPageProps {
-  navigateTo: (page: Page) => void;
-  onRematch: () => void;
-  playerScore: number;
-  opponentScore: number;
-  total: number;
-  opponentName: string;
-}
+const BattleResultsPage: React.FC = () => {
+  const { navigateTo, onRematch, battleResult } = useAppContext();
+  const { playerScore, opponentScore, total, opponentName } = battleResult;
 
-const BattleResultsPage: React.FC<BattleResultsPageProps> = ({ navigateTo, onRematch, playerScore, opponentScore, total, opponentName }) => {
-    const getResult = () => {
-        if (playerScore > opponentScore) return { text: "You Win!", color: "text-teal-500 dark:text-teal-400", icon: "badge_trophy" };
-        if (playerScore < opponentScore) return { text: "You Lose", color: "text-red-500", icon: "icon_swords" };
-        return { text: "It's a Draw!", color: "text-gray-600 dark:text-gray-300", icon: "icon_handshake" };
-    };
+  const getResult = () => {
+      if (playerScore > opponentScore) return { text: "You Win!", color: "text-teal-500 dark:text-teal-400", icon: "badge_trophy" };
+      if (playerScore < opponentScore) return { text: "You Lose", color: "text-red-500", icon: "icon_swords" };
+      return { text: "It's a Draw!", color: "text-gray-600 dark:text-gray-300", icon: "icon_handshake" };
+  };
 
-    const result = getResult();
+  const result = getResult();
 
   return (
     <div className="p-4 sm:p-6 lg:p-8 flex items-center justify-center min-h-[calc(100vh-120px)]">

@@ -1,4 +1,4 @@
-import React, { useEffect, forwardRef, InputHTMLAttributes, TextareaHTMLAttributes, SelectHTMLAttributes, ButtonHTMLAttributes } from 'react';
+import React, { useEffect, forwardRef, InputHTMLAttributes, TextareaHTMLAttributes, SelectHTMLAttributes, ButtonHTMLAttributes, useRef } from 'react';
 
 export const Toast: React.FC<{ message: string; type: 'success' | 'error'; onDismiss: () => void; }> = ({ message, type, onDismiss }) => {
     useEffect(() => {
@@ -6,20 +6,82 @@ export const Toast: React.FC<{ message: string; type: 'success' | 'error'; onDis
         return () => clearTimeout(timer);
     }, [onDismiss]);
     const bgColor = type === 'success' ? 'bg-teal-500' : 'bg-red-500';
-    return <div className={`fixed bottom-5 right-5 ${bgColor} text-white px-6 py-3 rounded-lg shadow-lg z-[100] animate-fadeInUp`}>{message}</div>;
+    return (
+        <div 
+            role="alert"
+            aria-live="assertive"
+            className={`fixed bottom-5 right-5 ${bgColor} text-white px-6 py-3 rounded-lg shadow-lg z-[100] animate-fadeInUp`}
+        >
+            {message}
+        </div>
+    );
 };
 
-export const Modal: React.FC<{ title: string; children: React.ReactNode; onClose: () => void; size?: 'md' | 'lg' | 'xl' | '2xl' | '3xl' }> = ({ title, children, onClose, size = 'xl' }) => (
-    <div className="fixed inset-0 bg-gray-900/30 dark:bg-slate-900/50 backdrop-blur-sm flex items-center justify-center z-50 p-4 animate-fadeInUp" onClick={onClose}>
-        <div className={`bg-white dark:bg-slate-800 rounded-xl shadow-2xl w-full max-w-${size} max-h-[90vh] flex flex-col`} style={{ animation: 'scaleIn 0.3s ease-out forwards' }} onClick={(e) => e.stopPropagation()}>
-            <header className="p-4 border-b border-gray-200 dark:border-slate-700 flex justify-between items-center flex-shrink-0">
-                <h2 className="text-lg font-bold text-gray-900 dark:text-white">{title}</h2>
-                <button onClick={onClose} className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 text-2xl">&times;</button>
-            </header>
-            <div className="p-6 overflow-y-auto">{children}</div>
+export const Modal: React.FC<{ title: string; children: React.ReactNode; onClose: () => void; size?: 'md' | 'lg' | 'xl' | '2xl' | '3xl' }> = ({ title, children, onClose, size = 'xl' }) => {
+    const modalRef = useRef<HTMLDivElement>(null);
+    const previouslyFocusedElement = useRef<HTMLElement | null>(null);
+
+    useEffect(() => {
+        previouslyFocusedElement.current = document.activeElement as HTMLElement;
+
+        const handleKeyDown = (event: KeyboardEvent) => {
+            if (event.key === 'Escape') {
+                onClose();
+            }
+            if (event.key === 'Tab' && modalRef.current) {
+                const focusableElements = modalRef.current.querySelectorAll<HTMLElement>(
+                    'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'
+                );
+                const firstElement = focusableElements[0];
+                const lastElement = focusableElements[focusableElements.length - 1];
+
+                if (event.shiftKey) {
+                    if (document.activeElement === firstElement) {
+                        lastElement.focus();
+                        event.preventDefault();
+                    }
+                } else {
+                    if (document.activeElement === lastElement) {
+                        firstElement.focus();
+                        event.preventDefault();
+                    }
+                }
+            }
+        };
+
+        document.addEventListener('keydown', handleKeyDown);
+        
+        // Focus the first focusable element in the modal
+        const firstFocusable = modalRef.current?.querySelector<HTMLElement>('button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])');
+        firstFocusable?.focus();
+
+        return () => {
+            document.removeEventListener('keydown', handleKeyDown);
+            previouslyFocusedElement.current?.focus();
+        };
+    }, [onClose]);
+
+    return (
+        <div className="fixed inset-0 bg-gray-900/30 dark:bg-slate-900/50 backdrop-blur-sm flex items-center justify-center z-50 p-4 animate-fadeInUp" onClick={onClose}>
+            <div 
+                ref={modalRef}
+                className={`bg-white dark:bg-slate-800 rounded-xl shadow-2xl w-full max-w-${size} max-h-[90vh] flex flex-col`} 
+                style={{ animation: 'scaleIn 0.3s ease-out forwards' }} 
+                onClick={(e) => e.stopPropagation()}
+                role="dialog"
+                aria-modal="true"
+                aria-labelledby="modal-title"
+            >
+                <header className="p-4 border-b border-gray-200 dark:border-slate-700 flex justify-between items-center flex-shrink-0">
+                    <h2 id="modal-title" className="text-lg font-bold text-gray-900 dark:text-white">{title}</h2>
+                    <button onClick={onClose} className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 text-2xl" aria-label="Close modal">&times;</button>
+                </header>
+                <div className="p-6 overflow-y-auto">{children}</div>
+            </div>
         </div>
-    </div>
-);
+    );
+};
+
 
 export const FormRow: React.FC<{ children: React.ReactNode; className?: string }> = ({ children, className }) => <div className={["mb-4", className].filter(Boolean).join(" ")}>{children}</div>;
 export const Label: React.FC<{ children: React.ReactNode; htmlFor?: string; className?: string; }> = ({ children, htmlFor, className }) => <label htmlFor={htmlFor} className={`block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1 ${className}`}>{children}</label>;
@@ -104,3 +166,8 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(({ className, v
     </button>
   );
 });
+
+// Skeleton Loader
+export const Skeleton: React.FC<{ className?: string }> = ({ className }) => {
+    return <div className={`animate-pulse bg-gray-200 dark:bg-slate-700 rounded-md ${className}`} />;
+};

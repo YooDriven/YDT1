@@ -2,17 +2,13 @@ import React, { useMemo } from 'react';
 import { Page } from '../types';
 import { ChevronLeftIcon } from './icons';
 import { useQuestions } from '../contexts/QuestionsContext';
+import { useAppContext } from '../contexts/AppContext';
 
-interface TopicSelectionPageProps {
-    navigateTo: (page: Page) => void;
-    onTopicSelect: (topic: string) => void;
-    mode: 'test' | 'study';
-}
-
-const TopicSelectionPage: React.FC<TopicSelectionPageProps> = ({ navigateTo, onTopicSelect, mode }) => {
+const TopicSelectionPage: React.FC = () => {
+    const { navigateTo, handleTopicSelect, currentMode } = useAppContext();
     const { questions: allQuestions, loading } = useQuestions();
-    const title = mode === 'test' ? 'Topic Tests' : 'Study Mode';
-    const description = mode === 'test' 
+    const title = currentMode === 'test' ? 'Topic Tests' : 'Study Mode';
+    const description = currentMode === 'test' 
         ? 'Choose a topic to start a focused quiz.' 
         : 'Choose a topic to review questions and answers.';
 
@@ -42,7 +38,7 @@ const TopicSelectionPage: React.FC<TopicSelectionPageProps> = ({ navigateTo, onT
             topics.map((topic, index) => (
                 <button
                     key={topic}
-                    onClick={() => onTopicSelect(topic)}
+                    onClick={() => handleTopicSelect(topic)}
                     className="stagger-fade-in p-6 bg-white dark:bg-slate-800 rounded-lg text-left hover:bg-gray-50 dark:hover:bg-slate-700/50 border border-gray-200 dark:border-slate-700 transition-all transform hover:-translate-y-1"
                     style={{ animationDelay: `${index * 50}ms` }}
                 >

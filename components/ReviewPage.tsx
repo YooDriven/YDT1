@@ -1,16 +1,10 @@
 import React from 'react';
-import { Page, Question } from '../types';
+import { Page } from '../types';
 import { ChevronLeftIcon } from './icons';
+import { useAppContext } from '../contexts/AppContext';
 
-interface ReviewPageProps {
-  navigateTo: (page: Page) => void;
-  reviewData: {
-    questions: Question[];
-    userAnswers: (number | null)[];
-  };
-}
-
-const ReviewPage: React.FC<ReviewPageProps> = ({ navigateTo, reviewData }) => {
+const ReviewPage: React.FC = () => {
+  const { navigateTo, reviewData } = useAppContext();
   const { questions, userAnswers } = reviewData;
 
   return (

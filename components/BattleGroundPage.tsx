@@ -1,19 +1,10 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
-import { Page, Question, ChatMessage, Opponent, UserProfile } from '../types';
+import { Page, Question, ChatMessage, Opponent } from '../types';
 import { OPPONENT_CHAT_MESSAGES } from '../constants';
 import { useQuestions } from '../contexts/QuestionsContext';
 import { supabase } from '../lib/supabaseClient';
 import { RealtimeChannel } from 'https://esm.sh/@supabase/supabase-js@2';
-
-interface BattleGroundPageProps {
-  navigateTo: (page: Page) => void;
-  onBattleComplete: (playerScore: number, opponentScore: number, total: number, opponent: Opponent) => void;
-  battleId: string;
-  user: UserProfile;
-  opponent: Opponent;
-}
-
-const opponentNames = ["RoadRunner", "DriftKing", "CaptainClutch", "SpeedyGonzales"];
+import { useAppContext } from '../contexts/AppContext';
 
 const getBotAnswer = (question: Question): number => {
     const isOpponentCorrect = Math.random() > 0.25; // 75% chance to be correct
@@ -54,7 +45,12 @@ const AnimatedScore: React.FC<{ score: number; isAnimating: boolean }> = ({ scor
   );
 };
 
-const BattleGroundPage: React.FC<BattleGroundPageProps> = ({ navigateTo, onBattleComplete, battleId, user, opponent }) => {
+const BattleGroundPage: React.FC = () => {
+    const { onBattleComplete, currentBattleId, userProfile, duelOpponent } = useAppContext();
+    const user = userProfile!;
+    const opponent = duelOpponent!;
+    const battleId = currentBattleId!;
+
     const { questions: allQuestions, loading: questionsLoading } = useQuestions();
     const [questions, setQuestions] = useState<Question[]>([]);
     const [opponentDetails, setOpponentDetails] = useState<Opponent>(opponent);
