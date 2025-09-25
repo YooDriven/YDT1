@@ -373,6 +373,125 @@ const CategoryManager: React.FC<{ showToast: (msg: string, type?: 'success' | 'e
 };
 
 // Road Sign Manager Components
+const generateSignName = (filename: string): string => {
+    return filename
+        .split('.')[0] // remove extension
+        .replace(/[-_]/g, ' ') // replace hyphens/underscores with spaces
+        .replace(/\b\w/g, char => char.toUpperCase()); // capitalize each word
+};
+
+type StagedSign = { file: File; name: string; svg_code: string; categoryId: string; error?: string };
+
+const BulkRoadSignUploader: React.FC<{
+    onUploadComplete: () => void;
+    showToast: (msg: string, type?: 'success' | 'error') => void;
+    existingSignNames: string[];
+    categories: RoadSignCategory[];
+}> = ({ onUploadComplete, showToast, existingSignNames, categories }) => {
+    const [stagedSigns, setStagedSigns] = useState<StagedSign[]>([]);
+    const [isUploading, setIsUploading] = useState(false);
+    const [isDragOver, setIsDragOver] = useState(false);
+
+    const handleFiles = async (files: FileList | null) => {
+        if (!files) return;
+        const newFilesPromises = Array.from(files).map(async file => {
+            if (file.type !== 'image/svg+xml') {
+                showToast(`Skipped non-SVG file: ${file.name}`, 'error');
+                return null;
+            }
+            const name = generateSignName(file.name);
+            const svg_code = await file.text();
+            return {
+                file,
+                name,
+                svg_code,
+                categoryId: categories[0]?.id || '',
+                error: existingSignNames.includes(name.toLowerCase()) ? 'Name already exists' : undefined,
+            };
+        });
+        const newFiles = (await Promise.all(newFilesPromises)).filter(Boolean) as StagedSign[];
+        setStagedSigns(prev => [...prev, ...newFiles]);
+    };
+    
+    const handleDrop = (e: React.DragEvent<HTMLDivElement>) => {
+        e.preventDefault();
+        e.stopPropagation();
+        setIsDragOver(false);
+        handleFiles(e.dataTransfer.files);
+    };
+
+    const handleUpdateStagedSign = (index: number, field: keyof StagedSign, value: string) => {
+        setStagedSigns(prev => {
+            const newSigns = [...prev];
+            const signToUpdate = { ...newSigns[index], [field]: value };
+            if (field === 'name') {
+                signToUpdate.error = existingSignNames.includes(value.toLowerCase()) ? 'Name already exists' : undefined;
+            }
+            newSigns[index] = signToUpdate;
+            return newSigns;
+        });
+    };
+
+    const handleUploadAll = async () => {
+        if (stagedSigns.some(s => s.error || !s.categoryId)) {
+            showToast('Please fix errors and assign categories before uploading.', 'error');
+            return;
+        }
+        setIsUploading(true);
+        const signsToInsert = stagedSigns.map(s => ({ name: s.name, svg_code: s.svg_code, description: 'Default description', category: s.categoryId }));
+        const { error } = await supabase!.from('road_signs').insert(signsToInsert);
+        if (error) {
+            showToast(`Bulk upload failed: ${error.message}`, 'error');
+        } else {
+            showToast(`${stagedSigns.length} signs uploaded successfully.`, 'success');
+            onUploadComplete();
+            setStagedSigns([]);
+        }
+        setIsUploading(false);
+    };
+
+    return (
+        <section className="mb-8 p-4 bg-gray-50 dark:bg-slate-800/50 rounded-lg border border-gray-200 dark:border-slate-700">
+            <h3 className="text-xl font-bold mb-2 text-gray-900 dark:text-white">Bulk Sign Uploader</h3>
+            <div
+                onDragOver={(e) => { e.preventDefault(); e.stopPropagation(); setIsDragOver(true); }}
+                onDragLeave={(e) => { e.preventDefault(); e.stopPropagation(); setIsDragOver(false); }}
+                onDrop={handleDrop}
+                className={`relative p-6 border-2 border-dashed rounded-lg text-center transition-colors ${isDragOver ? 'border-teal-500 bg-teal-50 dark:bg-teal-500/10' : 'border-gray-300 dark:border-slate-600'}`}
+            >
+                <input type="file" multiple onChange={(e) => handleFiles(e.target.files)} className="absolute inset-0 w-full h-full opacity-0 cursor-pointer" accept="image/svg+xml" />
+                <p className="text-gray-500 dark:text-gray-400">Drag & drop SVG files here, or click to select.</p>
+                <p className="text-xs text-gray-400 dark:text-gray-500 mt-1">Names are generated from filenames.</p>
+            </div>
+            {stagedSigns.length > 0 && (
+                <div className="mt-4 space-y-3">
+                    {stagedSigns.map((stagedSign, index) => (
+                        <div key={index} className="flex items-center gap-3 p-2 bg-white dark:bg-slate-800 rounded-lg border border-gray-200 dark:border-slate-700">
+                           <div className="flex-shrink-0 w-10 h-10 p-1"><DynamicAsset svgString={stagedSign.svg_code} /></div>
+                            <div className="flex-1">
+                                <Input value={stagedSign.name} onChange={e => handleUpdateStagedSign(index, 'name', e.target.value)} error={stagedSign.error}/>
+                            </div>
+                            <div className="w-1/3">
+                                <Select value={stagedSign.categoryId} onChange={e => handleUpdateStagedSign(index, 'categoryId', e.target.value)}>
+                                    <option value="" disabled>Select Category...</option>
+                                    {categories.map(cat => <option key={cat.id} value={cat.id}>{cat.name}</option>)}
+                                </Select>
+                            </div>
+                            <Button variant="danger" className="!p-2" onClick={() => setStagedSigns(prev => prev.filter((_, i) => i !== index))}>&times;</Button>
+                        </div>
+                    ))}
+                    <div className="flex justify-end gap-3 pt-2">
+                        <Button variant="secondary" onClick={() => setStagedSigns([])} disabled={isUploading}>Clear All</Button>
+                        <Button onClick={handleUploadAll} disabled={isUploading || stagedSigns.some(f => !!f.error || !f.categoryId)}>
+                            {isUploading ? 'Uploading...' : `Upload All (${stagedSigns.length})`}
+                        </Button>
+                    </div>
+                </div>
+            )}
+        </section>
+    );
+};
+
 const DEFAULT_SIGN: Omit<RoadSign, 'id'> = {
     name: '',
     description: '',
@@ -452,6 +571,7 @@ const RoadSignManager: React.FC<{ showToast: (msg: string, type?: 'success' | 'e
     const debouncedSearchTerm = useDebounce(searchTerm, 300);
     
     const categoryMap = useMemo(() => new Map(categories.map(c => [c.id, c.name])), [categories]);
+    const existingSignNames = useMemo(() => signs.map(s => s.name.toLowerCase()), [signs]);
 
     const fetchSignsAndCategories = useCallback(async () => {
         setLoading(true);
@@ -526,7 +646,13 @@ const RoadSignManager: React.FC<{ showToast: (msg: string, type?: 'success' | 'e
                  <h2 className="text-2xl font-bold text-gray-900 dark:text-white">Manage Road Signs</h2>
                 <Button onClick={handleAddNew}>Add New Sign</Button>
             </div>
-            <div className="mb-4">
+             <BulkRoadSignUploader 
+                onUploadComplete={fetchSignsAndCategories}
+                showToast={showToast}
+                existingSignNames={existingSignNames}
+                categories={categories}
+            />
+            <div className="mb-4 mt-8">
                 <Input type="search" placeholder="Search signs by name..." value={searchTerm} onChange={e => setSearchTerm(e.target.value)} />
             </div>
             <div className="bg-white dark:bg-slate-800 rounded-lg border border-gray-200 dark:border-slate-700 overflow-hidden">
@@ -1669,15 +1795,15 @@ const AdminPage: React.FC<AdminPageProps> = ({ navigateTo, appAssets, onAssetsUp
             <div className="flex">
                 <aside className="w-64 bg-white dark:bg-slate-800/50 p-4 border-r border-gray-200 dark:border-slate-700">
                     <nav className="space-y-2">
-                         {/* FIX: Cast result of Object.entries to fix 'map does not exist on unknown' error. */}
-                         {(Object.entries(sidebarItems) as [string, { name: string; icon: string; }][]).map(([key, {name, icon}]) => (
+                         {/* FIX: Use Object.keys to prevent type inference issues with Object.entries. */}
+                         {(Object.keys(sidebarItems) as AdminSection[]).map((key) => (
                             <button
                                 key={key}
-                                onClick={() => setActiveSection(key as AdminSection)}
+                                onClick={() => setActiveSection(key)}
                                 className={`w-full flex items-center p-3 rounded-lg text-left transition-colors ${activeSection === key ? 'bg-teal-500/10 text-teal-600 dark:text-teal-400' : 'text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-slate-700'}`}
                             >
-                                <DynamicAsset asset={appAssets[icon]} className="h-5 w-5 mr-3" />
-                                <span className="font-semibold">{name}</span>
+                                <DynamicAsset asset={appAssets[sidebarItems[key].icon]} className="h-5 w-5 mr-3" />
+                                <span className="font-semibold">{sidebarItems[key].name}</span>
                             </button>
                         ))}
                     </nav>
