@@ -10,17 +10,14 @@ interface State {
 }
 
 class ErrorBoundary extends Component<Props, State> {
-  // FIX: Removed `public` keyword which can sometimes cause issues with certain TS/linter configurations.
   state: State = {
     hasError: false,
   };
 
-  // FIX: Removed `public` keyword which can sometimes cause issues with certain TS/linter configurations.
   static getDerivedStateFromError(error: Error): State {
     return { hasError: true, error };
   }
 
-  // FIX: Removed `public` keyword which can sometimes cause issues with certain TS/linter configurations.
   componentDidCatch(error: Error, errorInfo: React.ErrorInfo) {
     console.error("Uncaught error:", error, errorInfo);
   }
@@ -52,7 +49,8 @@ class ErrorBoundary extends Component<Props, State> {
       );
     }
 
-    return this.props.children;
+    // FIX: Wrapping children in a fragment to potentially address an obscure typing issue with 'this.props'.
+    return <>{this.props.children}</>;
   }
 }
 

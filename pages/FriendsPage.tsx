@@ -1,13 +1,20 @@
 import React, { useState, useMemo } from 'react';
-import { Page, Friend } from '../types';
+import { Page } from '../types';
 import { ChevronLeftIcon } from '../components/icons';
-import { useAppContext } from '../contexts/AppContext';
 import { supabase } from '../lib/supabaseClient';
 import { useDebounce } from '../hooks/useDebounce';
 import { Button, Input, Skeleton } from '../components/ui';
+import { useApp } from '../contexts/AppContext';
+import { useAuth } from '../contexts/AuthContext';
+import { useSocial } from '../contexts/SocialContext';
+import { useGameplay } from '../contexts/GameplayContext';
 
 const FriendsPage: React.FC = () => {
-    const { navigateTo, friends, acceptFriendRequest, declineFriendRequest, removeFriend, sendFriendRequest, handleDuel, userProfile } = useAppContext();
+    const { navigateTo } = useApp();
+    const { userProfile } = useAuth();
+    const { friends, acceptFriendRequest, declineFriendRequest, removeFriend, sendFriendRequest, sendChallenge } = useSocial();
+    const { handleDuel } = useGameplay();
+    
     const [activeTab, setActiveTab] = useState<'friends' | 'pending' | 'add'>('friends');
     const [searchTerm, setSearchTerm] = useState('');
     const debouncedSearchTerm = useDebounce(searchTerm, 300);
@@ -42,7 +49,7 @@ const FriendsPage: React.FC = () => {
                         <p className="text-sm text-gray-500 dark:text-gray-400">Avg. Score: {friend.avgScore}%</p>
                     </div>
                     <div className="flex gap-2">
-                        <Button variant="primary" onClick={() => handleDuel(friend)}>Challenge</Button>
+                        <Button variant="primary" onClick={() => sendChallenge(friend.id)}>Challenge</Button>
                         <Button variant="danger" onClick={() => removeFriend(friend.id)}>Remove</Button>
                     </div>
                 </div>

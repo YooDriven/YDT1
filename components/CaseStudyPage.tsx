@@ -1,13 +1,15 @@
 import React, { useState, useMemo } from 'react';
-import { Page, Question } from '../types';
+import { Question } from '../types';
 import { ChevronLeftIcon } from './icons';
 import { useQuestions } from '../contexts/QuestionsContext';
-import { useAppContext } from '../contexts/AppContext';
+import { useApp } from '../contexts/AppContext';
+import { useGameplay } from '../contexts/GameplayContext';
 
 type ViewState = 'scenario' | 'questions';
 
 const CaseStudyPage: React.FC = () => {
-    const { navigateTo, handleTestComplete, selectedCaseStudy } = useAppContext();
+    const { navigateTo } = useApp();
+    const { handleTestComplete, selectedCaseStudy } = useGameplay();
     const caseStudy = selectedCaseStudy!;
 
     const { questions: allQuestions, loading } = useQuestions();

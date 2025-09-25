@@ -3,12 +3,12 @@ import { Page, Question } from '../types';
 import { ChevronLeftIcon, FlagIcon } from './icons';
 import { useQuestions } from '../contexts/QuestionsContext';
 import { getDailyChallengeQuestions } from '../utils';
-import { useAppContext } from '../contexts/AppContext';
+import { useApp } from '../contexts/AppContext';
 import { useAuth } from '../contexts/AuthContext';
 import { useGameplay } from '../contexts/GameplayContext';
 
 const TestPage: React.FC = () => {
-    const { navigateTo } = useAppContext();
+    const { navigateTo } = useApp();
     const { userProfile } = useAuth();
     const {
         handleTestComplete,

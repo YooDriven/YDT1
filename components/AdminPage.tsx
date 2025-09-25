@@ -6,6 +6,7 @@ import DynamicAsset from './DynamicAsset';
 import { Toast, Modal, FormRow, Label, Input, Textarea, Select, Button } from './ui';
 import { useDebounce } from '../hooks/useDebounce';
 import { isRasterImage, removeImageBackground, convertRasterToSvg } from '../utils';
+import AdminDashboard from './AdminDashboard';
 
 
 // Question Form Component
@@ -280,7 +281,6 @@ const CategoryManager: React.FC<{ showToast: (msg: string, type?: 'success' | 'e
             const { data, error } = await supabase!.from('questions').select('category');
             if (error) throw error;
 
-            // FIX: Explicitly type the accumulator and item parameters in `reduce` to fix type inference issues.
             const categoryCounts = (data || []).reduce((acc: Record<string, number>, q: { category: string | null }) => {
                 const cat = q.category || 'Uncategorized';
                 acc[cat] = (acc[cat] || 0) + 1;
@@ -1423,6 +1423,7 @@ interface CoreAssetInfo {
 
 const CORE_ASSETS: CoreAssetInfo[] = [
     { key: 'logo_yoodrive', name: 'Main Application Logo', description: 'Used in the header and on the login page.', category: 'Logos'},
+    { key: 'admin_icon_dashboard', name: 'Admin: Dashboard Icon', description: 'Icon for the Dashboard section in the admin sidebar.', category: 'UI Icons'},
     { key: 'admin_icon_content', name: 'Admin: Content Icon', description: 'Icon for the Content Management section in the admin sidebar.', category: 'UI Icons'},
     { key: 'admin_icon_appearance', name: 'Admin: Appearance Icon', description: 'Icon for the Appearance section in the admin sidebar.', category: 'UI Icons'},
     { key: 'icon_calendar', name: 'Calendar Icon', description: 'Used for the Daily Challenge card and profile stats.', category: 'UI Icons'},
@@ -1680,14 +1681,10 @@ const AppearanceManager: React.FC<{
     };
     
     const categorizedCoreAssets = useMemo(() => {
-        // FIX: Explicitly type the accumulator to fix type inference issue.
         return CORE_ASSETS.reduce((acc: Record<string, CoreAssetInfo[]>, asset) => {
-            if (!acc[asset.category]) {
-                acc[asset.category] = [];
-            }
-            acc[asset.category].push(asset);
+            (acc[asset.category] = acc[asset.category] || []).push(asset);
             return acc;
-        }, {} as Record<string, CoreAssetInfo[]>);
+        }, {});
     }, []);
 
     return (
@@ -1710,12 +1707,12 @@ const AppearanceManager: React.FC<{
             <section className="mt-8">
                  <h3 className="text-xl font-bold mb-4 text-gray-900 dark:text-white">Core Application Assets</h3>
                  <div className="space-y-6">
-                    {Object.entries(categorizedCoreAssets).map(([category, assets]) => (
+                    {Object.keys(categorizedCoreAssets).map((category: string) => (
                         <div key={category}>
                             <h4 className="font-semibold text-lg text-gray-600 dark:text-gray-300 mb-3">{category}</h4>
                             <div className="space-y-3">
-                                {assets.map(assetInfo => (
-                                    <CoreAssetEditor
+                                {categorizedCoreAssets[category].map(assetInfo => (
+                                    <CoreAssetEditor 
                                         key={assetInfo.key}
                                         assetInfo={assetInfo}
                                         asset={appAssets[assetInfo.key]}
@@ -1732,112 +1729,88 @@ const AppearanceManager: React.FC<{
     );
 };
 
-
-// Main Component
+// Main Admin Page Component
 interface AdminPageProps {
-    navigateTo: (page: Page) => void;
-    appAssets: AppAssetRecord;
-    onAssetsUpdate: () => void;
+  navigateTo: (page: Page) => void;
+  appAssets: AppAssetRecord;
+  onAssetsUpdate: () => void;
 }
 
 const AdminPage: React.FC<AdminPageProps> = ({ navigateTo, appAssets, onAssetsUpdate }) => {
     const [activeSection, setActiveSection] = useState<AdminSection>('content');
-    const [activeContentTab, setActiveContentTab] = useState<ContentTab>('questions');
-    const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
+    const [activeTab, setActiveTab] = useState<ContentTab>('dashboard');
+    const [toast, setToast] = useState<{ message: string, type: 'success' | 'error' } | null>(null);
 
     const showToast = (message: string, type: 'success' | 'error' = 'success') => {
         setToast({ message, type });
     };
 
-    // FIX: Explicitly type `sidebarItems` to fix type inference issue with `Object.entries`.
-    const sidebarItems: Record<AdminSection, { name: string, icon: string }> = {
-        content: { name: 'Content Management', icon: 'admin_icon_content' },
-        appearance: { name: 'Appearance', icon: 'admin_icon_appearance' }
+    const sidebarItems = {
+        content: {
+            name: 'Content Management',
+            icon: 'admin_icon_content',
+        },
+        appearance: {
+            name: 'Appearance',
+            icon: 'admin_icon_appearance',
+        },
     };
     
-    const contentTabs: Record<ContentTab, { name: string }> = {
-        questions: { name: 'Questions' },
-        categories: { name: 'Question Categories' },
-        road_signs: { name: 'Road Signs' },
-        road_sign_categories: { name: 'Sign Categories' },
-        hazard: { name: 'Hazard Perception' },
-        highway_code: { name: 'Highway Code' },
-        case_studies: { name: 'Case Studies' }
-    };
-
+    const contentTabs: { id: ContentTab, name: string }[] = [
+        { id: 'dashboard', name: 'Dashboard' },
+        { id: 'questions', name: 'Questions' },
+        { id: 'categories', name: 'Question Categories' },
+        { id: 'road_signs', name: 'Road Signs' },
+        { id: 'road_sign_categories', name: 'Sign Categories' },
+        { id: 'hazard', name: 'Hazard Perception' },
+        { id: 'highway_code', name: 'Highway Code' },
+        { id: 'case_studies', name: 'Case Studies' },
+    ];
 
     const renderContent = () => {
-        if (activeSection === 'content') {
-            switch (activeContentTab) {
-                case 'questions':
-                    return <QuestionManager showToast={showToast} />;
-                case 'categories':
-                    return <CategoryManager showToast={showToast} />;
-                case 'road_signs':
-                    return <RoadSignManager showToast={showToast} />;
-                case 'road_sign_categories':
-                    return <RoadSignCategoryManager showToast={showToast} />;
-                case 'hazard':
-                    return <HazardClipManager showToast={showToast} />;
-                case 'highway_code':
-                    return <HighwayCodeManager showToast={showToast} />;
-                case 'case_studies':
-                    return <CaseStudyManager showToast={showToast} />;
-                default:
-                    return <div>
-                        <h2 className="text-2xl font-bold mb-4 text-gray-900 dark:text-white">{contentTabs[activeContentTab as ContentTab].name}</h2>
-                        <div className="p-8 text-center bg-gray-100 dark:bg-slate-800 rounded-lg border border-gray-200 dark:border-slate-700">
-                            <p className="text-gray-500 dark:text-gray-400">Management for this section is coming soon.</p>
-                        </div>
-                    </div>;
-            }
-        }
         if (activeSection === 'appearance') {
-             return <AppearanceManager onAssetsUpdate={onAssetsUpdate} showToast={showToast} appAssets={appAssets} />;
+            return <AppearanceManager onAssetsUpdate={onAssetsUpdate} showToast={showToast} appAssets={appAssets} />;
         }
-        return null;
+        switch (activeTab) {
+            case 'dashboard': return <AdminDashboard showToast={showToast} />;
+            case 'questions': return <QuestionManager showToast={showToast} />;
+            case 'categories': return <CategoryManager showToast={showToast} />;
+            case 'road_signs': return <RoadSignManager showToast={showToast} />;
+            case 'road_sign_categories': return <RoadSignCategoryManager showToast={showToast} />;
+            case 'hazard': return <HazardClipManager showToast={showToast} />;
+            case 'case_studies': return <CaseStudyManager showToast={showToast} />;
+            case 'highway_code': return <HighwayCodeManager showToast={showToast} />;
+            default: return <div>Select a tab</div>;
+        }
     };
 
     return (
-        <div className="min-h-[calc(100vh-81px)]">
+        <div className="p-4 sm:p-6 lg:p-8 max-w-screen-2xl mx-auto">
             {toast && <Toast message={toast.message} type={toast.type} onDismiss={() => setToast(null)} />}
-             <header className="p-4 sm:p-6 lg:p-8 max-w-full mx-auto border-b border-gray-200 dark:border-slate-700">
-                <div className="flex items-center justify-between">
-                  <button onClick={() => navigateTo(Page.Dashboard)} className="flex items-center space-x-2 text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white transition-colors duration-200 group">
-                      <ChevronLeftIcon className="h-6 w-6 transform group-hover:-translate-x-1 transition-transform" />
-                      <span className="text-base">Back to Dashboard</span>
-                  </button>
-                  <h1 className="text-3xl font-bold text-gray-900 dark:text-white tracking-tight">Admin Dashboard</h1>
-                </div>
-            </header>
-            <div className="flex">
-                <aside className="w-64 bg-white dark:bg-slate-800/50 p-4 border-r border-gray-200 dark:border-slate-700">
+            <div className="flex flex-col md:flex-row gap-8">
+                <aside className="w-full md:w-64">
+                    <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-4">Admin Sections</h2>
                     <nav className="space-y-2">
-                         {/* FIX: Use Object.keys to prevent type inference issues with Object.entries. */}
-                         {(Object.keys(sidebarItems) as AdminSection[]).map((key) => (
-                            <button
-                                key={key}
-                                onClick={() => setActiveSection(key)}
-                                className={`w-full flex items-center p-3 rounded-lg text-left transition-colors ${activeSection === key ? 'bg-teal-500/10 text-teal-600 dark:text-teal-400' : 'text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-slate-700'}`}
-                            >
-                                <DynamicAsset asset={appAssets[sidebarItems[key].icon]} className="h-5 w-5 mr-3" />
-                                <span className="font-semibold">{sidebarItems[key].name}</span>
-                            </button>
-                        ))}
-                    </nav>
-                </aside>
-                <main className="flex-1 p-6 bg-gray-50 dark:bg-slate-900/50">
-                    {activeSection === 'content' && (
-                        <div className="mb-6 flex items-center gap-2 border-b border-gray-200 dark:border-slate-700 overflow-x-auto">
-                            {/* FIX: Use Object.keys with a type assertion to prevent type inference issues. */}
-                            {(Object.keys(contentTabs) as ContentTab[]).map((key) => (
+                        {Object.keys(sidebarItems).map((key) => {
+                             const item = sidebarItems[key as keyof typeof sidebarItems];
+                             return (
                                 <button
                                     key={key}
-                                    onClick={() => setActiveContentTab(key)}
-                                    className={`px-4 py-2 font-semibold border-b-2 transition-colors whitespace-nowrap ${activeContentTab === key ? 'border-teal-500 text-teal-600 dark:text-teal-400' : 'border-transparent text-gray-500 dark:text-gray-400 hover:border-gray-300 dark:hover:border-slate-600 hover:text-gray-800 dark:hover:text-gray-200'}`}
+                                    onClick={() => setActiveSection(key as AdminSection)}
+                                    className={`w-full flex items-center p-3 rounded-lg transition-colors ${activeSection === key ? 'bg-teal-100 dark:bg-teal-500/20 text-teal-700 dark:text-teal-400' : 'text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-slate-700'}`}
                                 >
-                                    {contentTabs[key].name}
+                                    <DynamicAsset asset={appAssets[item.icon]} className="h-5 w-5 mr-3" />
+                                    <span className="font-semibold">{item.name}</span>
                                 </button>
+                             );
+                        })}
+                    </nav>
+                </aside>
+                <main className="flex-1">
+                    {activeSection === 'content' && (
+                        <div className="mb-6 flex items-center gap-2 border-b border-gray-200 dark:border-slate-700 overflow-x-auto">
+                            {contentTabs.map(tab => (
+                                 <button key={tab.id} onClick={() => setActiveTab(tab.id)} className={`px-4 py-2 font-semibold border-b-2 transition-colors whitespace-nowrap ${activeTab === tab.id ? 'border-teal-500 text-teal-600 dark:text-teal-400' : 'border-transparent text-gray-500'}`}>{tab.name}</button>
                             ))}
                         </div>
                     )}

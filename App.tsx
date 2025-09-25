@@ -1,16 +1,16 @@
-import React, { सस्पेंस } from 'react';
+import React, { Suspense } from 'react';
 import { Page } from './types';
 import Header from './components/Header';
 import LoginPage from './components/LoginPage';
-// FIX: Import Breadcrumb type to resolve type error.
+// Use a more robust type import for Breadcrumb
 import Breadcrumbs, { type Breadcrumb } from './components/Breadcrumbs';
 import { initializeSupabase } from './lib/supabaseClient';
 import { QuestionsProvider } from './contexts/QuestionsContext';
-// FIX: Removed unused useAuth and useGameplay imports as their values are now accessed through useAppContext.
-import { AppProvider, useAppContext } from './contexts/AppContext';
-import DynamicAsset from './components/DynamicAsset';
-import { Button, Input, Skeleton } from './components/ui';
+import { AppProvider, useApp } from './contexts/AppContext';
+import { useAuth } from './contexts/AuthContext';
 import ErrorBoundary from './components/ErrorBoundary';
+import OnboardingGuide from './components/OnboardingGuide';
+import { Button, Input } from './components/ui';
 
 // Lazy load page components
 const Dashboard = React.lazy(() => import('./components/Dashboard'));
@@ -154,11 +154,15 @@ const AppError: React.FC<{ message: string; details?: string[] }> = ({ message, 
 );
 
 const MainApp: React.FC = () => {
-    // FIX: Consolidate multiple hook calls into one to resolve import errors and improve performance.
-    const { session, userProfile, currentPage, animationKey, navigateTo, appAssets } = useAppContext();
+    const { session, userProfile, markOnboardingComplete } = useAuth();
+    const { currentPage, animationKey, navigateTo, appAssets, handleAssetsUpdate } = useApp();
 
     if (!session || !userProfile) {
         return <LoginPage appAssets={appAssets} />;
+    }
+
+    if (!userProfile.onboarding_completed) {
+        return <OnboardingGuide onComplete={markOnboardingComplete} />;
     }
 
     const breadcrumbPaths: Record<Page, Breadcrumb[]> = {
@@ -208,7 +212,7 @@ const MainApp: React.FC = () => {
             case Page.CaseStudy: return <CaseStudyPage />;
             case Page.Profile: return <ProfilePage />;
             case Page.Settings: return <SettingsPage />;
-            case Page.Admin: return <AdminPage />;
+            case Page.Admin: return <AdminPage navigateTo={navigateTo} appAssets={appAssets} onAssetsUpdate={handleAssetsUpdate} />;
             case Page.Leaderboard: return <LeaderboardPage />;
             case Page.Friends: return <FriendsPage />;
             case Page.Achievements: return <AchievementsPage />;
@@ -222,12 +226,20 @@ const MainApp: React.FC = () => {
             <Header />
             <Breadcrumbs path={breadcrumbPaths[currentPage]} navigateTo={navigateTo} />
             <div key={animationKey} className="animate-fadeInUp">
-                <React.Suspense fallback={<PageLoader />}>
+                <Suspense fallback={<PageLoader />}>
                     {renderPage()}
-                </React.Suspense>
+                </Suspense>
             </div>
         </div>
     );
+};
+
+const AppInitializer: React.FC<{ children: React.ReactNode; appState: AppState; }> = ({ children, appState }) => {
+    const { loading: authLoading } = useAuth();
+    if (appState !== 'READY' || authLoading) {
+        return <AppLoadingIndicator state={appState} />;
+    }
+    return <>{children}</>;
 };
 
 const App: React.FC = () => {
@@ -247,7 +259,8 @@ const App: React.FC = () => {
     }
   };
 
-  if (appState === 'INIT') {
+  React.useEffect(() => {
+    if (appState === 'INIT') {
       const envUrl = typeof process !== 'undefined' ? process.env.SUPABASE_URL : undefined;
       const envKey = typeof process !== 'undefined' ? process.env.SUPABASE_ANON_KEY : undefined;
       if (envUrl && envKey && initializeSupabase(envUrl, envKey)) {
@@ -261,7 +274,8 @@ const App: React.FC = () => {
               setAppState('AWAITING_CONFIG');
           }
       }
-  }
+    }
+  }, [appState]);
 
   if (appState === 'AWAITING_CONFIG') {
     return <SupabaseConfigPage onConfigured={handleConfigured} />;
@@ -274,22 +288,14 @@ const App: React.FC = () => {
   return (
     <ErrorBoundary>
         <QuestionsProvider>
-            <AppProvider setAppState={setAppState} setErrorMessage={setErrorMessage}>
-                <AppInitializer>
+            <AppProvider>
+                <AppInitializer appState={appState}>
                     <MainApp />
                 </AppInitializer>
             </AppProvider>
         </QuestionsProvider>
     </ErrorBoundary>
   );
-};
-
-const AppInitializer: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-    const { appState } = useAppContext();
-    if (appState !== 'READY') {
-        return <AppLoadingIndicator state={appState} />;
-    }
-    return <>{children}</>;
 };
 
 export default App;

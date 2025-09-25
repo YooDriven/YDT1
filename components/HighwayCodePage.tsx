@@ -2,7 +2,7 @@ import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { Page, HighwayCodeRule } from '../types';
 import { ChevronLeftIcon } from './icons';
 import { supabase } from '../lib/supabaseClient';
-import { useAppContext } from '../contexts/AppContext';
+import { useApp } from '../contexts/AppContext';
 import { Skeleton } from './ui';
 
 const useHighwayCode = () => {
@@ -19,7 +19,6 @@ const useHighwayCode = () => {
                     .select('*')
                     .order('rule_number', { ascending: true });
                 if (error) throw error;
-                // FIX: Ensure that `data` is not null before setting state. If it is null, default to an empty array to prevent crashes on `.map` or `.filter`.
                 setRules(data || []);
             } catch (err: any) {
                 setError(err.message);
@@ -34,7 +33,7 @@ const useHighwayCode = () => {
 };
 
 const HighwayCodePage: React.FC = () => {
-    const { navigateTo } = useAppContext();
+    const { navigateTo } = useApp();
     const { rules, loading, error } = useHighwayCode();
     const [searchTerm, setSearchTerm] = useState('');
     const [activeCategory, setActiveCategory] = useState<string>('');
@@ -54,30 +53,43 @@ const HighwayCodePage: React.FC = () => {
     }, [rules, searchTerm]);
 
     const groupedRules = useMemo(() => {
-        // FIX: Explicitly type the accumulator to prevent type inference issues with `reduce`.
-        return filteredRules.reduce((acc: Record<string, HighwayCodeRule[]>, rule) => {
+        // FIX: Explicitly type the initial value of reduce to ensure correct type inference for groupedRules.
+        return filteredRules.reduce((acc, rule) => {
             (acc[rule.category] = acc[rule.category] || []).push(rule);
             return acc;
-        }, {});
+        }, {} as Record<string, HighwayCodeRule[]>);
     }, [filteredRules]);
 
     const categories = useMemo(() => [...new Set(rules.map(r => r.category))], [rules]);
 
     useEffect(() => {
         if (loading || !mainContentRef.current) return;
+        
         const observer = new IntersectionObserver(
-            (entries) => entries.forEach(entry => entry.isIntersecting && setActiveCategory(entry.target.id)),
+            (entries) => {
+                entries.forEach(entry => {
+                    if (entry.isIntersecting) {
+                        setActiveCategory(entry.target.id);
+                    }
+                });
+            },
             { root: mainContentRef.current, rootMargin: "-20% 0px -80% 0px", threshold: 0 }
         );
-        // FIX: Changed from Object.values to Object.keys to improve type safety and avoid type inference issues.
-        Object.keys(categoryRefs.current).forEach(key => {
-            const el = categoryRefs.current[key];
-            if (el) {
-                observer.observe(el);
-            }
+
+        const currentRefs = categoryRefs.current;
+        // FIX: Add explicit type annotation to `el` to prevent it from being inferred as `unknown`.
+        Object.values(currentRefs).forEach((el: HTMLElement | null) => {
+            if (el) observer.observe(el);
         });
-        return () => observer.disconnect();
+
+        return () => {
+            // FIX: Add explicit type annotation to `el` to prevent it from being inferred as `unknown`.
+            Object.values(currentRefs).forEach((el: HTMLElement | null) => {
+                if (el) observer.unobserve(el);
+            });
+        };
     }, [loading, groupedRules]);
+
 
     const handleCategoryClick = (category: string) => {
       categoryRefs.current[category]?.scrollIntoView({ behavior: 'smooth', block: 'start' });
@@ -94,7 +106,7 @@ const HighwayCodePage: React.FC = () => {
             <section
                 key={category}
                 id={category}
-                ref={el => { categoryRefs.current[category] = el; }}
+                ref={(el: HTMLElement | null) => { categoryRefs.current[category] = el; }}
                 className="mb-12 scroll-mt-24"
             >
                 <h2 className="text-3xl font-bold text-gray-900 dark:text-white mb-6 pb-2 border-b-2 border-teal-500">{category}</h2>
@@ -129,7 +141,6 @@ const HighwayCodePage: React.FC = () => {
                                 <button
                                     key={category}
                                     onClick={() => handleCategoryClick(category)}
-                                    // FIX: This className was truncated, causing a syntax error. It has been completed.
                                     className={`w-full text-left px-3 py-2 rounded-md text-sm font-medium transition-colors ${
                                         activeCategory === category 
                                         ? 'bg-teal-100 dark:bg-teal-500/20 text-teal-700 dark:text-teal-500' 

@@ -3,7 +3,8 @@ import { Page } from '../types';
 import { ChevronLeftIcon } from './icons';
 import { supabase } from '../lib/supabaseClient';
 import { Button, Skeleton } from './ui';
-import { useAppContext } from '../contexts/AppContext';
+import { useApp } from '../contexts/AppContext';
+import { useAuth } from '../contexts/AuthContext';
 
 interface LeaderboardPlayer {
     id: string;
@@ -15,7 +16,8 @@ interface LeaderboardPlayer {
 const PAGE_SIZE = 20;
 
 const LeaderboardPage: React.FC = () => {
-    const { navigateTo, userProfile } = useAppContext();
+    const { navigateTo } = useApp();
+    const { userProfile } = useAuth();
     const currentUser = userProfile!;
 
     const [players, setPlayers] = useState<LeaderboardPlayer[]>([]);

@@ -1,9 +1,9 @@
 import React from 'react';
 import { Page } from '../types';
 import { PASS_PERCENTAGE } from '../constants';
-import { XMarkIcon } from './icons';
+import { XMarkIcon, ShareIcon } from './icons';
 import { Button } from './ui';
-import { useAppContext } from '../contexts/AppContext';
+import { useApp } from '../contexts/AppContext';
 import { useGameplay } from '../contexts/GameplayContext';
 
 const CircularProgress: React.FC<{ percentage: number; passed: boolean; score: number; totalQuestions: number; }> = ({ percentage, passed, score, totalQuestions }) => {
@@ -50,13 +50,23 @@ const CircularProgress: React.FC<{ percentage: number; passed: boolean; score: n
 
 
 const ResultsPage: React.FC = () => {
-  const { navigateTo } = useAppContext();
+  const { navigateTo } = useApp();
   const { testResult } = useGameplay();
   const { score, total: totalQuestions } = testResult;
 
   const percentage = totalQuestions > 0 ? Math.round((score / totalQuestions) * 100) : 0;
   const passed = percentage >= PASS_PERCENTAGE;
   
+  const handleShare = () => {
+    if (navigator.share) {
+      navigator.share({
+        title: 'I took a theory test!',
+        text: `I just scored ${percentage}% on my practice theory test! (${score}/${totalQuestions})`,
+        url: window.location.href,
+      }).catch(error => console.error('Error sharing', error));
+    }
+  };
+
   return (
     <div className="fixed inset-0 bg-gray-900/30 dark:bg-slate-900/50 backdrop-blur-sm flex items-center justify-center p-4 z-50 animate-fadeInUp">
         <div className="relative max-w-md w-full bg-white dark:bg-slate-800 rounded-xl shadow-2xl p-8 text-center" style={{ animation: 'scaleIn 0.3s ease-out forwards' }}>
@@ -91,6 +101,13 @@ const ResultsPage: React.FC = () => {
                     Go to Dashboard
                 </Button>
             </div>
+             {navigator.share && (
+                <div className="mt-4 animate-fadeInUp" style={{ animationDelay: '400ms' }}>
+                    <Button onClick={handleShare} variant="secondary" className="w-full !py-3">
+                        <ShareIcon className="h-5 w-5 mr-2" /> Share Results
+                    </Button>
+                </div>
+            )}
         </div>
     </div>
   );

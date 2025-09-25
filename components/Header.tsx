@@ -5,7 +5,8 @@ import ThemeToggle from './ThemeToggle';
 import { supabase } from '../lib/supabaseClient';
 import { useOnlineStatus } from '../hooks/useOnlineStatus';
 import { useAuth } from '../contexts/AuthContext';
-import { useAppContext } from '../contexts/AppContext';
+// FIX: Replace `useAppContext` with the correct `useApp` hook.
+import { useApp } from '../contexts/AppContext';
 import { useSocial } from '../contexts/SocialContext';
 import { Button } from './ui';
 
@@ -41,7 +42,7 @@ const NotificationPanel: React.FC<{
 
 const Header: React.FC = () => {
     const { userProfile } = useAuth();
-    const { navigateTo, theme, setTheme, appAssets } = useAppContext();
+    const { navigateTo, theme, setTheme, appAssets } = useApp();
     const { notifications, acceptFriendRequest, declineFriendRequest, markNotificationAsRead } = useSocial();
 
     const [isMenuOpen, setIsMenuOpen] = useState(false);

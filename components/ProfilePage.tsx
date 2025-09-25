@@ -2,7 +2,9 @@ import React from 'react';
 import { Page } from '../types';
 import { ChevronLeftIcon } from './icons';
 import DynamicAsset from './DynamicAsset';
-import { useAppContext } from '../contexts/AppContext';
+// FIX: Replace `useAppContext` with `useApp` and `useAuth` to get data from the correct contexts.
+import { useApp } from '../contexts/AppContext';
+import { useAuth } from '../contexts/AuthContext';
 
 const StatCard: React.FC<{ icon: React.ReactNode; label: string; value: string | number; }> = ({ icon, label, value }) => (
     <div className="bg-gray-100 dark:bg-slate-700/50 p-4 rounded-lg flex items-center">
@@ -15,7 +17,8 @@ const StatCard: React.FC<{ icon: React.ReactNode; label: string; value: string |
 );
 
 const ProfilePage: React.FC = () => {
-    const { userProfile, navigateTo, appAssets } = useAppContext();
+    const { navigateTo, appAssets } = useApp();
+    const { userProfile } = useAuth();
     const user = userProfile!;
 
     const navigationItems = [

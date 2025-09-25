@@ -6,7 +6,8 @@ import DynamicAsset from './DynamicAsset';
 import { useDebounce } from '../hooks/useDebounce';
 import useLocalStorage from '../hooks/useLocalStorage';
 import { Input, Skeleton } from './ui';
-import { useAppContext } from '../contexts/AppContext';
+// FIX: Replace `useAppContext` with the correct `useApp` hook.
+import { useApp } from '../contexts/AppContext';
 
 const useRoadSigns = () => {
     const [signs, setSigns] = useState<RoadSign[]>([]);
@@ -39,7 +40,7 @@ const useRoadSigns = () => {
 };
 
 const RoadSignsPage: React.FC = () => {
-  const { navigateTo } = useAppContext();
+  const { navigateTo } = useApp();
   const { signs, categories, loading, error } = useRoadSigns();
 
   const [searchTerm, setSearchTerm] = useState('');

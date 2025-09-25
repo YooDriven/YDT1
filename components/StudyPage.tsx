@@ -2,10 +2,13 @@ import React, { useState, useMemo } from 'react';
 import { Page } from '../types';
 import { ChevronLeftIcon } from './icons';
 import { useQuestions } from '../contexts/QuestionsContext';
-import { useAppContext } from '../contexts/AppContext';
+// FIX: Replace `useAppContext` with `useApp` and `useGameplay` to get data from the correct contexts.
+import { useApp } from '../contexts/AppContext';
+import { useGameplay } from '../contexts/GameplayContext';
 
 const StudyPage: React.FC = () => {
-    const { navigateTo, currentTopic } = useAppContext();
+    const { navigateTo } = useApp();
+    const { currentTopic } = useGameplay();
     const topic = currentTopic!;
     const { questions: allQuestions, loading } = useQuestions();
     const [currentIndex, setCurrentIndex] = useState(0);

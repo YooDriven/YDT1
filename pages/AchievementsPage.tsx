@@ -1,11 +1,13 @@
 import React from 'react';
 import { Page } from '../types';
 import { ChevronLeftIcon } from '../components/icons';
-import { useAppContext } from '../contexts/AppContext';
+import { useApp } from '../contexts/AppContext';
+import { useSocial } from '../contexts/SocialContext';
 import DynamicAsset from '../components/DynamicAsset';
 
 const AchievementsPage: React.FC = () => {
-    const { navigateTo, achievements, appAssets } = useAppContext();
+    const { navigateTo, appAssets } = useApp();
+    const { achievements } = useSocial();
 
     return (
         <div className="p-4 sm:p-6 lg:p-8 max-w-4xl mx-auto">
@@ -33,8 +35,29 @@ const AchievementsPage: React.FC = () => {
                         }`}
                         style={{ animationDelay: `${index * 50}ms` }}
                     >
-                        <div className="flex flex-col items-center text-center">
-                            <div className={`h-20 w-20 rounded-full flex items-center justify-center mb-4 ${
+                        <div className="flex items-center justify-end">
+                            {ach.status === 'unlocked' && (
+                                <button
+                                    onClick={() => {
+                                        if (navigator.share) {
+                                            navigator.share({
+                                                title: 'Achievement Unlocked!',
+                                                text: `I just unlocked the "${ach.name}" achievement!`,
+                                                url: window.location.href,
+                                            });
+                                        }
+                                    }}
+                                    className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200"
+                                    aria-label="Share achievement"
+                                >
+                                     <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-5 h-5">
+                                        <path strokeLinecap="round" strokeLinejoin="round" d="M7.217 10.907a2.25 2.25 0 1 0 0 2.186m0-2.186c.195.025.39.05.588.08a2.25 2.25 0 0 1 2.25 2.25c0 .198-.025.393-.08.588m-2.25-2.25a2.25 2.25 0 0 0 0 2.186m0-2.186m2.25 2.25a2.25 2.25 0 0 1 0-2.186m0 2.186c-.195-.025-.39-.05-.588-.08a2.25 2.25 0 0 0-2.25-2.25c0-.198.025-.393.08-.588m2.25 2.25-2.25-2.25" />
+                                    </svg>
+                                </button>
+                            )}
+                        </div>
+                        <div className="flex flex-col items-center text-center -mt-4">
+                             <div className={`h-20 w-20 rounded-full flex items-center justify-center mb-4 ${
                                 ach.status === 'unlocked' ? 'bg-amber-100 dark:bg-amber-500/20' : 'bg-gray-100 dark:bg-slate-700'
                             }`}>
                                 <DynamicAsset 

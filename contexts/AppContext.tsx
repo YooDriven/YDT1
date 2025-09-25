@@ -1,18 +1,14 @@
-import React, { createContext, useContext, useState, ReactNode } from 'react';
+import React, { createContext, useContext, useState, ReactNode, useCallback } from 'react';
 import { Page, Theme, AppAssetRecord, AppContextType } from '../types';
 import { Toast } from '../components/ui';
-import { AuthProvider, useAuth } from './AuthContext';
-import { SocialProvider, useSocial } from './SocialContext';
-import { GameplayProvider, useGameplay } from './GameplayContext';
+import { AuthProvider } from './AuthContext';
+import { SocialProvider } from './SocialContext';
+import { GameplayProvider } from './GameplayContext';
+import { supabase } from '../lib/supabaseClient';
 
-// FIX: Export AppContext so it can be used by other providers within the composition root.
 export const AppContext = createContext<AppContextType | undefined>(undefined);
 
-const AppUIProvider: React.FC<{
-    children: ReactNode;
-    setAppState: (state: string) => void;
-    setErrorMessage: (msg: string) => void;
-}> = ({ children, setAppState, setErrorMessage }) => {
+const AppUIProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
     const [theme, setThemeState] = useState<Theme>(() => (document.documentElement.classList.contains('dark') ? 'dark' : 'light'));
     const [appAssets, setAppAssets] = useState<AppAssetRecord>({});
     const [currentPage, setCurrentPage] = useState<Page>(Page.Dashboard);
@@ -37,6 +33,21 @@ const AppUIProvider: React.FC<{
     const showToast = (message: string, type: 'success' | 'error' = 'success') => {
         setToast({ message, type });
     };
+
+    const handleAssetsUpdate = useCallback(async () => {
+        try {
+            const { data: assetsData, error: assetsError } = await supabase!.from('app_assets').select('asset_key, asset_value, mime_type');
+            if (assetsError) throw assetsError;
+            const assetsMap = (assetsData || []).reduce((acc: AppAssetRecord, asset) => {
+                acc[asset.asset_key] = { value: asset.asset_value, mimeType: asset.mime_type };
+                return acc;
+            }, {});
+            setAppAssets(assetsMap);
+            showToast('Assets updated successfully!');
+        } catch (error: any) {
+            showToast(`Error reloading assets: ${error.message}`, 'error');
+        }
+    }, [showToast]);
     
     const value = {
         theme,
@@ -47,8 +58,7 @@ const AppUIProvider: React.FC<{
         animationKey,
         navigateTo,
         showToast,
-        setAppState, // Pass this down for AuthProvider
-        setErrorMessage,
+        handleAssetsUpdate
     };
 
     return (
@@ -59,13 +69,9 @@ const AppUIProvider: React.FC<{
     );
 };
 
-export const AppProvider: React.FC<{ 
-    children: ReactNode;
-    setAppState: (state: string) => void,
-    setErrorMessage: (msg: string) => void 
-}> = ({ children, setAppState, setErrorMessage }) => {
+export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
     return (
-        <AppUIProvider setAppState={setAppState} setErrorMessage={setErrorMessage}>
+        <AppUIProvider>
             <AuthProvider>
                 <SocialProvider>
                     <GameplayProvider>
@@ -77,22 +83,9 @@ export const AppProvider: React.FC<{
     );
 };
 
-export const useAppContext = () => {
+// This hook is now for UI-specific context only.
+export const useApp = () => {
     const context = useContext(AppContext);
-    if (context === undefined) throw new Error('useAppContext must be used within an AppProvider');
-    
-    // This hook will now be a composition of all hooks
-    // For simplicity and to avoid breaking existing components immediately,
-    // let's provide a composite object.
-    // A better long-term solution is to refactor components to use specific hooks.
-    const auth = useAuth();
-    const social = useSocial();
-    const gameplay = useGameplay();
-    
-    return {
-        ...context,
-        ...auth,
-        ...social,
-        ...gameplay,
-    };
+    if (context === undefined) throw new Error('useApp must be used within an AppProvider');
+    return context;
 };

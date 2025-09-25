@@ -4,7 +4,8 @@ import PerformanceChart from './PerformanceChart';
 import DynamicAsset from './DynamicAsset';
 import { Button, Skeleton } from './ui';
 import { useAuth } from '../contexts/AuthContext';
-import { useAppContext } from '../contexts/AppContext';
+// FIX: Replace `useAppContext` with the correct `useApp` hook.
+import { useApp } from '../contexts/AppContext';
 import { useGameplay } from '../contexts/GameplayContext';
 
 interface StudentProfileCardProps {
@@ -15,7 +16,7 @@ interface StudentProfileCardProps {
 
 const StudentProfileCard: React.FC<StudentProfileCardProps> = ({ loading, nationalLeaderboard, regionalLeaderboard }) => {
   const { userProfile: user } = useAuth();
-  const { navigateTo, appAssets } = useAppContext();
+  const { navigateTo, appAssets } = useApp();
   const { handleDuel } = useGameplay();
   
   if (loading || !user) {

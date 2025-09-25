@@ -2,10 +2,15 @@ import React, { useMemo } from 'react';
 import { Page } from '../types';
 import { ChevronLeftIcon, BookmarkIcon, FlagIcon } from './icons';
 import { useQuestions } from '../contexts/QuestionsContext';
-import { useAppContext } from '../contexts/AppContext';
+// FIX: Replace `useAppContext` with `useApp`, `useAuth`, and `useGameplay` to get data from the correct contexts.
+import { useApp } from '../contexts/AppContext';
+import { useAuth } from '../contexts/AuthContext';
+import { useGameplay } from '../contexts/GameplayContext';
 
 const BookmarkedQuestionsPage: React.FC = () => {
-    const { navigateTo, userProfile, handleToggleBookmark } = useAppContext();
+    const { navigateTo } = useApp();
+    const { userProfile } = useAuth();
+    const { handleToggleBookmark } = useGameplay();
     const bookmarkedQuestions = userProfile?.bookmarkedQuestions || [];
     const onToggleBookmark = handleToggleBookmark;
     

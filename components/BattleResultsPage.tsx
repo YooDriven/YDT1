@@ -1,10 +1,12 @@
 import React from 'react';
 import { Page } from '../types';
 import { Button } from './ui';
-import { useAppContext } from '../contexts/AppContext';
+import { useApp } from '../contexts/AppContext';
+import { useGameplay } from '../contexts/GameplayContext';
 
 const BattleResultsPage: React.FC = () => {
-  const { navigateTo, onRematch, battleResult } = useAppContext();
+  const { navigateTo } = useApp();
+  const { battleResult, handleRematch } = useGameplay();
   const { playerScore, opponentScore, total, opponentName } = battleResult;
 
   const getResult = () => {
@@ -45,7 +47,7 @@ const BattleResultsPage: React.FC = () => {
         </p>
         
         <div className="mt-10 flex flex-col sm:flex-row justify-center gap-4">
-            <Button onClick={onRematch} variant="primary">
+            <Button onClick={handleRematch} variant="primary">
                 Rematch
             </Button>
             <Button onClick={() => navigateTo(Page.Dashboard)} variant="outline">

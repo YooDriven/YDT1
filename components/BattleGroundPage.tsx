@@ -4,7 +4,8 @@ import { OPPONENT_CHAT_MESSAGES } from '../constants';
 import { useQuestions } from '../contexts/QuestionsContext';
 import { supabase } from '../lib/supabaseClient';
 import { RealtimeChannel } from 'https://esm.sh/@supabase/supabase-js@2';
-import { useAppContext } from '../contexts/AppContext';
+import { useAuth } from '../contexts/AuthContext';
+import { useGameplay } from '../contexts/GameplayContext';
 
 const getBotAnswer = (question: Question): number => {
     const isOpponentCorrect = Math.random() > 0.25; // 75% chance to be correct
@@ -46,7 +47,9 @@ const AnimatedScore: React.FC<{ score: number; isAnimating: boolean }> = ({ scor
 };
 
 const BattleGroundPage: React.FC = () => {
-    const { onBattleComplete, currentBattleId, userProfile, duelOpponent } = useAppContext();
+    const { userProfile } = useAuth();
+    const { onBattleComplete, currentBattleId, duelOpponent } = useGameplay();
+    
     const user = userProfile!;
     const opponent = duelOpponent!;
     const battleId = currentBattleId!;

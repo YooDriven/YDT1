@@ -2,10 +2,13 @@ import React, { useState, useEffect } from 'react';
 import { Page, CaseStudy } from '../types';
 import { ChevronLeftIcon } from './icons';
 import { supabase } from '../lib/supabaseClient';
-import { useAppContext } from '../contexts/AppContext';
+// FIX: Replace `useAppContext` with `useApp` and `useGameplay` to get data from the correct contexts.
+import { useApp } from '../contexts/AppContext';
+import { useGameplay } from '../contexts/GameplayContext';
 
 const CaseStudySelectionPage: React.FC = () => {
-    const { navigateTo, handleCaseStudySelect } = useAppContext();
+    const { navigateTo } = useApp();
+    const { handleCaseStudySelect } = useGameplay();
     const [caseStudies, setCaseStudies] = useState<CaseStudy[]>([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);

@@ -2,12 +2,16 @@ import React, { useEffect, useState, useRef } from 'react';
 import { Page, Opponent } from '../types';
 import { supabase } from '../lib/supabaseClient';
 import { RealtimeChannel } from 'https://esm.sh/@supabase/supabase-js@2';
-import { useAppContext } from '../contexts/AppContext';
+import { useApp } from '../contexts/AppContext';
+import { useAuth } from '../contexts/AuthContext';
+import { useGameplay } from '../contexts/GameplayContext';
 
 const opponentNames = ["RoadRunner", "DriftKing", "CaptainClutch", "SpeedyGonzales"];
 
 const MatchmakingPage: React.FC = () => {
-    const { navigateTo, onMatchFound, userProfile } = useAppContext();
+    const { navigateTo } = useApp();
+    const { userProfile } = useAuth();
+    const { handleMatchFound } = useGameplay();
     const user = userProfile!;
 
     const [statusText, setStatusText] = useState("Connecting to lobby...");
@@ -29,7 +33,7 @@ const MatchmakingPage: React.FC = () => {
                 if (timeoutRef.current) clearTimeout(timeoutRef.current);
                 const opponent = payload.player1.id === user.id ? payload.player2 : payload.player1;
                 setStatusText(`Opponent found: ${opponent.name}!`);
-                setTimeout(() => onMatchFound(payload.battleId, opponent), 1000);
+                setTimeout(() => handleMatchFound(payload.battleId, opponent), 1000);
             }
         };
 
@@ -59,7 +63,7 @@ const MatchmakingPage: React.FC = () => {
                         const botOpponent: Opponent = { name: botName, avatarUrl: `https://api.dicebear.com/8.x/bottts/svg?seed=${botName}`, isBot: true };
                         const battleId = `battle-bot-${user.id}-${Date.now()}`;
                         setStatusText("No players found, matching with a bot...");
-                        setTimeout(() => onMatchFound(battleId, botOpponent), 1000);
+                        setTimeout(() => handleMatchFound(battleId, botOpponent), 1000);
                     }, 20000);
                 }
             } else {
@@ -75,7 +79,7 @@ const MatchmakingPage: React.FC = () => {
             }
         };
 
-    }, [user, onMatchFound, navigateTo]);
+    }, [user, handleMatchFound, navigateTo]);
 
   return (
     <div className="p-4 sm:p-6 lg:p-8 flex flex-col items-center justify-center min-h-[calc(100vh-120px)] text-center">

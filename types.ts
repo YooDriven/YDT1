@@ -1,4 +1,4 @@
-import { FC, SVGProps, ReactNode } from 'react';
+import { FC, SVGProps, ReactNode, Dispatch, SetStateAction } from 'react';
 import { Session } from 'https://esm.sh/@supabase/supabase-js@2';
 
 export type Theme = 'light' | 'dark';
@@ -31,7 +31,7 @@ export enum Page {
 }
 
 export type AdminSection = 'content' | 'appearance';
-export type ContentTab = 'questions' | 'categories' | 'road_signs' | 'road_sign_categories' | 'hazard' | 'highway_code' | 'case_studies';
+export type ContentTab = 'dashboard' | 'questions' | 'categories' | 'road_signs' | 'road_sign_categories' | 'hazard' | 'highway_code' | 'case_studies';
 
 
 export interface TestCardData {
@@ -149,6 +149,9 @@ export interface Notification {
     from_user_name: string;
     from_user_avatar_url: string;
     created_at: string;
+    metadata?: {
+        battleId?: string;
+    };
 }
 
 export interface UserProfile {
@@ -170,6 +173,8 @@ export interface UserProfile {
   role?: 'user' | 'admin';
   unlocked_achievements: AchievementId[];
   friends: Friend[];
+  onboarding_completed: boolean;
+  last_login_date: string;
 }
 
 export interface RoadSign {
@@ -208,11 +213,28 @@ export interface AppAsset {
 
 export type AppAssetRecord = Record<string, AppAsset>;
 
+export interface UserGrowthData {
+    date: string;
+    count: number;
+}
+export interface FailedQuestionData {
+    question: string;
+    fail_count: number;
+}
+export interface TopicPopularityData {
+    topic: string;
+    count: number;
+}
+
+
 // New Context Types
 export interface AuthContextType {
   session: Session | null;
   userProfile: UserProfile | null;
+  // FIX: Use Dispatch and SetStateAction directly to avoid needing the 'React' namespace.
+  setUserProfile: Dispatch<SetStateAction<UserProfile | null>>;
   handleProfileUpdate: (name: string) => void;
+  markOnboardingComplete: () => void;
   loading: boolean;
 }
 
@@ -226,6 +248,8 @@ export interface SocialContextType {
   removeFriend: (userId: string) => Promise<void>;
   markNotificationAsRead: (id: string) => Promise<void>;
   grantAchievement: (achievementId: AchievementId) => Promise<void>;
+  sendChallenge: (friendId: string) => Promise<void>;
+  acceptChallenge: (notification: Notification) => Promise<void>;
 }
 
 export interface GameplayContextType {
@@ -259,7 +283,6 @@ export interface AppContextType {
   appAssets: AppAssetRecord;
   currentPage: Page;
   animationKey: number;
-  appState: string;
   navigateTo: (page: Page) => void;
   handleAssetsUpdate: () => void;
   showToast: (message: string, type?: 'success' | 'error') => void;

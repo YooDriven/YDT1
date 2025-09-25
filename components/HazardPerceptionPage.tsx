@@ -3,10 +3,10 @@ import { HazardPerceptionClip } from '../types';
 import { supabase } from '../lib/supabaseClient';
 import { MAX_SCORE_PER_CLIP } from '../constants';
 import Tooltip from './Tooltip';
-import { useAppContext } from '../contexts/AppContext';
+import { useGameplay } from '../contexts/GameplayContext';
 
 const HazardPerceptionPage: React.FC = () => {
-  const { onTestComplete } = useAppContext();
+  const { handleHazardPerceptionComplete } = useGameplay();
   const [clips, setClips] = useState<HazardPerceptionClip[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -91,10 +91,10 @@ const HazardPerceptionPage: React.FC = () => {
         setClipState('ready');
         setProgress(0);
       } else {
-        onTestComplete(newScores, clips.length);
+        handleHazardPerceptionComplete(newScores, clips.length);
       }
     }, 2000);
-  }, [calculateScore, scores, currentClipIndex, onTestComplete, clips.length]);
+  }, [calculateScore, scores, currentClipIndex, handleHazardPerceptionComplete, clips.length]);
 
 
   const handlePlayerClick = () => {

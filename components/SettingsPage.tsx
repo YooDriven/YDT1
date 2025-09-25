@@ -3,10 +3,13 @@ import { Page, Theme } from '../types';
 import { ChevronLeftIcon, SunIcon, MoonIcon } from './icons';
 import { supabase } from '../lib/supabaseClient';
 import { Button, Input, Label } from './ui';
-import { useAppContext } from '../contexts/AppContext';
+// FIX: Replace `useAppContext` with `useApp` and `useAuth` to get data from the correct contexts.
+import { useApp } from '../contexts/AppContext';
+import { useAuth } from '../contexts/AuthContext';
 
 const SettingsPage: React.FC = () => {
-    const { userProfile, navigateTo, session, theme, setTheme, handleProfileUpdate } = useAppContext();
+    const { navigateTo, theme, setTheme } = useApp();
+    const { userProfile, session, handleProfileUpdate } = useAuth();
     const user = userProfile!;
 
     const [name, setName] = useState(user.name);

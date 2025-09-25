@@ -3,10 +3,13 @@ import { Page } from '../types';
 import { STUDY_CARDS } from '../constants';
 import TestCard from './TestCard';
 import { ChevronLeftIcon } from './icons';
-import { useAppContext } from '../contexts/AppContext';
+// FIX: Replace `useAppContext` with `useApp` and `useGameplay` to get data from the correct contexts.
+import { useApp } from '../contexts/AppContext';
+import { useGameplay } from '../contexts/GameplayContext';
 
 const StudyHubPage: React.FC = () => {
-  const { navigateTo, handleCardClick, appAssets } = useAppContext();
+  const { navigateTo, appAssets } = useApp();
+  const { handleCardClick } = useGameplay();
 
   return (
     <div className="p-4 sm:p-6 lg:p-8 max-w-4xl mx-auto">

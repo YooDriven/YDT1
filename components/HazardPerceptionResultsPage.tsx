@@ -1,7 +1,8 @@
 import React from 'react';
 import { Page } from '../types';
 import { HAZARD_PERCEPTION_PASS_MARK } from '../constants';
-import { useAppContext } from '../contexts/AppContext';
+import { useApp } from '../contexts/AppContext';
+import { useGameplay } from '../contexts/GameplayContext';
 
 const Button: React.FC<{ children: React.ReactNode; onClick: () => void; className?: string }> = ({ children, onClick, className = '' }) => (
     <button
@@ -13,7 +14,8 @@ const Button: React.FC<{ children: React.ReactNode; onClick: () => void; classNa
 );
 
 const HazardPerceptionResultsPage: React.FC = () => {
-  const { navigateTo, hazardPerceptionResult } = useAppContext();
+  const { navigateTo } = useApp();
+  const { hazardPerceptionResult } = useGameplay();
   const { scores, totalScore, maxScore } = hazardPerceptionResult;
   const passed = totalScore >= HAZARD_PERCEPTION_PASS_MARK;
 

@@ -5,7 +5,8 @@ import { PRIMARY_TEST_CARDS } from '../constants';
 import type { LeaderboardEntry } from '../types';
 import { supabase } from '../lib/supabaseClient';
 import { useAuth } from '../contexts/AuthContext';
-import { useAppContext } from '../contexts/AppContext';
+import { useApp } from '../contexts/AppContext';
+import { useGameplay } from '../contexts/GameplayContext';
 
 const useLeaderboard = (userId: string | undefined) => {
     const [nationalLeaderboard, setNationalLeaderboard] = useState<LeaderboardEntry[]>([]);
@@ -47,8 +48,8 @@ const useLeaderboard = (userId: string | undefined) => {
 
 const Dashboard: React.FC = () => {
   const { userProfile } = useAuth();
-  const { appAssets } = useAppContext();
-  const { handleCardClick } = useAppContext();
+  const { appAssets } = useApp();
+  const { handleCardClick } = useGameplay();
   const { nationalLeaderboard, regionalLeaderboard, loading: loadingLeaderboards } = useLeaderboard(userProfile?.id);
 
   if (!userProfile) return null;

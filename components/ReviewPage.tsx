@@ -1,10 +1,13 @@
 import React from 'react';
 import { Page } from '../types';
 import { ChevronLeftIcon } from './icons';
-import { useAppContext } from '../contexts/AppContext';
+// FIX: Replace `useAppContext` with `useApp` and `useGameplay` to get data from the correct contexts.
+import { useApp } from '../contexts/AppContext';
+import { useGameplay } from '../contexts/GameplayContext';
 
 const ReviewPage: React.FC = () => {
-  const { navigateTo, reviewData } = useAppContext();
+  const { navigateTo } = useApp();
+  const { reviewData } = useGameplay();
   const { questions, userAnswers } = reviewData;
 
   return (

@@ -1,12 +1,13 @@
 import React, { useMemo } from 'react';
-import { Page, TestAttempt } from '../types';
+import { Page } from '../types';
 import { ChevronLeftIcon } from '../components/icons';
-import { useAppContext } from '../contexts/AppContext';
+import { useApp } from '../contexts/AppContext';
+import { useAuth } from '../contexts/AuthContext';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, BarChart, Bar } from 'recharts';
-import { PASS_PERCENTAGE } from '../constants';
 
 const StatisticsPage: React.FC = () => {
-    const { navigateTo, userProfile } = useAppContext();
+    const { navigateTo } = useApp();
+    const { userProfile } = useAuth();
 
     const testHistory = userProfile?.testHistory || [];
 
