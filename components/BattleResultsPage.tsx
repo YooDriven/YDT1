@@ -13,9 +13,9 @@ interface BattleResultsPageProps {
 
 const BattleResultsPage: React.FC<BattleResultsPageProps> = ({ navigateTo, onRematch, playerScore, opponentScore, total, opponentName }) => {
     const getResult = () => {
-        if (playerScore > opponentScore) return { text: "You Win!", color: "text-teal-500 dark:text-teal-400" };
-        if (playerScore < opponentScore) return { text: "You Lose", color: "text-red-500" };
-        return { text: "It's a Draw!", color: "text-gray-600 dark:text-gray-300" };
+        if (playerScore > opponentScore) return { text: "You Win!", color: "text-teal-500 dark:text-teal-400", icon: "badge_trophy" };
+        if (playerScore < opponentScore) return { text: "You Lose", color: "text-red-500", icon: "icon_swords" };
+        return { text: "It's a Draw!", color: "text-gray-600 dark:text-gray-300", icon: "icon_handshake" };
     };
 
     const result = getResult();
@@ -23,7 +23,8 @@ const BattleResultsPage: React.FC<BattleResultsPageProps> = ({ navigateTo, onRem
   return (
     <div className="p-4 sm:p-6 lg:p-8 flex items-center justify-center min-h-[calc(100vh-120px)]">
       <div className="max-w-md w-full text-center bg-white dark:bg-slate-800/50 p-8 rounded-2xl border border-gray-200 dark:border-slate-700 animate-fadeInUp shadow-2xl shadow-gray-200/50 dark:shadow-none">
-        <h1 className={`text-5xl font-bold ${result.color} tracking-tight animate-scaleIn`}>
+        
+        <h1 className={`text-5xl font-bold ${result.color} tracking-tight flex items-center justify-center gap-3`}>
           {result.text}
         </h1>
         <p className="mt-4 text-gray-600 dark:text-gray-300 text-lg">Final Score</p>
@@ -51,9 +52,6 @@ const BattleResultsPage: React.FC<BattleResultsPageProps> = ({ navigateTo, onRem
         <div className="mt-10 flex flex-col sm:flex-row justify-center gap-4">
             <Button onClick={onRematch} variant="primary">
                 Rematch
-            </Button>
-            <Button onClick={() => navigateTo(Page.Matchmaking)} variant="secondary">
-                New Opponent
             </Button>
             <Button onClick={() => navigateTo(Page.Dashboard)} variant="outline">
                 Dashboard

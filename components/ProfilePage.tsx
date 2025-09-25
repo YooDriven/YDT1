@@ -1,12 +1,12 @@
 import React from 'react';
-import { Page, UserProfile } from '../types';
+import { Page, UserProfile, AppAssetRecord } from '../types';
 import { ChevronLeftIcon } from './icons';
-import DynamicIcon from './DynamicIcon';
+import DynamicAsset from './DynamicAsset';
 
 interface ProfilePageProps {
     user: UserProfile;
     navigateTo: (page: Page) => void;
-    appAssets: Record<string, string>;
+    appAssets: AppAssetRecord;
 }
 
 const StatCard: React.FC<{ icon: React.ReactNode; label: string; value: string | number; }> = ({ icon, label, value }) => (
@@ -43,10 +43,10 @@ const ProfilePage: React.FC<ProfilePageProps> = ({ user, navigateTo, appAssets }
                 <section>
                     <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-4 leading-tight">Statistics</h2>
                     <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                        <StatCard icon={<DynamicIcon svgString={appAssets['icon_chart_bar']} className="h-8 w-8" />} label="Avg. Score" value={`${user.avgScore}%`} />
-                        <StatCard icon={<DynamicIcon svgString={appAssets['badge_trophy']} className="h-8 w-8" />} label="Tests Taken" value={user.testsTaken} />
-                        <StatCard icon={<DynamicIcon svgString={appAssets['badge_fire']} className="h-8 w-8 text-orange-400" />} label="Streak" value={user.streak} />
-                        <StatCard icon={<DynamicIcon svgString={appAssets['badge_snowflake']} className="h-8 w-8 text-sky-400" />} label="Freezes" value={user.freezes} />
+                        <StatCard icon={<DynamicAsset asset={appAssets['icon_chart_bar']} className="h-8 w-8" />} label="Avg. Score" value={`${user.avgScore}%`} />
+                        <StatCard icon={<DynamicAsset asset={appAssets['badge_trophy']} className="h-8 w-8" />} label="Tests Taken" value={user.testsTaken} />
+                        <StatCard icon={<DynamicAsset asset={appAssets['badge_fire']} className="h-8 w-8 text-orange-400" />} label="Streak" value={user.streak} />
+                        <StatCard icon={<DynamicAsset asset={appAssets['badge_snowflake']} className="h-8 w-8 text-sky-400" />} label="Freezes" value={user.freezes} />
                     </div>
                 </section>
 
@@ -57,7 +57,7 @@ const ProfilePage: React.FC<ProfilePageProps> = ({ user, navigateTo, appAssets }
                         {user.badges.map((badge, index) => {
                             return (
                                 <div key={index} className="bg-gray-100 dark:bg-slate-700/50 p-4 rounded-lg text-center">
-                                    <DynamicIcon svgString={appAssets[badge.icon]} className={`h-10 w-10 mx-auto ${badge.color}`} />
+                                    <DynamicAsset asset={appAssets[badge.icon]} className={`h-10 w-10 mx-auto ${badge.color}`} />
                                     <p className="mt-2 text-sm font-semibold text-gray-800 dark:text-gray-200">{badge.name}</p>
                                 </div>
                             );

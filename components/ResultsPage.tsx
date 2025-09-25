@@ -10,50 +10,83 @@ interface ResultsPageProps {
   totalQuestions: number;
 }
 
+const CircularProgress: React.FC<{ percentage: number; passed: boolean; score: number; totalQuestions: number; }> = ({ percentage, passed, score, totalQuestions }) => {
+  const radius = 50;
+  const circumference = 2 * Math.PI * radius;
+  const offset = circumference - (percentage / 100) * circumference;
+
+  return (
+    <div className="relative h-40 w-40">
+      <svg className="h-full w-full" viewBox="0 0 120 120">
+        <circle
+          className="text-gray-200 dark:text-slate-700"
+          strokeWidth="10"
+          stroke="currentColor"
+          fill="transparent"
+          r={radius}
+          cx="60"
+          cy="60"
+        />
+        <circle
+          className={passed ? 'text-teal-500' : 'text-red-500'}
+          strokeWidth="10"
+          strokeDasharray={circumference}
+          strokeDashoffset={offset}
+          strokeLinecap="round"
+          stroke="currentColor"
+          fill="transparent"
+          r={radius}
+          cx="60"
+          cy="60"
+          transform="rotate(-90 60 60)"
+          style={{ transition: 'stroke-dashoffset 0.5s ease-out' }}
+        />
+      </svg>
+      <div className="absolute inset-0 flex flex-col items-center justify-center">
+        <span className={`font-bold text-4xl ${passed ? 'text-teal-600 dark:text-teal-400' : 'text-red-600 dark:text-red-500'}`}>
+          {percentage}%
+        </span>
+        <span className="text-sm text-gray-500 dark:text-gray-400">{score} / {totalQuestions}</span>
+      </div>
+    </div>
+  );
+};
+
+
 const ResultsPage: React.FC<ResultsPageProps> = ({ navigateTo, score, totalQuestions }) => {
   const percentage = totalQuestions > 0 ? Math.round((score / totalQuestions) * 100) : 0;
   const passed = percentage >= PASS_PERCENTAGE;
   
   return (
     <div className="fixed inset-0 bg-gray-900/30 dark:bg-slate-900/50 backdrop-blur-sm flex items-center justify-center p-4 z-50 animate-fadeInUp">
-        <div className="relative max-w-lg w-full bg-white dark:bg-slate-800 rounded-xl shadow-2xl p-8 text-center animate-scaleIn">
+        <div className="relative max-w-md w-full bg-white dark:bg-slate-800 rounded-xl shadow-2xl p-8 text-center" style={{ animation: 'scaleIn 0.3s ease-out forwards' }}>
             <button onClick={() => navigateTo(Page.Dashboard)} className="absolute top-4 right-4 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200">
                 <XMarkIcon className="h-6 w-6" />
             </button>
             
-            <h1 className="text-4xl font-bold text-gray-800 dark:text-white tracking-tight leading-none animate-fadeInUp" style={{ animationDelay: '100ms' }}>Test Complete!</h1>
-
-            <div className="bg-gray-50 dark:bg-slate-700/50 border border-gray-200 dark:border-slate-600 rounded-lg p-6 my-6 text-left animate-fadeInUp" style={{ animationDelay: '200ms' }}>
-                <div className="flex justify-between items-center mb-4">
-                    <h2 className="font-semibold text-lg text-gray-800 dark:text-white">Your Results</h2>
-                    {passed ? (
-                        <span className="text-xs font-bold text-white bg-teal-500 px-3 py-1 rounded-full uppercase tracking-wider animate-popUp">PASS</span>
-                    ) : (
-                        <span className="text-xs font-bold text-white bg-red-500 px-3 py-1 rounded-full uppercase tracking-wider animate-popUp">FAIL</span>
-                    )}
-                </div>
-                <div className="flex justify-between items-baseline mb-2">
-                    <span className="text-base text-gray-600 dark:text-gray-400">Score:</span>
-                    <span className="font-bold text-3xl text-gray-900 dark:text-white">{score} / {totalQuestions}</span>
-                </div>
-                <div className="flex justify-between items-baseline">
-                    <span className="text-base text-gray-600 dark:text-gray-400">Percentage:</span>
-                    <span className={`font-bold text-3xl ${passed ? 'text-teal-600 dark:text-teal-400' : 'text-red-600 dark:text-red-500'}`}>{percentage}%</span>
-                </div>
+            <h1 className="text-2xl font-bold text-gray-800 dark:text-white tracking-tight leading-none animate-fadeInUp" style={{ animationDelay: '100ms' }}>Test Complete!</h1>
+            
+            <div className="my-6 flex flex-col items-center justify-center animate-fadeInUp" style={{ animationDelay: '200ms' }}>
+                <CircularProgress percentage={percentage} passed={passed} score={score} totalQuestions={totalQuestions}/>
+                 {passed ? (
+                    <span className="mt-4 text-xs font-bold text-white bg-teal-500 px-3 py-1 rounded-full uppercase tracking-wider">PASS</span>
+                ) : (
+                    <span className="mt-4 text-xs font-bold text-white bg-red-500 px-3 py-1 rounded-full uppercase tracking-wider">FAIL</span>
+                )}
             </div>
 
             <div className="grid grid-cols-2 gap-4 animate-fadeInUp" style={{ animationDelay: '300ms' }}>
                 <Button 
                     onClick={() => navigateTo(Page.Review)}
                     variant="primary"
-                    className="w-full py-3"
+                    className="w-full !py-3"
                 >
                     Review Answers
                 </Button>
                 <Button
                     onClick={() => navigateTo(Page.Dashboard)}
                     variant="outline"
-                     className="w-full py-3"
+                     className="w-full !py-3"
                 >
                     Go to Dashboard
                 </Button>

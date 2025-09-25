@@ -1,5 +1,5 @@
 import React from 'react';
-import { Page, TestCardData } from '../types';
+import { Page, TestCardData, AppAssetRecord } from '../types';
 import { STUDY_CARDS } from '../constants';
 import TestCard from './TestCard';
 import { ChevronLeftIcon } from './icons';
@@ -7,7 +7,7 @@ import { ChevronLeftIcon } from './icons';
 interface StudyHubPageProps {
   navigateTo: (page: Page) => void;
   onCardClick: (card: TestCardData) => void;
-  appAssets: Record<string, string>;
+  appAssets: AppAssetRecord;
 }
 
 const StudyHubPage: React.FC<StudyHubPageProps> = ({ navigateTo, onCardClick, appAssets }) => {

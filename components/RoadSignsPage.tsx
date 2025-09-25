@@ -2,7 +2,7 @@ import React, { useState, useMemo, useEffect, useRef } from 'react';
 import { Page, RoadSign, RoadSignCategory } from '../types';
 import { ChevronLeftIcon } from './icons';
 import { supabase } from '../lib/supabaseClient';
-import DynamicIcon from './DynamicIcon';
+import DynamicAsset from './DynamicAsset';
 import { useDebounce } from '../hooks/useDebounce';
 import useLocalStorage from '../hooks/useLocalStorage';
 // FIX: Import the 'Input' component from the UI library.
@@ -181,7 +181,7 @@ const RoadSignsPage: React.FC<RoadSignsPageProps> = ({ navigateTo }) => {
             >
               <div className={`card-inner ${flippedSignId === sign.id ? 'is-flipped' : ''}`}>
                 <div className="card-face w-full h-full p-4 bg-white dark:bg-slate-800 rounded-lg flex items-center justify-center shadow-md shadow-gray-200/50 dark:shadow-black/20 border border-gray-200 dark:border-slate-700 transition-transform transform group-hover:-translate-y-1">
-                   <DynamicIcon svgString={sign.svg_code} className="w-full h-full" />
+                   <DynamicAsset svgString={sign.svg_code} className="w-full h-full" />
                 </div>
                 <div className="card-face card-back w-full h-full p-4 bg-slate-800 rounded-lg flex flex-col justify-center text-center border border-slate-700">
                   <h3 className="font-semibold text-white text-sm leading-snug">{sign.name}</h3>

@@ -1,10 +1,11 @@
 import React, { useState } from 'react';
 import { supabase } from '../lib/supabaseClient';
-import DynamicIcon from './DynamicIcon';
+import DynamicAsset from './DynamicAsset';
 import { Button, Input } from './ui';
+import { AppAssetRecord } from '../types';
 
 interface LoginPageProps {
-    appAssets: Record<string, string>;
+    appAssets: AppAssetRecord;
 }
 
 const LoginPage: React.FC<LoginPageProps> = ({ appAssets }) => {
@@ -126,10 +127,10 @@ const LoginPage: React.FC<LoginPageProps> = ({ appAssets }) => {
 
     return (
         <div className="min-h-screen bg-slate-50 dark:bg-slate-900 flex flex-col justify-center items-center p-4">
-            <div className="max-w-md w-full bg-white dark:bg-slate-800/50 rounded-2xl shadow-lg border border-gray-200 dark:border-slate-700 p-8 space-y-6">
+            <div className="max-w-md w-full bg-white dark:bg-slate-800 rounded-2xl shadow-xl border border-gray-200 dark:border-slate-700 p-8 space-y-6 animate-fadeInUp">
                 <div className="text-center">
                     <div className="h-10 w-auto mx-auto mb-4 flex justify-center">
-                        <DynamicIcon svgString={appAssets['logo_yoodrive']} />
+                        <DynamicAsset asset={appAssets['logo_yoodrive']} />
                     </div>
                     <h2 className="text-3xl font-bold text-gray-900 dark:text-white tracking-tight">Get Started</h2>
                     <p className="mt-2 text-base text-gray-600 dark:text-gray-400">Sign in or create an account to begin</p>
@@ -162,7 +163,7 @@ const LoginPage: React.FC<LoginPageProps> = ({ appAssets }) => {
                         onClick={() => handleEmailAuth(false)}
                         disabled={loading}
                         variant="primary"
-                        className="w-full py-3"
+                        className="w-full !py-3"
                     >
                         Sign In
                     </Button>
@@ -170,7 +171,7 @@ const LoginPage: React.FC<LoginPageProps> = ({ appAssets }) => {
                         onClick={() => handleEmailAuth(true)}
                         disabled={loading}
                         variant="secondary"
-                        className="w-full py-3"
+                        className="w-full !py-3"
                     >
                         Sign Up
                     </Button>
@@ -188,20 +189,22 @@ const LoginPage: React.FC<LoginPageProps> = ({ appAssets }) => {
                 </div>
 
                 <div className="flex flex-col sm:flex-row gap-3">
-                    <button
+                    <Button
                         onClick={() => handleOneClickLogin('user')}
                         disabled={loading}
-                        className="w-full py-3 px-4 bg-sky-600 text-white font-semibold rounded-lg hover:bg-sky-700 transition-colors disabled:opacity-50"
+                        variant="outline"
+                        className="w-full !py-3"
                     >
                         Login as User
-                    </button>
-                    <button
+                    </Button>
+                    <Button
                         onClick={() => handleOneClickLogin('admin')}
                         disabled={loading}
-                        className="w-full py-3 px-4 bg-indigo-600 text-white font-semibold rounded-lg hover:bg-indigo-700 transition-colors disabled:opacity-50"
+                        variant="outline"
+                        className="w-full !py-3"
                     >
                         Login as Admin
-                    </button>
+                    </Button>
                 </div>
 
             </div>

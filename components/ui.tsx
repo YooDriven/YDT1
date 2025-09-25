@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, forwardRef, InputHTMLAttributes, TextareaHTMLAttributes, SelectHTMLAttributes, ButtonHTMLAttributes } from 'react';
 
 export const Toast: React.FC<{ message: string; type: 'success' | 'error'; onDismiss: () => void; }> = ({ message, type, onDismiss }) => {
     useEffect(() => {
@@ -10,8 +10,8 @@ export const Toast: React.FC<{ message: string; type: 'success' | 'error'; onDis
 };
 
 export const Modal: React.FC<{ title: string; children: React.ReactNode; onClose: () => void; size?: 'md' | 'lg' | 'xl' | '2xl' | '3xl' }> = ({ title, children, onClose, size = 'xl' }) => (
-    <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4" onClick={onClose}>
-        <div className={`bg-white dark:bg-slate-800 rounded-lg shadow-xl w-full max-w-${size} max-h-[90vh] flex flex-col animate-fadeInUp`} onClick={(e) => e.stopPropagation()}>
+    <div className="fixed inset-0 bg-gray-900/30 dark:bg-slate-900/50 backdrop-blur-sm flex items-center justify-center z-50 p-4 animate-fadeInUp" onClick={onClose}>
+        <div className={`bg-white dark:bg-slate-800 rounded-xl shadow-2xl w-full max-w-${size} max-h-[90vh] flex flex-col`} style={{ animation: 'scaleIn 0.3s ease-out forwards' }} onClick={(e) => e.stopPropagation()}>
             <header className="p-4 border-b border-gray-200 dark:border-slate-700 flex justify-between items-center flex-shrink-0">
                 <h2 className="text-lg font-bold text-gray-900 dark:text-white">{title}</h2>
                 <button onClick={onClose} className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 text-2xl">&times;</button>
@@ -22,29 +22,85 @@ export const Modal: React.FC<{ title: string; children: React.ReactNode; onClose
 );
 
 export const FormRow: React.FC<{ children: React.ReactNode; className?: string }> = ({ children, className }) => <div className={["mb-4", className].filter(Boolean).join(" ")}>{children}</div>;
-export const Label: React.FC<{ children: React.ReactNode; htmlFor?: string; className?: string; }> = ({ children, htmlFor, className }) => <label htmlFor={htmlFor} className={`block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1 ${className || ''}`}>{children}</label>;
+export const Label: React.FC<{ children: React.ReactNode; htmlFor?: string; className?: string; }> = ({ children, htmlFor, className }) => <label htmlFor={htmlFor} className={`block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1 ${className}`}>{children}</label>;
 
-export const Input: React.FC<React.InputHTMLAttributes<HTMLInputElement> & { error?: string }> = ({ error, ...props }) => (
-    <div>
-        <input {...props} className={`w-full p-2 bg-gray-50 dark:bg-slate-700 border ${error ? 'border-red-500' : 'border-gray-300 dark:border-slate-600'} rounded-md text-gray-900 dark:text-white focus:ring-2 ${error ? 'focus:ring-red-500' : 'focus:ring-teal-500'} focus:outline-none ${props.className}`} />
-        {error && <p className="mt-1 text-xs text-red-500">{error}</p>}
-    </div>
-);
+// Input Component
+interface InputProps extends InputHTMLAttributes<HTMLInputElement> {
+  error?: string;
+}
+export const Input = forwardRef<HTMLInputElement, InputProps>(({ className, error, ...props }, ref) => (
+  <div className="w-full">
+    <input
+      ref={ref}
+      className={`block w-full px-3 py-2 bg-white dark:bg-slate-800 border rounded-md text-sm shadow-sm placeholder-slate-400
+        focus:outline-none focus:ring-1
+        disabled:bg-slate-50 disabled:text-slate-500 disabled:border-slate-200 disabled:shadow-none
+        ${error ? 'border-red-500 focus:border-red-500 focus:ring-red-500' : 'border-gray-300 dark:border-slate-600 focus:border-teal-500 focus:ring-teal-500'}
+        ${className}`
+      }
+      {...props}
+    />
+    {error && <p className="mt-1 text-xs text-red-500">{error}</p>}
+  </div>
+));
 
-export const Textarea: React.FC<React.TextareaHTMLAttributes<HTMLTextAreaElement> & { error?: string }> = ({ error, ...props }) => (
-     <div>
-        <textarea {...props} className={`w-full p-2 bg-gray-50 dark:bg-slate-700 border ${error ? 'border-red-500' : 'border-gray-300 dark:border-slate-600'} rounded-md text-gray-900 dark:text-white focus:ring-2 ${error ? 'focus:ring-red-500' : 'focus:ring-teal-500'} focus:outline-none`} rows={props.rows || 3} />
-        {error && <p className="mt-1 text-xs text-red-500">{error}</p>}
-    </div>
-);
-export const Select: React.FC<React.SelectHTMLAttributes<HTMLSelectElement>> = (props) => <select {...props} className="w-full p-2 bg-gray-50 dark:bg-slate-700 border border-gray-300 dark:border-slate-600 rounded-md text-gray-900 dark:text-white" />;
-export const Button: React.FC<{ children: React.ReactNode; onClick?: () => void; disabled?: boolean; className?: string; variant?: 'primary' | 'secondary' | 'outline' | 'danger'; type?: 'button' | 'submit' }> = ({ children, onClick, disabled, className, variant = 'primary', type = 'button' }) => {
-    const baseClasses = "px-4 py-2 rounded-md font-semibold disabled:opacity-50 transition-all duration-200 ease-in-out transform hover:-translate-y-px active:scale-98 focus:outline-none focus:ring-2 focus:ring-offset-2 dark:focus:ring-offset-slate-800";
-    const variants = {
-        primary: 'bg-teal-600 hover:bg-teal-700 text-white focus:ring-teal-500',
-        secondary: 'bg-slate-600 hover:bg-slate-700 text-white focus:ring-slate-500',
-        outline: 'bg-transparent border-2 border-slate-400 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 hover:border-slate-500 focus:ring-slate-400',
-        danger: 'bg-red-600 hover:bg-red-700 text-white focus:ring-red-500',
-    };
-    return <button type={type} onClick={onClick} disabled={disabled} className={`${baseClasses} ${variants[variant]} ${className}`}>{children}</button>;
-};
+// Textarea Component
+interface TextareaProps extends TextareaHTMLAttributes<HTMLTextAreaElement> {
+  error?: string;
+}
+export const Textarea = forwardRef<HTMLTextAreaElement, TextareaProps>(({ className, error, ...props }, ref) => (
+  <div className="w-full">
+    <textarea
+      ref={ref}
+      className={`block w-full px-3 py-2 bg-white dark:bg-slate-800 border rounded-md text-sm shadow-sm placeholder-slate-400
+        focus:outline-none focus:ring-1
+        ${error ? 'border-red-500 focus:border-red-500 focus:ring-red-500' : 'border-gray-300 dark:border-slate-600 focus:border-teal-500 focus:ring-teal-500'}
+        ${className}`
+      }
+      {...props}
+    />
+    {error && <p className="mt-1 text-xs text-red-500">{error}</p>}
+  </div>
+));
+
+// Select Component
+interface SelectProps extends SelectHTMLAttributes<HTMLSelectElement> {
+  error?: string;
+}
+export const Select = forwardRef<HTMLSelectElement, SelectProps>(({ className, error, children, ...props }, ref) => (
+  <div className="w-full">
+    <select
+      ref={ref}
+      className={`block w-full px-3 py-2 bg-white dark:bg-slate-800 border rounded-md text-sm shadow-sm
+        focus:outline-none focus:ring-1
+        ${error ? 'border-red-500 focus:border-red-500 focus:ring-red-500' : 'border-gray-300 dark:border-slate-600 focus:border-teal-500 focus:ring-teal-500'}
+        ${className}`
+      }
+      {...props}
+    >
+        {children}
+    </select>
+    {error && <p className="mt-1 text-xs text-red-500">{error}</p>}
+  </div>
+));
+
+// Button Component
+interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
+  variant?: 'primary' | 'secondary' | 'danger' | 'outline';
+}
+export const Button = forwardRef<HTMLButtonElement, ButtonProps>(({ className, variant = 'primary', children, ...props }, ref) => {
+  const baseClasses = "inline-flex items-center justify-center px-4 py-2 border border-transparent text-sm font-semibold rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-offset-2 dark:focus:ring-offset-slate-900 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed transform hover:-translate-y-px active:scale-98";
+  
+  const variantClasses = {
+    primary: 'bg-teal-600 text-white hover:bg-teal-700 focus:ring-teal-500',
+    secondary: 'bg-gray-200 dark:bg-slate-700 text-gray-800 dark:text-gray-200 hover:bg-gray-300 dark:hover:bg-slate-600 focus:ring-gray-400',
+    danger: 'bg-red-600 text-white hover:bg-red-700 focus:ring-red-500',
+    outline: 'bg-transparent border-gray-300 dark:border-slate-600 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-slate-700 focus:ring-teal-500',
+  };
+
+  return (
+    <button ref={ref} className={`${baseClasses} ${variantClasses[variant]} ${className}`} {...props}>
+      {children}
+    </button>
+  );
+});

@@ -62,6 +62,7 @@ export interface Question {
 }
 
 export interface LeaderboardEntry {
+  id: string;
   rank: number;
   name: string;
   score: number;
@@ -83,6 +84,15 @@ export interface ChatMessage {
   author: string;
   text: string;
 }
+
+export type Opponent = {
+  id?: string;
+  name: string;
+  avatarUrl: string;
+  isBot?: boolean;
+  score?: number;
+  rank?: number;
+};
 
 export interface Badge {
   name: string;
@@ -145,3 +155,10 @@ export interface CaseStudy {
   scenario_image?: string;
   question_ids: string[];
 }
+
+export interface AppAsset {
+  value: string;
+  mimeType: string;
+}
+
+export type AppAssetRecord = Record<string, AppAsset>;

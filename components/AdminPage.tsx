@@ -1,8 +1,8 @@
 import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
-import { Page, Question, AdminSection, ContentTab, RoadSign, RoadSignCategory, HazardPerceptionClip, CaseStudy, HighwayCodeRule } from '../types';
+import { Page, Question, AdminSection, ContentTab, RoadSign, RoadSignCategory, HazardPerceptionClip, CaseStudy, HighwayCodeRule, AppAssetRecord, AppAsset } from '../types';
 import { ChevronLeftIcon } from './icons';
 import { supabase } from '../lib/supabaseClient';
-import DynamicIcon from './DynamicIcon';
+import DynamicAsset from './DynamicAsset';
 import { Toast, Modal, FormRow, Label, Input, Textarea, Select, Button } from './ui';
 import { useDebounce } from '../hooks/useDebounce';
 
@@ -425,7 +425,7 @@ const RoadSignForm: React.FC<{ sign: RoadSign | null; onSave: (signData: Omit<Ro
                          <Label>Live Preview</Label>
                          <div className="flex-grow w-full p-4 bg-gray-100 dark:bg-slate-700 rounded-lg flex items-center justify-center border border-gray-300 dark:border-slate-600">
                              {formData.svg_code ? (
-                                <DynamicIcon svgString={formData.svg_code} className="w-48 h-48" />
+                                <DynamicAsset svgString={formData.svg_code} className="w-48 h-48" />
                              ) : (
                                 <p className="text-sm text-gray-500 dark:text-gray-400">Preview will appear here</p>
                              )}
@@ -545,7 +545,7 @@ const RoadSignManager: React.FC<{ showToast: (msg: string, type?: 'success' | 'e
                                 <tr key={s.id} className="border-b dark:border-slate-700">
                                     <td className="px-6 py-2">
                                         <div className="w-12 h-12 p-1 bg-gray-100 dark:bg-slate-700 rounded-md flex items-center justify-center">
-                                            <DynamicIcon svgString={s.svg_code} className="w-full h-full" />
+                                            <DynamicAsset svgString={s.svg_code} className="w-full h-full" />
                                         </div>
                                     </td>
                                     <td className="px-6 py-4 font-semibold text-gray-900 dark:text-white">{s.name}</td>
@@ -1278,52 +1278,149 @@ const HighwayCodeManager: React.FC<{ showToast: (msg: string, type?: 'success' |
 };
 
 // Appearance Manager Component
-const AppearanceManager: React.FC<{ onAssetsUpdate: () => void; showToast: (msg: string, type?: 'success' | 'error') => void; appAssets: Record<string, string>; }> = ({ onAssetsUpdate, showToast, appAssets: initialAssets }) => {
+type StagedFile = {
+    file: File;
+    key: string;
+    previewUrl: string;
+    status: 'idle' | 'uploading' | 'error';
+    error?: string;
+};
+
+// Helper function moved outside the component for better organization and reusability.
+const toBase64 = (file: File): Promise<string> => new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.readAsDataURL(file);
+    reader.onload = () => {
+        const result = reader.result as string;
+        // The result includes the mime type header, remove it.
+        resolve(result.split(',')[1]);
+    };
+    reader.onerror = error => reject(error);
+});
+
+const AppearanceManager: React.FC<{ onAssetsUpdate: () => void; showToast: (msg: string, type?: 'success' | 'error') => void; appAssets: AppAssetRecord; }> = ({ onAssetsUpdate, showToast, appAssets: initialAssets }) => {
     const [assets, setAssets] = useState(initialAssets);
-    const [isUploading, setIsUploading] = useState(false);
+    const [stagedFiles, setStagedFiles] = useState<StagedFile[]>([]);
     const [isDeleting, setIsDeleting] = useState<string | null>(null);
     const [isDragOver, setIsDragOver] = useState(false);
 
     useEffect(() => {
         setAssets(initialAssets);
     }, [initialAssets]);
-    
-    const handleFileDrop = async (e: React.DragEvent<HTMLDivElement>) => {
+
+    const handleFileDrop = (e: React.DragEvent<HTMLDivElement>) => {
         e.preventDefault();
         e.stopPropagation();
         setIsDragOver(false);
-        // FIX: Cast the result of Array.from to File[] to address type inference issues.
-        const files = Array.from(e.dataTransfer.files) as File[];
-        handleFiles(files);
+        if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
+            handleFiles(Array.from(e.dataTransfer.files));
+        }
     };
     
     const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
-        // FIX: Cast the result of Array.from to File[] to address type inference issues.
-        const files = e.target.files ? Array.from(e.target.files) as File[] : [];
-        handleFiles(files);
+        if (e.target.files && e.target.files.length > 0) {
+            handleFiles(Array.from(e.target.files));
+        }
+        // Reset the input value to allow selecting the same file again
+        e.target.value = '';
     };
 
-    const handleFiles = async (files: File[]) => {
-        setIsUploading(true);
-        for (const file of files) {
-            if (file.type !== 'image/svg+xml') {
-                showToast(`'${file.name}' is not an SVG file.`, 'error');
-                continue;
-            }
-            try {
-                const svgContent = await file.text();
-                const assetKey = `icon_${file.name.replace('.svg', '').toLowerCase().replace(/[^a-z0-9]/g, '_')}`;
-                
-                const { error } = await supabase!.from('app_assets').upsert({ asset_key: assetKey, asset_value: svgContent });
-                if (error) throw error;
-                showToast(`Uploaded '${file.name}' as '${assetKey}'.`);
-            } catch (err: any) {
-                showToast(`Failed to upload ${file.name}: ${err.message}`, 'error');
-            }
+    const handleFiles = (files: File[]) => {
+        const validMimeTypes = ['image/svg+xml', 'image/png', 'image/jpeg'];
+        const validFiles = files.filter(file => validMimeTypes.includes(file.type));
+        const invalidFiles = files.filter(file => !validMimeTypes.includes(file.type));
+
+        if (invalidFiles.length > 0) {
+            showToast(`Ignored invalid files: ${invalidFiles.map(f => f.name).join(', ')}`, 'error');
         }
-        setIsUploading(false);
-        onAssetsUpdate();
+
+        const existingKeys = new Set([...Object.keys(assets), ...stagedFiles.map(f => f.key)]);
+
+        const newStagedFiles: StagedFile[] = validFiles.map(file => {
+            let key = file.name.split('.').slice(0, -1).join('.').toLowerCase().replace(/[^a-z0-9_]/g, '_');
+            if (!key) key = 'new_asset';
+            
+            let originalKey = key;
+            let counter = 1;
+            // Ensure the generated key is unique
+            while (existingKeys.has(key)) {
+                key = `${originalKey}_${counter++}`;
+            }
+            existingKeys.add(key);
+
+            return {
+                file,
+                key: key,
+                // Per user request, ensure createObjectURL is used for previews.
+                previewUrl: URL.createObjectURL(file),
+                status: 'idle',
+            };
+        });
+        
+        setStagedFiles(prev => [...prev, ...newStagedFiles]);
     };
+    
+    const handleKeyChange = (index: number, newKey: string) => {
+        setStagedFiles(prev => {
+            const updated = [...prev];
+            updated[index].key = newKey.toLowerCase().replace(/[^a-z0-9_]/g, '_');
+            return updated;
+        });
+    };
+    
+    const handleRemoveStaged = (index: number) => {
+        const file = stagedFiles[index];
+        // Clean up the object URL to prevent memory leaks
+        URL.revokeObjectURL(file.previewUrl);
+        setStagedFiles(prev => prev.filter((_, i) => i !== index));
+    };
+
+    const handleUpload = async (index: number) => {
+        setStagedFiles(prev => {
+            const updated = [...prev];
+            updated[index].status = 'uploading';
+            return updated;
+        });
+        
+        const stagedFile = stagedFiles[index];
+        try {
+            const { file, key } = stagedFile;
+            if (!key) throw new Error('Asset key cannot be empty.');
+            
+            // Per user request, explicitly handle SVG vs other image types
+            const mime_type = file.type;
+            let asset_value: string;
+
+            if (mime_type === 'image/svg+xml') {
+                asset_value = await file.text();
+            } else if (mime_type === 'image/png' || mime_type === 'image/jpeg') {
+                asset_value = await toBase64(file);
+            } else {
+                // This case is guarded by the `handleFiles` filter, but included for robustness.
+                throw new Error(`Unsupported file type: ${mime_type}`);
+            }
+            
+            // Per user request, ensure file.type is used for the mimeType
+            const { error } = await supabase!.from('app_assets').upsert({ asset_key: key, asset_value, mime_type });
+            if (error) throw error;
+            
+            showToast(`Uploaded '${file.name}' as '${key}'.`);
+            onAssetsUpdate(); // Refresh the main asset list
+            handleRemoveStaged(index);
+        } catch(err: any) {
+             showToast(`Failed to upload ${stagedFile.file.name}: ${err.message}`, 'error');
+             setStagedFiles(prev => {
+                const updated = [...prev];
+                // Check if the item still exists before updating state
+                if (updated[index]) {
+                    updated[index].status = 'error';
+                    updated[index].error = err.message;
+                }
+                return updated;
+            });
+        }
+    };
+
 
     const handleDeleteAsset = async (key: string) => {
         if (window.confirm(`Are you sure you want to delete the asset "${key}"? This cannot be undone.`)) {
@@ -1349,31 +1446,61 @@ const AppearanceManager: React.FC<{ onAssetsUpdate: () => void; showToast: (msg:
                 onDragLeave={() => setIsDragOver(false)}
                 onDrop={handleFileDrop}
             >
-                 <input type="file" id="file-upload" multiple accept=".svg" className="hidden" onChange={handleFileSelect} />
+                 <input type="file" id="file-upload" multiple accept=".svg,.png,.jpg,.jpeg" className="hidden" onChange={handleFileSelect} />
                  <label htmlFor="file-upload" className="cursor-pointer">
-                    <p className="font-semibold text-gray-700 dark:text-gray-300">Drag & Drop SVG files here</p>
+                    <p className="font-semibold text-gray-700 dark:text-gray-300">Drag & Drop SVG, PNG, or JPG files here</p>
                     <p className="text-sm text-gray-500 dark:text-gray-400">or click to select files</p>
-                    {isUploading && <p className="mt-2 text-sm text-teal-500 animate-pulse">Uploading...</p>}
                  </label>
             </div>
             
-            <div className="mt-8 grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4">
-                {Object.entries(assets).map(([key, value]) => (
-                    <div key={key} className="group relative p-4 bg-white dark:bg-slate-800 rounded-lg flex flex-col items-center justify-center shadow-md border border-gray-200 dark:border-slate-700">
-                        <DynamicIcon svgString={value} className="h-12 w-12 text-gray-700 dark:text-gray-300" />
-                        <p className="mt-2 text-xs text-center text-gray-500 dark:text-gray-400 break-all">{key}</p>
-                        <div className="absolute top-1 right-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                             <Button
-                                onClick={() => handleDeleteAsset(key)}
-                                variant="danger"
-                                className="!p-1.5 !rounded-full"
-                                disabled={isDeleting === key}
-                            >
-                                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="w-4 h-4"><path fillRule="evenodd" d="M8.75 1A2.75 2.75 0 0 0 6 3.75v.443c-.795.077-1.58.22-2.365.468a.75.75 0 1 0 .23 1.482l.149-.022.841 10.518A2.75 2.75 0 0 0 7.596 19h4.807a2.75 2.75 0 0 0 2.742-2.53l.841-10.52.149.023a.75.75 0 0 0 .23-1.482A41.03 41.03 0 0 0 14 4.193v-.443A2.75 2.75 0 0 0 11.25 1h-2.5ZM10 4c.84 0 1.673.025 2.5.075V3.75c0-.69-.56-1.25-1.25-1.25h-2.5c-.69 0-1.25.56-1.25 1.25v.325C8.327 4.025 9.16 4 10 4ZM8.58 7.72a.75.75 0 0 0-1.5.06l.3 7.5a.75.75 0 1 0 1.5-.06l-.3-7.5Zm4.34.06a.75.75 0 1 0-1.5-.06l-.3 7.5a.75.75 0 1 0 1.5.06l.3-7.5Z" clipRule="evenodd" /></svg>
-                            </Button>
-                        </div>
+            {stagedFiles.length > 0 && (
+                <div className="mt-8">
+                    <h3 className="text-xl font-bold mb-4 text-gray-900 dark:text-white">Staging Area</h3>
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                        {stagedFiles.map((stagedFile, index) => (
+                            <div key={index} className="bg-white dark:bg-slate-800 p-4 rounded-lg border border-gray-200 dark:border-slate-700 space-y-3">
+                                <img src={stagedFile.previewUrl} alt="Preview" className="w-full h-32 object-contain rounded bg-gray-100 dark:bg-slate-700" />
+                                <FormRow>
+                                    <Label>Asset Key</Label>
+                                    <Input
+                                        value={stagedFile.key}
+                                        onChange={(e) => handleKeyChange(index, e.target.value)}
+                                        placeholder="e.g., logo_main"
+                                    />
+                                </FormRow>
+                                <div className="flex gap-2">
+                                    <Button variant="primary" onClick={() => handleUpload(index)} disabled={stagedFile.status === 'uploading' || !stagedFile.key} className="flex-1">
+                                        {stagedFile.status === 'uploading' ? 'Uploading...' : 'Upload'}
+                                    </Button>
+                                    <Button variant="danger" onClick={() => handleRemoveStaged(index)} disabled={stagedFile.status === 'uploading'}>Remove</Button>
+                                </div>
+                                {stagedFile.status === 'error' && <p className="text-xs text-red-500">{stagedFile.error}</p>}
+                            </div>
+                        ))}
                     </div>
-                ))}
+                </div>
+            )}
+            
+            <div className="mt-8">
+                 <h3 className="text-xl font-bold mb-4 text-gray-900 dark:text-white">Current Assets</h3>
+                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4">
+                    {Object.entries(assets).map(([key, value]) => (
+                        <div key={key} className="group relative p-4 bg-white dark:bg-slate-800 rounded-lg flex flex-col items-center justify-center shadow-md border border-gray-200 dark:border-slate-700">
+                            <DynamicAsset asset={value} className="h-12 w-12 text-gray-700 dark:text-gray-300" />
+                            <p className="mt-2 text-xs text-center text-gray-500 dark:text-gray-400 break-all">{key}</p>
+                            <div className="absolute top-1 right-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                                <Button
+                                    onClick={() => handleDeleteAsset(key)}
+                                    variant="danger"
+                                    className="!p-1.5 !rounded-full"
+                                    disabled={isDeleting === key}
+                                >
+                                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="w-4 h-4"><path fillRule="evenodd" d="M8.75 1A2.75 2.75 0 0 0 6 3.75v.443c-.795.077-1.58.22-2.365.468a.75.75 0 1 0 .23 1.482l.149-.022.841 10.518A2.75 2.75 0 0 0 7.596 19h4.807a2.75 2.75 0 0 0 2.742-2.53l.841-10.52.149.023a.75.75 0 0 0 .23-1.482A41.03 41.03 0 0 0 14 4.193v-.443A2.75 2.75 0 0 0 11.25 1h-2.5ZM10 4c.84 0 1.673.025 2.5.075V3.75c0-.69-.56-1.25-1.25-1.25h-2.5c-.69 0-1.25.56-1.25 1.25v.325C8.327 4.025 9.16 4 10 4ZM8.58 7.72a.75.75 0 0 0-1.5.06l.3 7.5a.75.75 0 1 0 1.5-.06l-.3-7.5Zm4.34.06a.75.75 0 1 0-1.5-.06l-.3 7.5a.75.75 0 1 0 1.5.06l.3-7.5Z" clipRule="evenodd" /></svg>
+                                </Button>
+                            </div>
+                        </div>
+                    ))}
+                </div>
             </div>
         </div>
     );
@@ -1383,7 +1510,7 @@ const AppearanceManager: React.FC<{ onAssetsUpdate: () => void; showToast: (msg:
 // Main Component
 interface AdminPageProps {
     navigateTo: (page: Page) => void;
-    appAssets: Record<string, string>;
+    appAssets: AppAssetRecord;
     onAssetsUpdate: () => void;
 }
 
@@ -1466,7 +1593,7 @@ const AdminPage: React.FC<AdminPageProps> = ({ navigateTo, appAssets, onAssetsUp
                                 onClick={() => setActiveSection(key as AdminSection)}
                                 className={`w-full flex items-center p-3 rounded-lg text-left transition-colors ${activeSection === key ? 'bg-teal-500/10 text-teal-600 dark:text-teal-400' : 'text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-slate-700'}`}
                             >
-                                <DynamicIcon svgString={appAssets[icon]} className="h-5 w-5 mr-3" />
+                                <DynamicAsset asset={appAssets[icon]} className="h-5 w-5 mr-3" />
                                 <span className="font-semibold">{name}</span>
                             </button>
                         ))}
