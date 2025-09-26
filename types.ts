@@ -1,3 +1,4 @@
+
 import { FC, SVGProps, ReactNode, Dispatch, SetStateAction } from 'react';
 import { Session, SupabaseClient } from 'https://esm.sh/@supabase/supabase-js@2';
 
@@ -267,13 +268,13 @@ export interface GameplayContextType {
   handleCardClick: (card: TestCardData) => void;
   handleDuel: (opponent: LeaderboardEntry | Friend) => void;
   handleMatchFound: (battleId: string, opponent: Opponent) => void;
-  handleTestComplete: (score: number, questions: Question[], userAnswers: (number | null)[], topic?: string, testId?: string) => void;
-  handleBattleComplete: (playerScore: number, opponentScore: number, total: number, opponent: Opponent) => void;
+  handleTestComplete: (score: number, questions: Question[], userAnswers: (number | null)[], topic?: string, testId?: string) => Promise<void>;
+  handleBattleComplete: (playerScore: number, opponentScore: number, total: number, opponent: Opponent) => Promise<void>;
   handleRematch: () => void;
   handleHazardPerceptionComplete: (scores: number[], totalClips: number) => void;
   handleTopicSelect: (topic: string) => void;
   handleCaseStudySelect: (caseStudy: CaseStudy) => void;
-  handleToggleBookmark: (questionId: string) => void;
+  handleToggleBookmark: (questionId: string) => Promise<void>;
 }
 
 export interface AppContextType {

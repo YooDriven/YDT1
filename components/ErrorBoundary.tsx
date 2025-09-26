@@ -49,7 +49,9 @@ class ErrorBoundary extends Component<Props, State> {
       );
     }
 
-    return <>{this.props.children}</>;
+    // FIX: Destructure `children` from `this.props` to ensure correct access.
+    const { children } = this.props;
+    return <>{children}</>;
   }
 }
 

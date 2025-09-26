@@ -1,8 +1,10 @@
+
 import React, { Suspense, useEffect, useState } from 'react';
 import { Page } from './types';
 import Header from './components/Header';
 import LoginPage from './components/LoginPage';
-import Breadcrumbs, { type Breadcrumb } from './components/Breadcrumbs';
+import Breadcrumbs from './components/Breadcrumbs';
+import type { Breadcrumb } from './components/Breadcrumbs';
 import { createClient, SupabaseClient } from 'https://esm.sh/@supabase/supabase-js@2';
 import { QuestionsProvider } from './contexts/QuestionsContext';
 import { AppProvider, useApp } from './contexts/AppContext';

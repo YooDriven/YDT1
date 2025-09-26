@@ -1,9 +1,10 @@
+
 import React, { createContext, useContext, useState, ReactNode, useCallback } from 'react';
 import { Page, Theme, AppAssetRecord, AppContextType } from '../types';
 import { Toast } from '../components/ui';
 import { AuthProvider } from './AuthContext';
 import { SocialProvider } from './SocialContext';
-import { GameplayProvider } from './GameplayProvider';
+import { GameplayProvider } from './GameplayContext';
 import { SupabaseClient } from 'https://esm.sh/@supabase/supabase-js@2';
 
 export const AppContext = createContext<AppContextType | undefined>(undefined);

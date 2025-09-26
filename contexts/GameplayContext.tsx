@@ -1,3 +1,4 @@
+
 import React, { createContext, useContext, useState, ReactNode } from 'react';
 import { Page, Question, CaseStudy, Opponent, LeaderboardEntry, TestAttempt, Friend, GameplayContextType, TestCardData } from '../types';
 import { DAILY_GOAL_TARGET, MAX_SCORE_PER_CLIP } from '../constants';
@@ -141,12 +142,12 @@ export const GameplayProvider: React.FC<{ children: ReactNode }> = ({ children }
         }
     };
 
-    const value = {
+    const value: GameplayContextType = {
         testResult, reviewData, battleResult, hazardPerceptionResult, customTest, currentTestId, timeLimit, currentTopic, currentMode, duelOpponent, currentBattleId, selectedCaseStudy,
         handleCardClick, handleDuel, handleMatchFound, handleTestComplete, handleBattleComplete, handleRematch, handleHazardPerceptionComplete, handleTopicSelect, handleCaseStudySelect, handleToggleBookmark
     };
 
-    return <GameplayContext.Provider value={value as any}>{children}</GameplayContext.Provider>;
+    return <GameplayContext.Provider value={value}>{children}</GameplayContext.Provider>;
 };
 
 export const useGameplay = () => {

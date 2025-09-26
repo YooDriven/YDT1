@@ -53,9 +53,13 @@ const HighwayCodePage: React.FC = () => {
     }, [rules, searchTerm]);
 
     const groupedRules = useMemo(() => {
-        // FIX: Explicitly type the initial value of reduce to ensure correct type inference for groupedRules.
-        return filteredRules.reduce((acc, rule) => {
-            (acc[rule.category] = acc[rule.category] || []).push(rule);
+        // FIX: Explicitly type the accumulator in the reduce function to ensure correct type inference for `groupedRules`.
+        return filteredRules.reduce((acc: Record<string, HighwayCodeRule[]>, rule) => {
+            const category = rule.category;
+            if (!acc[category]) {
+                acc[category] = [];
+            }
+            acc[category].push(rule);
             return acc;
         }, {} as Record<string, HighwayCodeRule[]>);
     }, [filteredRules]);
@@ -77,13 +81,11 @@ const HighwayCodePage: React.FC = () => {
         );
 
         const currentRefs = categoryRefs.current;
-        // FIX: Add explicit type annotation to `el` to prevent it from being inferred as `unknown`.
         Object.values(currentRefs).forEach((el: HTMLElement | null) => {
             if (el) observer.observe(el);
         });
 
         return () => {
-            // FIX: Add explicit type annotation to `el` to prevent it from being inferred as `unknown`.
             Object.values(currentRefs).forEach((el: HTMLElement | null) => {
                 if (el) observer.unobserve(el);
             });
