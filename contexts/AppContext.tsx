@@ -41,7 +41,7 @@ const AppUIProvider: React.FC<AppProviderProps> = ({ children, supabaseClient })
         setToast({ message, type });
     };
 
-    const loadInitialAssets = useCallback(async () => {
+    const loadAssets = useCallback(async () => {
         setAssetsLoading(true);
         try {
             const { data: assetsData, error: assetsError } = await supabaseClient.from('app_assets').select('asset_key, asset_value, mime_type');
@@ -57,11 +57,6 @@ const AppUIProvider: React.FC<AppProviderProps> = ({ children, supabaseClient })
             setAssetsLoading(false);
         }
     }, [supabaseClient, showToast]);
-
-    const handleAssetsUpdate = useCallback(async () => {
-        await loadInitialAssets();
-        showToast('Assets updated successfully!');
-    }, [loadInitialAssets, showToast]);
     
     const value = {
         supabase: supabaseClient,
@@ -72,7 +67,7 @@ const AppUIProvider: React.FC<AppProviderProps> = ({ children, supabaseClient })
         animationKey,
         navigateTo,
         showToast,
-        handleAssetsUpdate,
+        loadAssets,
         assetsLoading,
     };
 

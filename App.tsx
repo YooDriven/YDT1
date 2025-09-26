@@ -110,7 +110,7 @@ const PageLoader: React.FC = () => (
 
 const MainApp: React.FC = () => {
     const { session, userProfile, markOnboardingComplete } = useAuth();
-    const { currentPage, animationKey, navigateTo, appAssets, handleAssetsUpdate } = useApp();
+    const { currentPage, animationKey, navigateTo, appAssets, loadAssets, showToast } = useApp();
 
     if (!session || !userProfile) {
         return <LoginPage appAssets={appAssets} />;
@@ -119,6 +119,11 @@ const MainApp: React.FC = () => {
     if (!userProfile.onboarding_completed) {
         return <OnboardingGuide onComplete={markOnboardingComplete} />;
     }
+    
+    const handleAdminAssetsUpdate = async () => {
+        await loadAssets();
+        showToast('Assets updated successfully!');
+    };
 
     const breadcrumbPaths: Record<Page, Breadcrumb[]> = {
         [Page.Dashboard]: [{ label: 'Dashboard' }],
@@ -167,7 +172,7 @@ const MainApp: React.FC = () => {
             case Page.CaseStudy: return <CaseStudyPage />;
             case Page.Profile: return <ProfilePage />;
             case Page.Settings: return <SettingsPage />;
-            case Page.Admin: return <AdminPage navigateTo={navigateTo} appAssets={appAssets} onAssetsUpdate={handleAssetsUpdate} />;
+            case Page.Admin: return <AdminPage navigateTo={navigateTo} appAssets={appAssets} onAssetsUpdate={handleAdminAssetsUpdate} />;
             case Page.Leaderboard: return <LeaderboardPage />;
             case Page.Friends: return <FriendsPage />;
             case Page.Achievements: return <AchievementsPage />;
@@ -191,13 +196,13 @@ const MainApp: React.FC = () => {
 
 const AppContent: React.FC = () => {
     const { loading: authLoading } = useAuth();
-    const { assetsLoading, loadInitialAssets } = useApp();
+    const { assetsLoading, loadAssets } = useApp();
 
     useEffect(() => {
         if (!authLoading) {
-            loadInitialAssets();
+            loadAssets();
         }
-    }, [authLoading, loadInitialAssets]);
+    }, [authLoading, loadAssets]);
     
     if (authLoading) {
         return <AppLoadingIndicator message="Securing connection..." />;

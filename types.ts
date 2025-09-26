@@ -199,6 +199,7 @@ export interface HighwayCodeRule {
   category: string;
 }
 
+// FIX: Add missing CaseStudy interface
 export interface CaseStudy {
   id: string;
   title: string;
@@ -234,7 +235,7 @@ export interface AuthContextType {
   userProfile: UserProfile | null;
   setUserProfile: Dispatch<SetStateAction<UserProfile | null>>;
   handleProfileUpdate: (name: string) => void;
-  markOnboardingComplete: () => void;
+  markOnboardingComplete: () => Promise<void>;
   loading: boolean;
 }
 
@@ -285,7 +286,7 @@ export interface AppContextType {
   currentPage: Page;
   animationKey: number;
   navigateTo: (page: Page) => void;
-  handleAssetsUpdate: () => void;
+  loadAssets: () => Promise<void>;
   showToast: (message: string, type?: 'success' | 'error') => void;
   assetsLoading: boolean;
 }

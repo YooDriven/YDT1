@@ -54,7 +54,7 @@ const HighwayCodePage: React.FC = () => {
 
     const groupedRules = useMemo(() => {
         // FIX: Explicitly type the accumulator in the reduce function to ensure correct type inference for `groupedRules`.
-        return filteredRules.reduce((acc: Record<string, HighwayCodeRule[]>, rule) => {
+        return filteredRules.reduce((acc, rule) => {
             const category = rule.category;
             if (!acc[category]) {
                 acc[category] = [];
