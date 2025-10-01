@@ -1,9 +1,10 @@
+
 import React, { useState, useEffect } from 'react';
 import { Page } from '../types';
 import { ChevronLeftIcon } from './icons';
 import { Button, Skeleton } from './ui';
 import { useApp } from '../contexts/AppContext';
-import { useAuth } from '../contexts/AuthContext';
+import { useGlobalState } from '../contexts/GlobalStateContext';
 
 interface LeaderboardPlayer {
     id: string;
@@ -16,7 +17,7 @@ const PAGE_SIZE = 20;
 
 const LeaderboardPage: React.FC = () => {
     const { navigateTo, supabase } = useApp();
-    const { userProfile } = useAuth();
+    const { userProfile } = useGlobalState();
     const currentUser = userProfile!;
 
     const [players, setPlayers] = useState<LeaderboardPlayer[]>([]);

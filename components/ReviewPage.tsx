@@ -1,13 +1,14 @@
+
 import React from 'react';
 import { Page } from '../types';
 import { ChevronLeftIcon } from './icons';
-// FIX: Replace `useAppContext` with `useApp` and `useGameplay` to get data from the correct contexts.
 import { useApp } from '../contexts/AppContext';
-import { useGameplay } from '../contexts/GameplayContext';
+import { useGlobalState } from '../contexts/GlobalStateContext';
+import AITutor from './AITutor';
 
 const ReviewPage: React.FC = () => {
   const { navigateTo } = useApp();
-  const { reviewData } = useGameplay();
+  const { reviewData } = useGlobalState();
   const { questions, userAnswers } = reviewData;
 
   return (
@@ -57,7 +58,9 @@ const ReviewPage: React.FC = () => {
                 })}
               </div>
               <div className="mt-4 pt-4 border-t border-gray-200 dark:border-slate-700">
-                 <p className="text-sm text-gray-600 dark:text-gray-400 leading-relaxed">{question.explanation}</p>
+                <h4 className="font-semibold text-base text-gray-800 dark:text-gray-200 mb-2">Explanation</h4>
+                <p className="text-base text-gray-600 dark:text-gray-400 leading-relaxed">{question.explanation}</p>
+                <AITutor question={question} />
               </div>
             </div>
           );

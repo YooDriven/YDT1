@@ -1,11 +1,11 @@
+
 import React, { useState, useRef, useEffect, memo } from 'react';
 import { Page, Notification } from '../types';
 import DynamicAsset from './DynamicAsset';
 import ThemeToggle from './ThemeToggle';
 import { useOnlineStatus } from '../hooks/useOnlineStatus';
-import { useAuth } from '../contexts/AuthContext';
 import { useApp } from '../contexts/AppContext';
-import { useSocial } from '../contexts/SocialContext';
+import { useGlobalState } from '../contexts/GlobalStateContext';
 import { Button } from './ui';
 
 const NotificationPanel: React.FC<{
@@ -47,9 +47,8 @@ const NotificationPanel: React.FC<{
 
 
 const Header: React.FC = () => {
-    const { userProfile } = useAuth();
+    const { userProfile, notifications, acceptFriendRequest, declineFriendRequest, markNotificationAsRead, acceptChallenge } = useGlobalState();
     const { navigateTo, theme, setTheme, appAssets, showToast, supabase } = useApp();
-    const { notifications, acceptFriendRequest, declineFriendRequest, markNotificationAsRead, acceptChallenge } = useSocial();
 
     const [isMenuOpen, setIsMenuOpen] = useState(false);
     const [isNotifOpen, setIsNotifOpen] = useState(false);

@@ -1,13 +1,13 @@
+
 import React, { useState, useEffect } from 'react';
 import { Page, CaseStudy } from '../types';
 import { ChevronLeftIcon } from './icons';
-// FIX: Replace `useAppContext` with `useApp` and `useGameplay` to get data from the correct contexts.
 import { useApp } from '../contexts/AppContext';
-import { useGameplay } from '../contexts/GameplayContext';
+import { useGlobalState } from '../contexts/GlobalStateContext';
 
 const CaseStudySelectionPage: React.FC = () => {
     const { navigateTo, supabase } = useApp();
-    const { handleCaseStudySelect } = useGameplay();
+    const { handleCaseStudySelect } = useGlobalState();
     const [caseStudies, setCaseStudies] = useState<CaseStudy[]>([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);

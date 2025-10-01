@@ -1,10 +1,10 @@
+
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { Page, Question, ChatMessage, Opponent } from '../types';
 import { OPPONENT_CHAT_MESSAGES } from '../constants';
 import { useQuestions } from '../contexts/QuestionsContext';
 import { RealtimeChannel } from 'https://esm.sh/@supabase/supabase-js@2';
-import { useAuth } from '../contexts/AuthContext';
-import { useGameplay } from '../contexts/GameplayContext';
+import { useGlobalState } from '../contexts/GlobalStateContext';
 import { useApp } from '../contexts/AppContext';
 
 const getBotAnswer = (question: Question): number => {
@@ -47,8 +47,7 @@ const AnimatedScore: React.FC<{ score: number; isAnimating: boolean }> = ({ scor
 };
 
 const BattleGroundPage: React.FC = () => {
-    const { userProfile } = useAuth();
-    const { onBattleComplete, currentBattleId, duelOpponent } = useGameplay();
+    const { userProfile, handleBattleComplete, currentBattleId, duelOpponent } = useGlobalState();
     const { supabase } = useApp();
     
     const user = userProfile!;
@@ -100,10 +99,10 @@ const BattleGroundPage: React.FC = () => {
                 addOpponentMessage(finalMessage, 500);
             }
             setTimeout(() => {
-                onBattleComplete(playerScore, opponentScore, questions.length, opponentDetails);
+                handleBattleComplete(playerScore, opponentScore, questions.length, opponentDetails);
             }, 2000);
         }
-    }, [currentQuestionIndex, questions.length, onBattleComplete, playerScore, opponentScore, opponentDetails, addOpponentMessage, getRandomMessage, opponent.isBot]);
+    }, [currentQuestionIndex, questions.length, handleBattleComplete, playerScore, opponentScore, opponentDetails, addOpponentMessage, getRandomMessage, opponent.isBot]);
 
     useEffect(() => {
         setOpponentDetails(opponent);
@@ -128,7 +127,7 @@ const BattleGroundPage: React.FC = () => {
              channel.on('presence', { event: 'leave' }, ({ leftPresences }) => {
                  const opponentLeft = leftPresences.some(p => p.user_id === opponent.id);
                  if (opponentLeft) {
-                    onBattleComplete(playerScore, opponentScore, questions.length, { ...opponentDetails, name: `${opponentDetails.name} (Forfeited)` });
+                    handleBattleComplete(playerScore, opponentScore, questions.length, { ...opponentDetails, name: `${opponentDetails.name} (Forfeited)` });
                  }
              });
 
@@ -166,7 +165,7 @@ const BattleGroundPage: React.FC = () => {
                 channelRef.current = null;
             }
         };
-    }, [allQuestions, questionsLoading, opponent, battleId, user, isHost, supabase, onBattleComplete, playerScore, opponentScore, opponentDetails, addOpponentMessage, getRandomMessage]);
+    }, [allQuestions, questionsLoading, opponent, battleId, user, isHost, supabase, handleBattleComplete, playerScore, opponentScore, opponentDetails, addOpponentMessage, getRandomMessage]);
 
     const handlePlayerAnswer = (index: number) => {
         if (playerAnswer !== null) return;

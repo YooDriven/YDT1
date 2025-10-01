@@ -1,15 +1,15 @@
+
 import React from 'react';
 import { Page } from '../types';
 import { STUDY_CARDS } from '../constants';
 import TestCard from './TestCard';
 import { ChevronLeftIcon } from './icons';
-// FIX: Replace `useAppContext` with `useApp` and `useGameplay` to get data from the correct contexts.
 import { useApp } from '../contexts/AppContext';
-import { useGameplay } from '../contexts/GameplayContext';
+import { useGlobalState } from '../contexts/GlobalStateContext';
 
 const StudyHubPage: React.FC = () => {
   const { navigateTo, appAssets } = useApp();
-  const { handleCardClick } = useGameplay();
+  const { handleCardClick } = useGlobalState();
 
   return (
     <div className="p-4 sm:p-6 lg:p-8 max-w-4xl mx-auto">

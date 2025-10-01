@@ -1,14 +1,14 @@
+
 import React, { useMemo } from 'react';
 import { Page } from '../types';
 import { ChevronLeftIcon } from './icons';
 import { useQuestions } from '../contexts/QuestionsContext';
-// FIX: Replace `useAppContext` with `useApp` and `useGameplay` to get data from the correct contexts.
 import { useApp } from '../contexts/AppContext';
-import { useGameplay } from '../contexts/GameplayContext';
+import { useGlobalState } from '../contexts/GlobalStateContext';
 
 const TopicSelectionPage: React.FC = () => {
     const { navigateTo } = useApp();
-    const { handleTopicSelect, currentMode } = useGameplay();
+    const { handleTopicSelect, currentMode } = useGlobalState();
     const { questions: allQuestions, loading } = useQuestions();
     const title = currentMode === 'test' ? 'Topic Tests' : 'Study Mode';
     const description = currentMode === 'test' 

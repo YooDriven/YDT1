@@ -1,6 +1,8 @@
 
 import { FC, SVGProps, ReactNode, Dispatch, SetStateAction } from 'react';
+// FIX: Export Session type to be available for other modules.
 import { Session, SupabaseClient } from 'https://esm.sh/@supabase/supabase-js@2';
+export type { Session };
 
 export type Theme = 'light' | 'dark';
 
@@ -228,56 +230,6 @@ export interface TopicPopularityData {
     count: number;
 }
 
-
-// New Context Types
-export interface AuthContextType {
-  session: Session | null;
-  userProfile: UserProfile | null;
-  setUserProfile: Dispatch<SetStateAction<UserProfile | null>>;
-  handleProfileUpdate: (name: string) => void;
-  markOnboardingComplete: () => Promise<void>;
-  loading: boolean;
-}
-
-export interface SocialContextType {
-  friends: Friend[];
-  notifications: Notification[];
-  achievements: Achievement[];
-  sendFriendRequest: (userId: string) => Promise<void>;
-  acceptFriendRequest: (userId: string) => Promise<void>;
-  declineFriendRequest: (userId: string) => Promise<void>;
-  removeFriend: (userId: string) => Promise<void>;
-  markNotificationAsRead: (id: string) => Promise<void>;
-  grantAchievement: (achievementId: AchievementId) => Promise<void>;
-  sendChallenge: (friendId: string) => Promise<void>;
-  acceptChallenge: (notification: Notification) => Promise<void>;
-}
-
-export interface GameplayContextType {
-  testResult: { score: number; total: number };
-  reviewData: { questions: Question[]; userAnswers: (number | null)[] };
-  battleResult: { playerScore: number, opponentScore: number, total: number, opponentName: string };
-  hazardPerceptionResult: { scores: number[]; totalScore: number; maxScore: number };
-  customTest: Question[] | null;
-  currentTestId?: string;
-  timeLimit?: number;
-  currentTopic?: string;
-  currentMode: 'test' | 'study';
-  duelOpponent: Opponent | null;
-  currentBattleId: string | null;
-  selectedCaseStudy: CaseStudy | null;
-  handleCardClick: (card: TestCardData) => void;
-  handleDuel: (opponent: LeaderboardEntry | Friend) => void;
-  handleMatchFound: (battleId: string, opponent: Opponent) => void;
-  handleTestComplete: (score: number, questions: Question[], userAnswers: (number | null)[], topic?: string, testId?: string) => Promise<void>;
-  handleBattleComplete: (playerScore: number, opponentScore: number, total: number, opponent: Opponent) => Promise<void>;
-  handleRematch: () => void;
-  handleHazardPerceptionComplete: (scores: number[], totalClips: number) => void;
-  handleTopicSelect: (topic: string) => void;
-  handleCaseStudySelect: (caseStudy: CaseStudy) => void;
-  handleToggleBookmark: (questionId: string) => Promise<void>;
-}
-
 export interface AppContextType {
   supabase: SupabaseClient;
   theme: Theme;
@@ -289,4 +241,49 @@ export interface AppContextType {
   loadAssets: () => Promise<void>;
   showToast: (message: string, type?: 'success' | 'error') => void;
   assetsLoading: boolean;
+}
+
+// New Global State Types
+export interface GlobalState {
+  loading: boolean;
+  session: Session | null;
+  userProfile: UserProfile | null;
+  friends: Friend[];
+  notifications: Notification[];
+  achievements: Achievement[];
+  testResult: { score: number; total: number };
+  reviewData: { questions: Question[]; userAnswers: (number | null)[] };
+  battleResult: { playerScore: number; opponentScore: number; total: number; opponentName: string };
+  hazardPerceptionResult: { scores: number[]; totalScore: number; maxScore: number };
+  customTest: Question[] | null;
+  currentTestId?: string;
+  timeLimit?: number;
+  currentTopic?: string;
+  currentMode: 'test' | 'study';
+  duelOpponent: Opponent | null;
+  currentBattleId: string | null;
+  selectedCaseStudy: CaseStudy | null;
+}
+
+export interface GlobalContextType extends GlobalState {
+  // Methods
+  handleCardClick: (card: TestCardData) => void;
+  handleDuel: (opponent: LeaderboardEntry | Friend) => void;
+  handleMatchFound: (battleId: string, opponent: Opponent) => void;
+  handleTestComplete: (score: number, questions: Question[], userAnswers: (number | null)[], topic?: string, testId?: string) => Promise<void>;
+  handleBattleComplete: (playerScore: number, opponentScore: number, total: number, opponent: Opponent) => Promise<void>;
+  handleRematch: () => void;
+  handleHazardPerceptionComplete: (scores: number[], totalClips: number) => void;
+  handleTopicSelect: (topic: string) => void;
+  handleCaseStudySelect: (caseStudy: CaseStudy) => void;
+  handleToggleBookmark: (questionId: string) => Promise<void>;
+  markOnboardingComplete: () => Promise<void>;
+  handleProfileUpdate: (name: string) => void;
+  sendFriendRequest: (userId: string) => Promise<void>;
+  acceptFriendRequest: (userId: string) => Promise<void>;
+  declineFriendRequest: (userId: string) => Promise<void>;
+  removeFriend: (userId: string) => Promise<void>;
+  markNotificationAsRead: (id: string) => Promise<void>;
+  sendChallenge: (friendId: string) => Promise<void>;
+  acceptChallenge: (notification: Notification) => Promise<void>;
 }

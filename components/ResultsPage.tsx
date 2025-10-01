@@ -1,10 +1,11 @@
+
 import React from 'react';
 import { Page } from '../types';
 import { PASS_PERCENTAGE } from '../constants';
 import { XMarkIcon, ShareIcon } from './icons';
 import { Button } from './ui';
 import { useApp } from '../contexts/AppContext';
-import { useGameplay } from '../contexts/GameplayContext';
+import { useGlobalState } from '../contexts/GlobalStateContext';
 
 const CircularProgress: React.FC<{ percentage: number; passed: boolean; score: number; totalQuestions: number; }> = ({ percentage, passed, score, totalQuestions }) => {
   const radius = 50;
@@ -51,7 +52,7 @@ const CircularProgress: React.FC<{ percentage: number; passed: boolean; score: n
 
 const ResultsPage: React.FC = () => {
   const { navigateTo } = useApp();
-  const { testResult } = useGameplay();
+  const { testResult } = useGlobalState();
   const { score, total: totalQuestions } = testResult;
 
   const percentage = totalQuestions > 0 ? Math.round((score / totalQuestions) * 100) : 0;

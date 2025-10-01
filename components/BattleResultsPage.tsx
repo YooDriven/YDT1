@@ -1,12 +1,13 @@
+
 import React from 'react';
 import { Page } from '../types';
 import { Button } from './ui';
 import { useApp } from '../contexts/AppContext';
-import { useGameplay } from '../contexts/GameplayContext';
+import { useGlobalState } from '../contexts/GlobalStateContext';
 
 const BattleResultsPage: React.FC = () => {
   const { navigateTo } = useApp();
-  const { battleResult, handleRematch } = useGameplay();
+  const { battleResult, handleRematch } = useGlobalState();
   const { playerScore, opponentScore, total, opponentName } = battleResult;
 
   const getResult = () => {

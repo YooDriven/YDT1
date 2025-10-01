@@ -1,16 +1,15 @@
+
 import React, { useEffect, useState, useRef } from 'react';
 import { Page, Opponent } from '../types';
 import { RealtimeChannel } from 'https://esm.sh/@supabase/supabase-js@2';
 import { useApp } from '../contexts/AppContext';
-import { useAuth } from '../contexts/AuthContext';
-import { useGameplay } from '../contexts/GameplayContext';
+import { useGlobalState } from '../contexts/GlobalStateContext';
 
 const opponentNames = ["RoadRunner", "DriftKing", "CaptainClutch", "SpeedyGonzales"];
 
 const MatchmakingPage: React.FC = () => {
     const { navigateTo, supabase } = useApp();
-    const { userProfile } = useAuth();
-    const { handleMatchFound } = useGameplay();
+    const { userProfile, handleMatchFound } = useGlobalState();
     const user = userProfile!;
 
     const [statusText, setStatusText] = useState("Connecting to lobby...");

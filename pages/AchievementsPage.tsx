@@ -1,13 +1,14 @@
+
 import React from 'react';
 import { Page } from '../types';
 import { ChevronLeftIcon } from '../components/icons';
 import { useApp } from '../contexts/AppContext';
-import { useSocial } from '../contexts/SocialContext';
+import { useGlobalState } from '../contexts/GlobalStateContext';
 import DynamicAsset from '../components/DynamicAsset';
 
 const AchievementsPage: React.FC = () => {
     const { navigateTo, appAssets } = useApp();
-    const { achievements } = useSocial();
+    const { achievements } = useGlobalState();
 
     return (
         <div className="p-4 sm:p-6 lg:p-8 max-w-4xl mx-auto">

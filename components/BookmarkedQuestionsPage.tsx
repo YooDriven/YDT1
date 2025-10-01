@@ -1,18 +1,15 @@
+
 import React, { useMemo } from 'react';
 import { Page } from '../types';
 import { ChevronLeftIcon, BookmarkIcon, FlagIcon } from './icons';
 import { useQuestions } from '../contexts/QuestionsContext';
-// FIX: Replace `useAppContext` with `useApp`, `useAuth`, and `useGameplay` to get data from the correct contexts.
 import { useApp } from '../contexts/AppContext';
-import { useAuth } from '../contexts/AuthContext';
-import { useGameplay } from '../contexts/GameplayContext';
+import { useGlobalState } from '../contexts/GlobalStateContext';
 
 const BookmarkedQuestionsPage: React.FC = () => {
     const { navigateTo } = useApp();
-    const { userProfile } = useAuth();
-    const { handleToggleBookmark } = useGameplay();
+    const { userProfile, handleToggleBookmark } = useGlobalState();
     const bookmarkedQuestions = userProfile?.bookmarkedQuestions || [];
-    const onToggleBookmark = handleToggleBookmark;
     
     const { questions: allQuestions, loading } = useQuestions();
 
@@ -44,7 +41,7 @@ const BookmarkedQuestionsPage: React.FC = () => {
                                     {index + 1}. {question.question}
                                 </h3>
                                 <button
-                                    onClick={() => onToggleBookmark(question.id)}
+                                    onClick={() => handleToggleBookmark(question.id)}
                                     className="text-yellow-500 hover:text-yellow-600 ml-4"
                                     aria-label="Remove bookmark"
                                 >

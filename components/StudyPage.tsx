@@ -2,13 +2,13 @@ import React, { useState, useMemo } from 'react';
 import { Page } from '../types';
 import { ChevronLeftIcon } from './icons';
 import { useQuestions } from '../contexts/QuestionsContext';
-// FIX: Replace `useAppContext` with `useApp` and `useGameplay` to get data from the correct contexts.
+// FIX: Replace `useGameplay` with `useGlobalState` to get data from the correct context.
 import { useApp } from '../contexts/AppContext';
-import { useGameplay } from '../contexts/GameplayContext';
+import { useGlobalState } from '../contexts/GlobalStateContext';
 
 const StudyPage: React.FC = () => {
     const { navigateTo } = useApp();
-    const { currentTopic } = useGameplay();
+    const { currentTopic } = useGlobalState();
     const topic = currentTopic!;
     const { questions: allQuestions, loading } = useQuestions();
     const [currentIndex, setCurrentIndex] = useState(0);

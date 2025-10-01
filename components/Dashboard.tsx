@@ -1,11 +1,11 @@
+
 import React, { useState, useEffect } from 'react';
 import StudentProfileCard from './StudentProfileCard';
 import TestCard from './TestCard';
 import { PRIMARY_TEST_CARDS } from '../constants';
 import type { LeaderboardEntry } from '../types';
-import { useAuth } from '../contexts/AuthContext';
 import { useApp } from '../contexts/AppContext';
-import { useGameplay } from '../contexts/GameplayContext';
+import { useGlobalState } from '../contexts/GlobalStateContext';
 
 const useLeaderboard = (userId: string | undefined) => {
     const { supabase } = useApp();
@@ -47,9 +47,8 @@ const useLeaderboard = (userId: string | undefined) => {
 
 
 const Dashboard: React.FC = () => {
-  const { userProfile } = useAuth();
+  const { userProfile, handleCardClick } = useGlobalState();
   const { appAssets } = useApp();
-  const { handleCardClick } = useGameplay();
   const { nationalLeaderboard, regionalLeaderboard, loading: loadingLeaderboards } = useLeaderboard(userProfile?.id);
 
   if (!userProfile) return null;

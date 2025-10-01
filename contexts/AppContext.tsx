@@ -2,9 +2,6 @@
 import React, { createContext, useContext, useState, ReactNode, useCallback } from 'react';
 import { Page, Theme, AppAssetRecord, AppContextType } from '../types';
 import { Toast } from '../components/ui';
-import { AuthProvider } from './AuthContext';
-import { SocialProvider } from './SocialContext';
-import { GameplayProvider } from './GameplayContext';
 import { SupabaseClient } from 'https://esm.sh/@supabase/supabase-js@2';
 
 export const AppContext = createContext<AppContextType | undefined>(undefined);
@@ -14,7 +11,7 @@ interface AppProviderProps {
     supabaseClient: SupabaseClient;
 }
 
-const AppUIProvider: React.FC<AppProviderProps> = ({ children, supabaseClient }) => {
+export const AppProvider: React.FC<AppProviderProps> = ({ children, supabaseClient }) => {
     const [theme, setThemeState] = useState<Theme>(() => (document.documentElement.classList.contains('dark') ? 'dark' : 'light'));
     const [appAssets, setAppAssets] = useState<AppAssetRecord>({});
     const [currentPage, setCurrentPage] = useState<Page>(Page.Dashboard);
@@ -32,14 +29,14 @@ const AppUIProvider: React.FC<AppProviderProps> = ({ children, supabaseClient })
         localStorage.setItem('theme', newTheme);
     };
 
-    const navigateTo = (page: Page) => {
+    const navigateTo = useCallback((page: Page) => {
         setAnimationKey(prev => prev + 1);
         setCurrentPage(page);
-    };
+    }, []);
     
-    const showToast = (message: string, type: 'success' | 'error' = 'success') => {
+    const showToast = useCallback((message: string, type: 'success' | 'error' = 'success') => {
         setToast({ message, type });
-    };
+    }, []);
 
     const loadAssets = useCallback(async () => {
         setAssetsLoading(true);
@@ -76,20 +73,6 @@ const AppUIProvider: React.FC<AppProviderProps> = ({ children, supabaseClient })
             {children}
             {toast && <Toast message={toast.message} type={toast.type} onDismiss={() => setToast(null)} />}
         </AppContext.Provider>
-    );
-};
-
-export const AppProvider: React.FC<AppProviderProps> = ({ children, supabaseClient }) => {
-    return (
-        <AppUIProvider supabaseClient={supabaseClient}>
-            <AuthProvider>
-                <SocialProvider>
-                    <GameplayProvider>
-                        {children}
-                    </GameplayProvider>
-                </SocialProvider>
-            </AuthProvider>
-        </AppUIProvider>
     );
 };
 

@@ -1,13 +1,14 @@
+
 import React, { useMemo } from 'react';
 import { Page } from '../types';
 import { ChevronLeftIcon } from '../components/icons';
 import { useApp } from '../contexts/AppContext';
-import { useAuth } from '../contexts/AuthContext';
+import { useGlobalState } from '../contexts/GlobalStateContext';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, BarChart, Bar } from 'recharts';
 
 const StatisticsPage: React.FC = () => {
     const { navigateTo } = useApp();
-    const { userProfile } = useAuth();
+    const { userProfile } = useGlobalState();
 
     const testHistory = userProfile?.testHistory || [];
 

@@ -1,14 +1,14 @@
+
 import React, { useState } from 'react';
 import { Page, Theme } from '../types';
 import { ChevronLeftIcon, SunIcon, MoonIcon } from './icons';
 import { Button, Input, Label } from './ui';
-// FIX: Replace `useAppContext` with `useApp` and `useAuth` to get data from the correct contexts.
 import { useApp } from '../contexts/AppContext';
-import { useAuth } from '../contexts/AuthContext';
+import { useGlobalState } from '../contexts/GlobalStateContext';
 
 const SettingsPage: React.FC = () => {
     const { navigateTo, theme, setTheme, supabase } = useApp();
-    const { userProfile, session, handleProfileUpdate } = useAuth();
+    const { userProfile, handleProfileUpdate } = useGlobalState();
     const user = userProfile!;
 
     const [name, setName] = useState(user.name);

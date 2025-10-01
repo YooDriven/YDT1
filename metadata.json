@@ -1,4 +1,5 @@
 {
   "name": "DriveTheory Pro",
-  "description": "A gamified driving theory application designed to make learning engaging and effective. It features various test modes, interactive challenges, and progress tracking to help users prepare for their official driving theory test."
+  "description": "A gamified driving theory application designed to make learning engaging and effective. It features various test modes, interactive challenges, and progress tracking to help users prepare for their official driving theory test.",
+  "requestFramePermissions": []
 }

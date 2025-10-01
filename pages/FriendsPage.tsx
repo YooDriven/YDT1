@@ -1,18 +1,15 @@
+
 import React, { useState, useMemo } from 'react';
 import { Page } from '../types';
 import { ChevronLeftIcon } from '../components/icons';
 import { useDebounce } from '../hooks/useDebounce';
 import { Button, Input, Skeleton } from '../components/ui';
 import { useApp } from '../contexts/AppContext';
-import { useAuth } from '../contexts/AuthContext';
-import { useSocial } from '../contexts/SocialContext';
-import { useGameplay } from '../contexts/GameplayContext';
+import { useGlobalState } from '../contexts/GlobalStateContext';
 
 const FriendsPage: React.FC = () => {
     const { navigateTo, supabase } = useApp();
-    const { userProfile } = useAuth();
-    const { friends, acceptFriendRequest, declineFriendRequest, removeFriend, sendFriendRequest, sendChallenge } = useSocial();
-    const { handleDuel } = useGameplay();
+    const { userProfile, friends, acceptFriendRequest, declineFriendRequest, removeFriend, sendFriendRequest, sendChallenge, handleDuel } = useGlobalState();
     
     const [activeTab, setActiveTab] = useState<'friends' | 'pending' | 'add'>('friends');
     const [searchTerm, setSearchTerm] = useState('');

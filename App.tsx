@@ -8,9 +8,7 @@ import type { Breadcrumb } from './components/Breadcrumbs';
 import { createClient, SupabaseClient } from 'https://esm.sh/@supabase/supabase-js@2';
 import { QuestionsProvider } from './contexts/QuestionsContext';
 import { AppProvider, useApp } from './contexts/AppContext';
-import { AuthProvider, useAuth } from './contexts/AuthContext';
-import { SocialProvider } from './contexts/SocialContext';
-import { GameplayProvider } from './contexts/GameplayContext';
+import { GlobalStateProvider, useGlobalState } from './contexts/GlobalStateContext';
 import ErrorBoundary from './components/ErrorBoundary';
 import OnboardingGuide from './components/OnboardingGuide';
 import { Button, Input } from './components/ui';
@@ -109,7 +107,7 @@ const PageLoader: React.FC = () => (
 );
 
 const MainApp: React.FC = () => {
-    const { session, userProfile, markOnboardingComplete } = useAuth();
+    const { session, userProfile, markOnboardingComplete } = useGlobalState();
     const { currentPage, animationKey, navigateTo, appAssets, loadAssets, showToast } = useApp();
 
     if (!session || !userProfile) {
@@ -195,17 +193,15 @@ const MainApp: React.FC = () => {
 };
 
 const AppContent: React.FC = () => {
-    const { loading: authLoading } = useAuth();
+    const { loading: globalLoading } = useGlobalState();
     const { assetsLoading, loadAssets } = useApp();
 
     useEffect(() => {
-        if (!authLoading) {
-            loadAssets();
-        }
-    }, [authLoading, loadAssets]);
+        loadAssets();
+    }, [loadAssets]);
     
-    if (authLoading) {
-        return <AppLoadingIndicator message="Securing connection..." />;
+    if (globalLoading) {
+        return <AppLoadingIndicator message="Loading your profile..." />;
     }
 
     if (assetsLoading) {
@@ -282,7 +278,9 @@ const App: React.FC = () => {
     <ErrorBoundary>
         <AppProvider supabaseClient={supabaseClient}>
             <QuestionsProvider>
-                <AppContent />
+                <GlobalStateProvider>
+                    <AppContent />
+                </GlobalStateProvider>
             </QuestionsProvider>
         </AppProvider>
     </ErrorBoundary>

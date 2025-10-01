@@ -1,12 +1,13 @@
+
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { HazardPerceptionClip } from '../types';
 import { MAX_SCORE_PER_CLIP } from '../constants';
 import Tooltip from './Tooltip';
-import { useGameplay } from '../contexts/GameplayContext';
+import { useGlobalState } from '../contexts/GlobalStateContext';
 import { useApp } from '../contexts/AppContext';
 
 const HazardPerceptionPage: React.FC = () => {
-  const { handleHazardPerceptionComplete } = useGameplay();
+  const { handleHazardPerceptionComplete } = useGlobalState();
   const { supabase } = useApp();
   const [clips, setClips] = useState<HazardPerceptionClip[]>([]);
   const [loading, setLoading] = useState(true);

@@ -1,12 +1,11 @@
+
 import React, { memo } from 'react';
 import { LeaderboardEntry, Page } from '../types';
 import PerformanceChart from './PerformanceChart';
 import DynamicAsset from './DynamicAsset';
 import { Button, Skeleton } from './ui';
-import { useAuth } from '../contexts/AuthContext';
-// FIX: Replace `useAppContext` with the correct `useApp` hook.
 import { useApp } from '../contexts/AppContext';
-import { useGameplay } from '../contexts/GameplayContext';
+import { useGlobalState } from '../contexts/GlobalStateContext';
 
 interface StudentProfileCardProps {
   loading: boolean;
@@ -15,9 +14,8 @@ interface StudentProfileCardProps {
 }
 
 const StudentProfileCard: React.FC<StudentProfileCardProps> = ({ loading, nationalLeaderboard, regionalLeaderboard }) => {
-  const { userProfile: user } = useAuth();
+  const { userProfile: user, handleDuel } = useGlobalState();
   const { navigateTo, appAssets } = useApp();
-  const { handleDuel } = useGameplay();
   
   if (loading || !user) {
     return (

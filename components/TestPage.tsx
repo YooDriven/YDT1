@@ -1,23 +1,15 @@
+
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { Page, Question } from '../types';
 import { ChevronLeftIcon, FlagIcon } from './icons';
 import { useQuestions } from '../contexts/QuestionsContext';
 import { getDailyChallengeQuestions } from '../utils';
 import { useApp } from '../contexts/AppContext';
-import { useAuth } from '../contexts/AuthContext';
-import { useGameplay } from '../contexts/GameplayContext';
+import { useGlobalState } from '../contexts/GlobalStateContext';
 
 const TestPage: React.FC = () => {
     const { navigateTo } = useApp();
-    const { userProfile } = useAuth();
-    const {
-        handleTestComplete,
-        customTest,
-        currentTestId,
-        timeLimit = 3570,
-        currentTopic,
-        handleToggleBookmark
-    } = useGameplay();
+    const { userProfile, handleTestComplete, customTest, currentTestId, timeLimit = 3570, currentTopic, handleToggleBookmark } = useGlobalState();
     
     const totalQuestions = customTest ? customTest.length : 50;
     const bookmarkedQuestions = userProfile?.bookmarkedQuestions || [];
