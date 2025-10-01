@@ -4,7 +4,6 @@ import { Page } from '../types';
 import { ChevronLeftIcon } from './icons';
 import { useApp } from '../contexts/AppContext';
 import { useGlobalState } from '../contexts/GlobalStateContext';
-import AITutor from './AITutor';
 
 const ReviewPage: React.FC = () => {
   const { navigateTo } = useApp();
@@ -60,7 +59,6 @@ const ReviewPage: React.FC = () => {
               <div className="mt-4 pt-4 border-t border-gray-200 dark:border-slate-700">
                 <h4 className="font-semibold text-base text-gray-800 dark:text-gray-200 mb-2">Explanation</h4>
                 <p className="text-base text-gray-600 dark:text-gray-400 leading-relaxed">{question.explanation}</p>
-                <AITutor question={question} />
               </div>
             </div>
           );

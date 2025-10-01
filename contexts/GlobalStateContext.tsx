@@ -159,7 +159,8 @@ export const GlobalStateProvider: React.FC<{ children: ReactNode }> = ({ childre
      useEffect(() => {
         if (state.userProfile) {
             const unlockedSet = new Set(state.userProfile.unlocked_achievements || []);
-            const allAchievements = ACHIEVEMENTS.map(ach => ({
+            // FIX: Explicitly type `allAchievements` to ensure `status` is of type `AchievementStatus`, not `string`.
+            const allAchievements: Achievement[] = ACHIEVEMENTS.map(ach => ({
                 ...ach,
                 status: unlockedSet.has(ach.id) ? 'unlocked' : 'locked',
             }));

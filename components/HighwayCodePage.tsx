@@ -53,7 +53,8 @@ const HighwayCodePage: React.FC = () => {
     }, [rules, searchTerm]);
 
     const groupedRules = useMemo(() => {
-        // FIX: Add a type assertion to the initial value of reduce to ensure correct type inference for `groupedRules`.
+        // By typing the initial value for `reduce`, we ensure TypeScript correctly infers
+        // the type of the resulting `groupedRules` object.
         return filteredRules.reduce((acc, rule) => {
             const category = rule.category;
             if (!acc[category]) {
