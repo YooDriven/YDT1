@@ -2,7 +2,6 @@ import React, { useState, useMemo } from 'react';
 import { Page } from '../types';
 import { ChevronLeftIcon } from './icons';
 import { useQuestions } from '../contexts/QuestionsContext';
-// FIX: Replace `useGameplay` with `useGlobalState` to get data from the correct context.
 import { useApp } from '../contexts/AppContext';
 import { useGlobalState } from '../contexts/GlobalStateContext';
 
@@ -96,14 +95,14 @@ const StudyPage: React.FC = () => {
                     <button
                         onClick={() => setCurrentIndex(i => Math.max(0, i - 1))}
                         disabled={currentIndex === 0}
-                        className="bg-white dark:bg-slate-800 text-[#008485] font-semibold py-3 px-6 rounded-lg border-2 border-[#008485] hover:bg-gray-50 dark:hover:bg-slate-700 transition-colors disabled:opacity-50"
+                        className="bg-white dark:bg-slate-800 text-teal-600 font-semibold py-3 px-6 rounded-lg border-2 border-teal-600 hover:bg-gray-50 dark:hover:bg-slate-700 transition-colors disabled:opacity-50"
                     >
                         Previous
                     </button>
                     <button
                         onClick={() => setCurrentIndex(i => Math.min(topicQuestions.length - 1, i + 1))}
                         disabled={currentIndex === topicQuestions.length - 1}
-                        className="bg-[#008485] text-white font-semibold py-3 px-6 rounded-lg hover:bg-[#007374] transition-colors disabled:opacity-50"
+                        className="bg-teal-600 text-white font-semibold py-3 px-6 rounded-lg hover:bg-teal-700 transition-colors disabled:opacity-50"
                     >
                         Next
                     </button>

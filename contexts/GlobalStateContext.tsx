@@ -1,6 +1,6 @@
 
 import React, { createContext, useContext, useReducer, useEffect, useCallback, ReactNode, useState } from 'react';
-import { GlobalState, GlobalContextType, Page, Session, UserProfile, Friend, Notification, Achievement, Question, TestAttempt, CaseStudy, Opponent, TestCardData, LeaderboardEntry, AchievementId } from '../types';
+import { GlobalState, GlobalContextType, Page, Session, UserProfile, Friend, Notification, Achievement, Question, TestAttempt, CaseStudy, Opponent, TestCardData, LeaderboardEntry, AchievementId, AchievementStatus } from '../types';
 import { DAILY_GOAL_TARGET, ACHIEVEMENTS, MAX_SCORE_PER_CLIP } from '../constants';
 import { useApp } from './AppContext';
 
@@ -159,10 +159,9 @@ export const GlobalStateProvider: React.FC<{ children: ReactNode }> = ({ childre
      useEffect(() => {
         if (state.userProfile) {
             const unlockedSet = new Set(state.userProfile.unlocked_achievements || []);
-            // FIX: Explicitly type `allAchievements` to ensure `status` is of type `AchievementStatus`, not `string`.
             const allAchievements: Achievement[] = ACHIEVEMENTS.map(ach => ({
                 ...ach,
-                status: unlockedSet.has(ach.id) ? 'unlocked' : 'locked',
+                status: (unlockedSet.has(ach.id) ? 'unlocked' : 'locked') as AchievementStatus,
             }));
             dispatch({ type: 'SET_GAMEPLAY_STATE', payload: { achievements: allAchievements }});
         }

@@ -282,10 +282,8 @@ const CategoryManager: React.FC<{ showToast: (msg: string, type?: 'success' | 'e
         try {
             const { data, error } = await supabase.from('questions').select('category');
             if (error) throw error;
-
-            // FIX: Explicitly type the accumulator and initial value of the reduce function.
-            // This ensures that `categoryCounts` is correctly typed as `Record<string, number>`,
-            // which in turn allows TypeScript to correctly infer `count` as a `number` later on.
+            
+            // FIX: Explicitly type the accumulator and item in the `reduce` function to ensure `count` is a `number`.
             const categoryCounts = (data || []).reduce((acc: Record<string, number>, q: { category: string | null }) => {
                 const cat = q.category || 'Uncategorized';
                 acc[cat] = (acc[cat] || 0) + 1;
@@ -293,8 +291,7 @@ const CategoryManager: React.FC<{ showToast: (msg: string, type?: 'success' | 'e
             }, {} as Record<string, number>);
 
             const categoriesData = Object.entries(categoryCounts)
-                // FIX: Cast `count` to a number, as Object.entries may not infer the type correctly.
-                .map(([name, count]) => ({ name, count: count as number }))
+                .map(([name, count]) => ({ name, count }))
                 .sort((a, b) => a.name.localeCompare(b.name));
 
             setCategories(categoriesData);

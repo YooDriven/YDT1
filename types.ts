@@ -1,6 +1,5 @@
 
 import { FC, SVGProps, ReactNode, Dispatch, SetStateAction } from 'react';
-// FIX: Export Session type to be available for other modules.
 import { Session, SupabaseClient } from 'https://esm.sh/@supabase/supabase-js@2';
 export type { Session };
 
@@ -202,7 +201,6 @@ export interface HighwayCodeRule {
   category: string;
 }
 
-// FIX: Add missing CaseStudy interface
 export interface CaseStudy {
   id: string;
   title: string;

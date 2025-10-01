@@ -5,7 +5,6 @@ import DynamicAsset from './DynamicAsset';
 import { useDebounce } from '../hooks/useDebounce';
 import useLocalStorage from '../hooks/useLocalStorage';
 import { Input, Skeleton } from './ui';
-// FIX: Replace `useAppContext` with the correct `useApp` hook.
 import { useApp } from '../contexts/AppContext';
 
 const useRoadSigns = () => {
