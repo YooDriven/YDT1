@@ -293,7 +293,8 @@ const CategoryManager: React.FC<{ showToast: (msg: string, type?: 'success' | 'e
             }, {} as Record<string, number>);
 
             const categoriesData = Object.entries(categoryCounts)
-                .map(([name, count]) => ({ name, count }))
+                // FIX: Cast `count` to a number, as Object.entries may not infer the type correctly.
+                .map(([name, count]) => ({ name, count: count as number }))
                 .sort((a, b) => a.name.localeCompare(b.name));
 
             setCategories(categoriesData);

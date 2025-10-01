@@ -15,8 +15,10 @@ import OnboardingGuide from './components/OnboardingGuide';
 // --- Singleton Client Creation ---
 // This is the core fix. The Supabase client is created *once* when the module loads.
 // It is not part of React state, so its reference is stable and will not trigger re-renders.
-const supabaseUrl = process.env.SUPABASE_URL;
-const supabaseAnonKey = process.env.SUPABASE_ANON_KEY;
+// FIX: Check for multiple common environment variable naming conventions to make the app more resilient.
+const supabaseUrl = process.env.SUPABASE_URL ?? process.env.NEXT_PUBLIC_SUPABASE_URL ?? process.env.VITE_SUPABASE_URL ?? process.env.REACT_APP_SUPABASE_URL;
+const supabaseAnonKey = process.env.SUPABASE_ANON_KEY ?? process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ?? process.env.VITE_SUPABASE_ANON_KEY ?? process.env.REACT_APP_SUPABASE_ANON_KEY;
+
 
 let supabaseClient: SupabaseClient | null = null;
 let initError: string | null = null;
