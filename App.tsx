@@ -11,20 +11,17 @@ import { AppProvider, useApp } from './contexts/AppContext';
 import { GlobalStateProvider, useGlobalState } from './contexts/GlobalStateContext';
 import ErrorBoundary from './components/ErrorBoundary';
 import OnboardingGuide from './components/OnboardingGuide';
+import { SUPABASE_URL, SUPABASE_ANON_KEY } from './config';
 
 // --- Singleton Client Creation ---
-// This is the core fix. The Supabase client is created *once* when the module loads.
-// It is not part of React state, so its reference is stable and will not trigger re-renders.
-// FIX: Hosting providers like Vercel require a `NEXT_PUBLIC_` prefix for client-side env vars.
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
-
+const supabaseUrl = SUPABASE_URL;
+const supabaseAnonKey = SUPABASE_ANON_KEY;
 
 let supabaseClient: SupabaseClient | null = null;
 let initError: string | null = null;
 
-if (!supabaseUrl || !supabaseAnonKey) {
-  initError = "Supabase URL and Anon Key are not configured. Please set NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_ANON_KEY environment variables.";
+if (!supabaseUrl || !supabaseAnonKey || supabaseUrl.includes('YOUR_SUPABASE_URL')) {
+  initError = "Configuration is missing or incomplete. For local development, please add your keys to the `config.ts` file. For production, ensure your Vercel Build Command is set up correctly and you have re-deployed.";
 } else {
   try {
     supabaseClient = createClient(supabaseUrl, supabaseAnonKey);
