@@ -38,6 +38,7 @@ const LeaderboardPage = React.lazy(() => import('./components/LeaderboardPage'))
 const FriendsPage = React.lazy(() => import('./pages/FriendsPage'));
 const AchievementsPage = React.lazy(() => import('./pages/AchievementsPage'));
 const StatisticsPage = React.lazy(() => import('./pages/StatisticsPage'));
+const VoicePracticePage = React.lazy(() => import('./components/VoicePracticePage'));
 
 
 const SupabaseConfigPage: React.FC<{ onConfigured: (url: string, key: string) => void }> = ({ onConfigured }) => {
@@ -148,6 +149,7 @@ const MainApp: React.FC = () => {
         [Page.Friends]: [{ label: 'Dashboard', page: Page.Dashboard }, { label: 'Friends' }],
         [Page.Achievements]: [{ label: 'Dashboard', page: Page.Dashboard }, { label: 'Achievements' }],
         [Page.Statistics]: [{ label: 'Dashboard', page: Page.Dashboard }, { label: 'Statistics' }],
+        [Page.VoicePractice]: [{ label: 'Dashboard', page: Page.Dashboard }, { label: 'Study Hub', page: Page.StudyHub }, { label: 'Voice Practice' }],
     };
 
     const renderPage = () => {
@@ -175,6 +177,7 @@ const MainApp: React.FC = () => {
             case Page.Friends: return <FriendsPage />;
             case Page.Achievements: return <AchievementsPage />;
             case Page.Statistics: return <StatisticsPage />;
+            case Page.VoicePractice: return <VoicePracticePage />;
             default: return <Dashboard />;
         }
     };

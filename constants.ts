@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { Page, TestCardData, Question, RoadSignCategory, TestAttempt, LeaderboardEntry, Achievement, AchievementStatus } from './types';
 
@@ -137,6 +138,15 @@ export const STUDY_CARDS: TestCardData[] = [
     color: 'text-cyan-500',
     hoverColor: '',
     page: Page.CaseStudySelection,
+  },
+  {
+    id: 'voice-practice',
+    title: 'Voice Practice',
+    description: 'Practice questions hands-free using your voice.',
+    icon: 'icon_microphone',
+    color: 'text-rose-500',
+    hoverColor: '',
+    page: Page.VoicePractice,
   },
 ];
 

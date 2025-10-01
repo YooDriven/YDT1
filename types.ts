@@ -31,6 +31,7 @@ export enum Page {
   Friends,
   Achievements,
   Statistics,
+  VoicePractice,
 }
 
 export type AdminSection = 'content' | 'appearance';

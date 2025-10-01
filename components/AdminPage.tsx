@@ -283,8 +283,8 @@ const CategoryManager: React.FC<{ showToast: (msg: string, type?: 'success' | 'e
             const { data, error } = await supabase.from('questions').select('category');
             if (error) throw error;
 
-            // FIX: Provide a typed initial value to `reduce` to ensure the accumulator `acc` is correctly typed,
-            // preventing `count` from being inferred as `unknown` in the subsequent `map` operation.
+            // FIX: The `reduce` function's accumulator was not typed, causing `count` to be inferred as `unknown`.
+            // By explicitly typing the accumulator and initial value, we ensure correct type inference.
             const categoryCounts = (data || []).reduce((acc: Record<string, number>, q: { category: string | null }) => {
                 const cat = q.category || 'Uncategorized';
                 acc[cat] = (acc[cat] || 0) + 1;
