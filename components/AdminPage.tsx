@@ -283,12 +283,12 @@ const CategoryManager: React.FC<{ showToast: (msg: string, type?: 'success' | 'e
             const { data, error } = await supabase.from('questions').select('category');
             if (error) throw error;
             
-            // FIX: Explicitly type the accumulator and item in the `reduce` function to ensure `count` is a `number`.
+            // FIX: Explicitly type the accumulator in the `reduce` function to ensure `count` is a `number`.
             const categoryCounts = (data || []).reduce((acc: Record<string, number>, q: { category: string | null }) => {
                 const cat = q.category || 'Uncategorized';
                 acc[cat] = (acc[cat] || 0) + 1;
                 return acc;
-            }, {} as Record<string, number>);
+            }, {});
 
             const categoriesData = Object.entries(categoryCounts)
                 .map(([name, count]) => ({ name, count }))

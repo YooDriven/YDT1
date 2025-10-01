@@ -1,12 +1,15 @@
 // config.ts
 
-// --- IMPORTANT ---
-// This file is for LOCAL DEVELOPMENT only.
-// Add your Supabase keys here to run the app on your machine.
-// This file is listed in .gitignore and will NOT be committed.
+// This file sources configuration from environment variables.
+// Your build tool or deployment environment is responsible for making
+// these variables available to the client-side application.
 //
-// For PRODUCTION, these values are generated automatically by the
-// Vercel "Build Command" using your project's Environment Variables.
+// For local development, you can create a `.env` file and use a tool
+// like Vite or Create React App that supports them.
+//
+// Example .env file:
+// NEXT_PUBLIC_SUPABASE_URL=https://your-project-id.supabase.co
+// NEXT_PUBLIC_SUPABASE_ANON_KEY=your-public-anon-key
 
-export const SUPABASE_URL = 'YOUR_SUPABASE_URL'; // e.g., 'https://your-project-id.supabase.co'
-export const SUPABASE_ANON_KEY = 'YOUR_SUPABASE_ANON_KEY';
+export const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL;
+export const SUPABASE_ANON_KEY = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;

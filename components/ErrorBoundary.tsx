@@ -10,11 +10,13 @@ interface State {
 }
 
 class ErrorBoundary extends Component<Props, State> {
-  // FIX: Refactor state initialization to use a constructor for wider compatibility and explicitness.
+  public state: State;
+
   constructor(props: Props) {
     super(props);
     this.state = {
       hasError: false,
+      error: undefined,
     };
   }
 
@@ -27,9 +29,7 @@ class ErrorBoundary extends Component<Props, State> {
   }
 
   render() {
-    // FIX: Correct property access from `this.state.has` to `this.state.hasError`.
     if (this.state.hasError) {
-      // FIX: Add a return statement with a fallback UI to satisfy the `ReactNode` return type.
       return (
         <div className="flex items-center justify-center h-screen bg-slate-50 dark:bg-slate-900">
           <div className="text-center p-8 bg-white dark:bg-slate-800 rounded-lg shadow-xl">
@@ -58,5 +58,4 @@ class ErrorBoundary extends Component<Props, State> {
   }
 }
 
-// FIX: Add default export to resolve import error in App.tsx
 export default ErrorBoundary;

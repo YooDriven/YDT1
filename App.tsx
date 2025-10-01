@@ -20,8 +20,8 @@ const supabaseAnonKey = SUPABASE_ANON_KEY;
 let supabaseClient: SupabaseClient | null = null;
 let initError: string | null = null;
 
-if (!supabaseUrl || !supabaseAnonKey || supabaseUrl.includes('YOUR_SUPABASE_URL')) {
-  initError = "Configuration is missing or incomplete. For local development, please add your keys to the `config.ts` file. For production, ensure your Vercel Build Command is set up correctly and you have re-deployed.";
+if (!supabaseUrl || !supabaseAnonKey) {
+  initError = "Supabase configuration is missing. Please ensure that NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_ANON_KEY are set as environment variables. For local development, you can add them to a .env file.";
 } else {
   try {
     supabaseClient = createClient(supabaseUrl, supabaseAnonKey);

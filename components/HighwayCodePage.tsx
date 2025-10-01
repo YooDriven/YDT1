@@ -53,14 +53,17 @@ const HighwayCodePage: React.FC = () => {
     }, [rules, searchTerm]);
 
     const groupedRules = useMemo(() => {
-        return filteredRules.reduce((acc, rule) => {
+        // FIX: Explicitly typing the accumulator `acc` ensures that `groupedRules`
+        // is correctly typed, which in turn fixes the downstream error where
+        // `rulesInCategory.map` was called on a value of type `unknown`.
+        return filteredRules.reduce((acc: Record<string, HighwayCodeRule[]>, rule) => {
             const category = rule.category;
             if (!acc[category]) {
                 acc[category] = [];
             }
             acc[category].push(rule);
             return acc;
-        }, {} as Record<string, HighwayCodeRule[]>);
+        }, {});
     }, [filteredRules]);
 
     const categories = useMemo(() => [...new Set(rules.map(r => r.category))], [rules]);
