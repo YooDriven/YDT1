@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { Page, HighwayCodeRule } from '../types';
 import { ChevronLeftIcon } from './icons';
@@ -53,7 +54,7 @@ const HighwayCodePage: React.FC = () => {
     }, [rules, searchTerm]);
 
     const groupedRules = useMemo(() => {
-        return filteredRules.reduce((acc: Record<string, HighwayCodeRule[]>, rule) => {
+        return filteredRules.reduce((acc, rule) => {
             const category = rule.category;
             if (!acc[category]) {
                 acc[category] = [];

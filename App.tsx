@@ -11,17 +11,17 @@ import { AppProvider, useApp } from './contexts/AppContext';
 import { GlobalStateProvider, useGlobalState } from './contexts/GlobalStateContext';
 import ErrorBoundary from './components/ErrorBoundary';
 import OnboardingGuide from './components/OnboardingGuide';
-import { SUPABASE_URL, SUPABASE_ANON_KEY } from './config';
 
 // --- Singleton Client Creation ---
-const supabaseUrl = SUPABASE_URL;
-const supabaseAnonKey = SUPABASE_ANON_KEY;
+const supabaseUrl = (import.meta as any).env?.NEXT_PUBLIC_SUPABASE_URL;
+const supabaseAnonKey = (import.meta as any).env?.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+
 
 let supabaseClient: SupabaseClient | null = null;
 let initError: string | null = null;
 
-if (!supabaseUrl || supabaseUrl === 'YOUR_SUPABASE_URL' || !supabaseAnonKey || supabaseAnonKey === 'YOUR_SUPABASE_ANON_KEY') {
-  initError = "Supabase configuration is missing or incomplete. For local development, please add your keys to the `config.ts` file. For production, ensure your Vercel Build Command is set up correctly and you have re-deployed.";
+if (!supabaseUrl || !supabaseAnonKey) {
+  initError = "Supabase environment variables are missing. Please create a `.env.local` file in your project root and add NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_ANON_KEY.";
 } else {
   try {
     supabaseClient = createClient(supabaseUrl, supabaseAnonKey);
@@ -187,7 +187,7 @@ const App: React.FC = () => {
         <div className="max-w-md w-full bg-white dark:bg-slate-800 rounded-2xl shadow-lg border border-red-500 p-8 space-y-4 text-center">
           <h2 className="text-2xl font-bold text-red-500">Configuration Error</h2>
           <p className="text-base text-gray-600 dark:text-gray-400">{initError || "Supabase client could not be initialized."}</p>
-          <p className="text-xs text-gray-500 dark:text-gray-400">This is a developer-facing error. Ensure backend environment variables are set correctly.</p>
+          <p className="text-xs text-gray-500 dark:text-gray-400">This is a developer-facing error. Ensure your environment variables are set correctly.</p>
         </div>
       </div>
     );

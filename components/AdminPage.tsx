@@ -284,15 +284,13 @@ const CategoryManager: React.FC<{ showToast: (msg: string, type?: 'success' | 'e
             const { data, error } = await supabase.from('questions').select('category');
             if (error) throw error;
             
-            // FIX: The `reduce` method on an untyped array cannot take type arguments.
-            // Changed to cast the initial value, which allows TypeScript to correctly infer the accumulator's type.
-            const categoryCounts = (data || []).reduce((acc, q: { category: string | null }) => {
+            const categoryCounts = (data || []).reduce((acc: Map<string, number>, q: { category: string | null }) => {
                 const cat = q.category || 'Uncategorized';
-                acc[cat] = (acc[cat] || 0) + 1;
+                acc.set(cat, (acc.get(cat) || 0) + 1);
                 return acc;
-            }, {} as Record<string, number>);
+            }, new Map<string, number>());
 
-            const categoriesData = Object.entries(categoryCounts)
+            const categoriesData = Array.from(categoryCounts.entries())
                 .map(([name, count]) => ({ name, count }))
                 .sort((a, b) => a.name.localeCompare(b.name));
 
