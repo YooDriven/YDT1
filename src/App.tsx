@@ -1,10 +1,11 @@
+// FIX: Removed the non-functional `vite/client` type reference. It was causing a "Cannot find type definition file" error.
 import React, { Suspense, useEffect, useState } from 'react';
 import { Page } from './types';
 import Header from './components/Header';
 import LoginPage from './components/LoginPage';
 import Breadcrumbs from './components/Breadcrumbs';
 import type { Breadcrumb } from './components/Breadcrumbs';
-import { createClient, SupabaseClient } from 'https://esm.sh/@supabase/supabase-js@2';
+import { createClient, SupabaseClient } from '@supabase/supabase-js';
 import { QuestionsProvider } from './contexts/QuestionsContext';
 import { AppProvider, useApp } from './contexts/AppContext';
 import { GlobalStateProvider, useGlobalState } from './contexts/GlobalStateContext';
@@ -163,36 +164,21 @@ const App: React.FC = () => {
   const [initError, setInitError] = useState<string | null>(null);
 
   useEffect(() => {
-    const fetchConfigAndInitSupabase = async () => {
-      try {
-        const response = await fetch('/api/config');
-        const responseText = await response.text();
+    // FIX: Cast `import.meta` to `any` to bypass TypeScript error when Vite types are not recognized.
+    const supabaseUrl = (import.meta as any).env.VITE_SUPABASE_URL;
+    const supabaseAnonKey = (import.meta as any).env.VITE_SUPABASE_ANON_KEY;
 
-        if (!response.ok) {
-          // Try to parse the error text as JSON, but fall back to raw text if it fails.
-          try {
-            const errorData = JSON.parse(responseText);
-            throw new Error(errorData.error || 'Failed to fetch server configuration.');
-          } catch (e) {
-            throw new Error(responseText || 'Failed to fetch server configuration.');
-          }
-        }
-        
-        const { supabaseUrl, supabaseAnonKey } = JSON.parse(responseText);
+    if (!supabaseUrl || !supabaseAnonKey) {
+      setInitError("Supabase URL or Anonymous Key is not configured. Please set VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY in your .env file.");
+      return;
+    }
 
-        if (!supabaseUrl || !supabaseAnonKey) {
-          throw new Error("Supabase configuration received from the server is incomplete.");
-        }
-
-        const client = createClient(supabaseUrl, supabaseAnonKey);
-        setSupabaseClient(client);
-      } catch (e: any) {
-        setInitError(`Failed to initialize application: ${e.message}`);
-        console.error(e);
-      }
-    };
-
-    fetchConfigAndInitSupabase();
+    try {
+      const client = createClient(supabaseUrl, supabaseAnonKey);
+      setSupabaseClient(client);
+    } catch (e: any) {
+      setInitError(`Failed to initialize Supabase client: ${e.message}`);
+    }
   }, []);
 
   if (initError) {
@@ -201,7 +187,7 @@ const App: React.FC = () => {
         <div className="max-w-md w-full bg-white dark:bg-slate-800 rounded-2xl shadow-lg border border-red-500 p-8 space-y-4 text-center">
           <h2 className="text-2xl font-bold text-red-500">Configuration Error</h2>
           <p className="text-base text-gray-600 dark:text-gray-400">{initError}</p>
-          <p className="text-xs text-gray-500 dark:text-gray-400">This is a developer-facing error. Ensure your environment variables are set correctly in your Vercel project settings.</p>
+          <p className="text-xs text-gray-500 dark:text-gray-400">This is a developer-facing error. Ensure your environment variables are set correctly.</p>
         </div>
       </div>
     );

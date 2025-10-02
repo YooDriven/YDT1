@@ -10,6 +10,7 @@ interface State {
 }
 
 class ErrorBoundary extends Component<Props, State> {
+  // FIX: Initialize state in the constructor to ensure `this.props` is available and `this.state` is correctly set up. This resolves errors where properties on `this.state` and `this.props` were not found.
   constructor(props: Props) {
     super(props);
     this.state = {

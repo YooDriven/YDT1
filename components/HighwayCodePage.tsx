@@ -1,5 +1,4 @@
-
-import React, { useState, useEffect, useMemo, useRef } from 'react';
+import React, { useState, useMemo, useEffect, useRef } from 'react';
 import { Page, HighwayCodeRule } from '../types';
 import { ChevronLeftIcon } from './icons';
 import { useApp } from '../contexts/AppContext';
@@ -53,15 +52,20 @@ const HighwayCodePage: React.FC = () => {
         );
     }, [rules, searchTerm]);
 
+    // FIX: Using a for...of loop with an explicitly typed accumulator `groups` ensures that TypeScript
+    // correctly infers the type of `groupedRules` as `Record<string, HighwayCodeRule[]>`.
+    // This resolves the "Property 'map' does not exist on type 'unknown'" error that can occur
+    // when using `reduce` with an untyped initial value like `{}`.
     const groupedRules = useMemo(() => {
-        return filteredRules.reduce((acc, rule) => {
+        const groups: Record<string, HighwayCodeRule[]> = {};
+        for (const rule of filteredRules) {
             const category = rule.category;
-            if (!acc[category]) {
-                acc[category] = [];
+            if (!groups[category]) {
+                groups[category] = [];
             }
-            acc[category].push(rule);
-            return acc;
-        }, {} as Record<string, HighwayCodeRule[]>);
+            groups[category].push(rule);
+        }
+        return groups;
     }, [filteredRules]);
 
     const categories = useMemo(() => [...new Set(rules.map(r => r.category))], [rules]);
