@@ -20,8 +20,8 @@ const supabaseAnonKey = SUPABASE_ANON_KEY;
 let supabaseClient: SupabaseClient | null = null;
 let initError: string | null = null;
 
-if (!supabaseUrl || !supabaseAnonKey) {
-  initError = "Supabase configuration is missing. Please ensure that NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_ANON_KEY are set as environment variables. For local development, you can add them to a .env file.";
+if (!supabaseUrl || supabaseUrl === 'YOUR_SUPABASE_URL' || !supabaseAnonKey || supabaseAnonKey === 'YOUR_SUPABASE_ANON_KEY') {
+  initError = "Supabase configuration is missing or incomplete. For local development, please add your keys to the `config.ts` file. For production, ensure your Vercel Build Command is set up correctly and you have re-deployed.";
 } else {
   try {
     supabaseClient = createClient(supabaseUrl, supabaseAnonKey);
@@ -40,8 +40,6 @@ const ResultsPage = React.lazy(() => import('./components/ResultsPage'));
 const MatchmakingPage = React.lazy(() => import('./components/MatchmakingPage'));
 const BattleGroundPage = React.lazy(() => import('./components/BattleGroundPage'));
 const BattleResultsPage = React.lazy(() => import('./components/BattleResultsPage'));
-const HazardPerceptionPage = React.lazy(() => import('./components/HazardPerceptionPage'));
-const HazardPerceptionResultsPage = React.lazy(() => import('./components/HazardPerceptionResultsPage'));
 const ReviewPage = React.lazy(() => import('./components/ReviewPage'));
 const RoadSignsPage = React.lazy(() => import('./components/RoadSignsPage'));
 const StudyHubPage = React.lazy(() => import('./components/StudyHubPage'));
@@ -49,8 +47,6 @@ const TopicSelectionPage = React.lazy(() => import('./components/TopicSelectionP
 const StudyPage = React.lazy(() => import('./components/StudyPage'));
 const BookmarkedQuestionsPage = React.lazy(() => import('./components/BookmarkedQuestionsPage'));
 const HighwayCodePage = React.lazy(() => import('./components/HighwayCodePage'));
-const CaseStudySelectionPage = React.lazy(() => import('./components/CaseStudySelectionPage'));
-const CaseStudyPage = React.lazy(() => import('./components/CaseStudyPage'));
 const ProfilePage = React.lazy(() => import('./components/ProfilePage'));
 const SettingsPage = React.lazy(() => import('./components/SettingsPage'));
 const AdminPage = React.lazy(() => import('./components/AdminPage'));
@@ -58,7 +54,6 @@ const LeaderboardPage = React.lazy(() => import('./components/LeaderboardPage'))
 const FriendsPage = React.lazy(() => import('./pages/FriendsPage'));
 const AchievementsPage = React.lazy(() => import('./pages/AchievementsPage'));
 const StatisticsPage = React.lazy(() => import('./pages/StatisticsPage'));
-const VoicePracticePage = React.lazy(() => import('./components/VoicePracticePage'));
 
 
 const AppLoadingIndicator: React.FC<{ message: string }> = ({ message }) => {
@@ -117,11 +112,7 @@ const MainApp: React.FC = () => {
         [Page.TopicSelection]: [{ label: 'Dashboard', page: Page.Dashboard }, { label: 'Study Hub', page: Page.StudyHub }, { label: 'Topic Selection' }],
         [Page.Study]: [{ label: 'Dashboard', page: Page.Dashboard }, { label: 'Study Hub', page: Page.StudyHub }, { label: 'Topic Selection', page: Page.TopicSelection }, { label: 'Study' }],
         [Page.BookmarkedQuestions]: [{ label: 'Dashboard', page: Page.Dashboard }, { label: 'Study Hub', page: Page.StudyHub }, { label: 'Bookmarked Questions' }],
-        [Page.HazardPerception]: [{ label: 'Dashboard', page: Page.Dashboard }, { label: 'Study Hub', page: Page.StudyHub }, { label: 'Hazard Perception' }],
-        [Page.HazardPerceptionResults]: [{ label: 'Dashboard', page: Page.Dashboard }, { label: 'Study Hub', page: Page.StudyHub }, { label: 'Hazard Perception' }, { label: 'Results' }],
         [Page.HighwayCode]: [{ label: 'Dashboard', page: Page.Dashboard }, { label: 'Study Hub', page: Page.StudyHub }, { label: 'Highway Code' }],
-        [Page.CaseStudySelection]: [{ label: 'Dashboard', page: Page.Dashboard }, { label: 'Study Hub', page: Page.StudyHub }, { label: 'Case Studies' }],
-        [Page.CaseStudy]: [{ label: 'Dashboard', page: Page.Dashboard }, { label: 'Study Hub', page: Page.StudyHub }, { label: 'Case Studies', page: Page.CaseStudySelection }, { label: 'Scenario' }],
         [Page.Profile]: [{ label: 'Dashboard', page: Page.Dashboard }, { label: 'My Profile' }],
         [Page.Settings]: [{ label: 'Dashboard', page: Page.Dashboard }, { label: 'Settings' }],
         [Page.Admin]: [{ label: 'Dashboard', page: Page.Dashboard }, { label: 'Admin Panel' }],
@@ -129,7 +120,6 @@ const MainApp: React.FC = () => {
         [Page.Friends]: [{ label: 'Dashboard', page: Page.Dashboard }, { label: 'Friends' }],
         [Page.Achievements]: [{ label: 'Dashboard', page: Page.Dashboard }, { label: 'Achievements' }],
         [Page.Statistics]: [{ label: 'Dashboard', page: Page.Dashboard }, { label: 'Statistics' }],
-        [Page.VoicePractice]: [{ label: 'Dashboard', page: Page.Dashboard }, { label: 'Study Hub', page: Page.StudyHub }, { label: 'Voice Practice' }],
     };
 
     const renderPage = () => {
@@ -139,8 +129,6 @@ const MainApp: React.FC = () => {
             case Page.Matchmaking: return <MatchmakingPage />;
             case Page.BattleGround: return <BattleGroundPage />;
             case Page.BattleResults: return <BattleResultsPage />;
-            case Page.HazardPerception: return <HazardPerceptionPage />;
-            case Page.HazardPerceptionResults: return <HazardPerceptionResultsPage />;
             case Page.Review: return <ReviewPage />;
             case Page.RoadSigns: return <RoadSignsPage />;
             case Page.StudyHub: return <StudyHubPage />;
@@ -148,8 +136,6 @@ const MainApp: React.FC = () => {
             case Page.Study: return <StudyPage />;
             case Page.BookmarkedQuestions: return <BookmarkedQuestionsPage />;
             case Page.HighwayCode: return <HighwayCodePage />;
-            case Page.CaseStudySelection: return <CaseStudySelectionPage />;
-            case Page.CaseStudy: return <CaseStudyPage />;
             case Page.Profile: return <ProfilePage />;
             case Page.Settings: return <SettingsPage />;
             case Page.Admin: return <AdminPage navigateTo={navigateTo} appAssets={appAssets} onAssetsUpdate={handleAdminAssetsUpdate} />;
@@ -157,7 +143,6 @@ const MainApp: React.FC = () => {
             case Page.Friends: return <FriendsPage />;
             case Page.Achievements: return <AchievementsPage />;
             case Page.Statistics: return <StatisticsPage />;
-            case Page.VoicePractice: return <VoicePracticePage />;
             default: return <Dashboard />;
         }
     };

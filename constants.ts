@@ -113,15 +113,6 @@ export const STUDY_CARDS: TestCardData[] = [
     page: Page.RoadSigns,
   },
   {
-    id: 'hazard-perception',
-    title: 'Hazard Perception',
-    description: 'Interactive video-based hazard scenarios.',
-    icon: 'icon_construction',
-    color: 'text-teal-500',
-    hoverColor: '',
-    page: Page.HazardPerception,
-  },
-  {
     id: 'highway-code',
     title: 'Highway Code',
     description: 'Read and search the official UK Highway Code.',
@@ -129,24 +120,6 @@ export const STUDY_CARDS: TestCardData[] = [
     color: 'text-green-500',
     hoverColor: '',
     page: Page.HighwayCode,
-  },
-  {
-    id: 'case-studies',
-    title: 'Case Studies',
-    description: 'Practice with scenario-based question sets.',
-    icon: 'icon_clipboard', // Using an existing icon, editable in Admin Panel
-    color: 'text-cyan-500',
-    hoverColor: '',
-    page: Page.CaseStudySelection,
-  },
-  {
-    id: 'voice-practice',
-    title: 'Voice Practice',
-    description: 'Practice questions hands-free using your voice.',
-    icon: 'icon_microphone',
-    color: 'text-rose-500',
-    hoverColor: '',
-    page: Page.VoicePractice,
   },
 ];
 
@@ -159,9 +132,6 @@ export const ACHIEVEMENTS: Omit<Achievement, 'status'>[] = [
     { id: 'topic_master_attitude', name: 'Attitude Expert', description: 'Score over 90% on an Attitude topic test.', icon: 'badge_generic' },
     { id: 'topic_master_signs', name: 'Sign Scholar', description: 'Score over 90% on a Road and Traffic Signs topic test.', icon: 'badge_generic' },
 ];
-
-export const HAZARD_PERCEPTION_PASS_MARK = 15; // Official test is 44/75. We'll use a proportional value.
-export const MAX_SCORE_PER_CLIP = 5;
 
 export const OPPONENT_CHAT_MESSAGES = {
   greetings: ["Good luck!", "Let's have a good game."],

@@ -1,5 +1,6 @@
+
 import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
-import { Page, Question, AdminSection, ContentTab, RoadSign, RoadSignCategory, HazardPerceptionClip, CaseStudy, HighwayCodeRule, AppAssetRecord, AppAsset } from '../types';
+import { Page, Question, AdminSection, ContentTab, RoadSign, RoadSignCategory, HighwayCodeRule, AppAssetRecord, AppAsset } from '../types';
 import { ChevronLeftIcon } from './icons';
 import DynamicAsset from './DynamicAsset';
 import { Toast, Modal, FormRow, Label, Input, Textarea, Select, Button } from './ui';
@@ -283,12 +284,13 @@ const CategoryManager: React.FC<{ showToast: (msg: string, type?: 'success' | 'e
             const { data, error } = await supabase.from('questions').select('category');
             if (error) throw error;
             
-            // FIX: Explicitly type the accumulator in the `reduce` function to ensure `count` is a `number`.
-            const categoryCounts = (data || []).reduce((acc: Record<string, number>, q: { category: string | null }) => {
+            // FIX: The `reduce` method on an untyped array cannot take type arguments.
+            // Changed to cast the initial value, which allows TypeScript to correctly infer the accumulator's type.
+            const categoryCounts = (data || []).reduce((acc, q: { category: string | null }) => {
                 const cat = q.category || 'Uncategorized';
                 acc[cat] = (acc[cat] || 0) + 1;
                 return acc;
-            }, {});
+            }, {} as Record<string, number>);
 
             const categoriesData = Object.entries(categoryCounts)
                 .map(([name, count]) => ({ name, count }))
@@ -878,418 +880,6 @@ const RoadSignCategoryManager: React.FC<{ showToast: (msg: string, type?: 'succe
     );
 };
 
-
-// Hazard Perception Manager Components
-const mapClipToCamelCase = (dbClip: any): HazardPerceptionClip => ({
-  id: dbClip.id,
-  description: dbClip.description,
-  duration: dbClip.duration,
-  videoUrl: dbClip.video_url,
-  hazardWindowStart: dbClip.hazard_window_start,
-  hazardWindowEnd: dbClip.hazard_window_end,
-});
-
-const mapClipToSnakeCase = (appClip: HazardPerceptionClip | Omit<HazardPerceptionClip, 'id'>) => ({
-  ...('id' in appClip && { id: appClip.id }),
-  description: appClip.description,
-  duration: appClip.duration,
-  video_url: appClip.videoUrl,
-  hazard_window_start: appClip.hazardWindowStart,
-  hazard_window_end: appClip.hazardWindowEnd,
-});
-
-
-const DEFAULT_CLIP: Omit<HazardPerceptionClip, 'id'> = {
-    description: '',
-    videoUrl: '',
-    duration: 0,
-    hazardWindowStart: 0,
-    hazardWindowEnd: 10,
-};
-
-const HazardClipForm: React.FC<{ clip: HazardPerceptionClip | null; onSave: (clipData: Omit<HazardPerceptionClip, 'id'> | HazardPerceptionClip) => Promise<void>; onClose: () => void; }> = ({ clip, onSave, onClose }) => {
-    const [formData, setFormData] = useState(clip || DEFAULT_CLIP);
-    const [isSaving, setIsSaving] = useState(false);
-    const videoRef = useRef<HTMLVideoElement>(null);
-    const [currentTime, setCurrentTime] = useState(0);
-
-    const videoDuration = videoRef.current?.duration || 0;
-
-    useEffect(() => {
-        const video = videoRef.current;
-        const handleMetadata = () => {
-            if (video) {
-                setFormData(prev => ({ ...prev, duration: Math.round(video.duration) }));
-            }
-        };
-        const handleTimeUpdate = () => {
-            if (video) setCurrentTime(video.currentTime);
-        };
-        video?.addEventListener('loadedmetadata', handleMetadata);
-        video?.addEventListener('timeupdate', handleTimeUpdate);
-        return () => {
-            video?.removeEventListener('loadedmetadata', handleMetadata);
-            video?.removeEventListener('timeupdate', handleTimeUpdate);
-        };
-    }, [formData.videoUrl]);
-
-    const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
-        const { name, value } = e.target;
-        setFormData(prev => ({ ...prev, [name]: name.includes('hazard') ? parseFloat(value) : value }));
-    };
-
-    const setWindowTime = (type: 'start' | 'end') => {
-        if (videoRef.current && videoDuration > 0) {
-            const timePercent = (videoRef.current.currentTime / videoDuration) * 100;
-            const field = type === 'start' ? 'hazardWindowStart' : 'hazardWindowEnd';
-            setFormData(prev => ({...prev, [field]: parseFloat(timePercent.toFixed(2))}));
-        }
-    };
-
-    const handleSubmit = async (e: React.FormEvent) => {
-        e.preventDefault();
-        setIsSaving(true);
-        await onSave(formData);
-        setIsSaving(false);
-    };
-
-    return (
-        <Modal title={clip ? 'Edit Hazard Clip' : 'Add New Hazard Clip'} onClose={onClose} size="3xl">
-            <form onSubmit={handleSubmit}>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <div>
-                        <FormRow>
-                            <Label htmlFor="description">Description</Label>
-                            <Textarea id="description" name="description" value={formData.description} onChange={handleInputChange} required />
-                        </FormRow>
-                        <FormRow>
-                            <Label htmlFor="videoUrl">Video URL</Label>
-                            <Input id="videoUrl" name="videoUrl" value={formData.videoUrl} onChange={handleInputChange} required />
-                        </FormRow>
-                        <FormRow>
-                            <Label htmlFor="duration">Duration (seconds)</Label>
-                            <Input id="duration" name="duration" type="number" value={formData.duration} onChange={handleInputChange} required />
-                        </FormRow>
-                        <div className="grid grid-cols-2 gap-4">
-                            <FormRow>
-                                <Label htmlFor="hazardWindowStart">Window Start (%)</Label>
-                                <Input id="hazardWindowStart" name="hazardWindowStart" type="number" step="0.1" value={formData.hazardWindowStart} onChange={handleInputChange} required />
-                            </FormRow>
-                             <FormRow>
-                                <Label htmlFor="hazardWindowEnd">Window End (%)</Label>
-                                <Input id="hazardWindowEnd" name="hazardWindowEnd" type="number" step="0.1" value={formData.hazardWindowEnd} onChange={handleInputChange} required />
-                            </FormRow>
-                        </div>
-                    </div>
-                    <div>
-                        <Label>Interactive Preview</Label>
-                        <video ref={videoRef} src={formData.videoUrl} controls key={formData.videoUrl} className="w-full aspect-video bg-black rounded-lg" muted playsInline />
-                        <div className="mt-2">
-                             <div className="relative w-full h-3 bg-gray-200 dark:bg-slate-600 rounded-full">
-                                {videoDuration > 0 && (
-                                    <>
-                                        <div className="absolute top-0 left-0 h-full bg-teal-500/50" style={{ left: `${formData.hazardWindowStart}%`, width: `${Math.max(0, formData.hazardWindowEnd - formData.hazardWindowStart)}%` }} />
-                                        <div className="absolute -top-1 h-5 w-1 bg-red-500" style={{ left: `${(currentTime / videoDuration) * 100}%` }} />
-                                    </>
-                                )}
-                            </div>
-                            <div className="flex justify-between text-xs mt-1">
-                                <span>{new Date(currentTime * 1000).toISOString().substr(14, 5)}</span>
-                                <span>{new Date(videoDuration * 1000).toISOString().substr(14, 5)}</span>
-                            </div>
-                        </div>
-                        <div className="flex gap-3 mt-4">
-                            <Button type="button" variant="secondary" onClick={() => setWindowTime('start')}>Set Start at Current Time</Button>
-                            <Button type="button" variant="secondary" onClick={() => setWindowTime('end')}>Set End at Current Time</Button>
-                        </div>
-                    </div>
-                </div>
-                <div className="flex justify-end gap-3 mt-6">
-                    <Button type="button" variant="secondary" onClick={onClose} disabled={isSaving}>Cancel</Button>
-                    <Button type="submit" variant="primary" disabled={isSaving}>{isSaving ? 'Saving...' : 'Save Clip'}</Button>
-                </div>
-            </form>
-        </Modal>
-    );
-};
-
-const HazardClipManager: React.FC<{ showToast: (msg: string, type?: 'success' | 'error') => void; }> = ({ showToast }) => {
-    const { supabase } = useApp();
-    const [clips, setClips] = useState<HazardPerceptionClip[]>([]);
-    const [loading, setLoading] = useState(true);
-    const [error, setError] = useState<string | null>(null);
-    const [isModalOpen, setIsModalOpen] = useState(false);
-    const [editingClip, setEditingClip] = useState<HazardPerceptionClip | null>(null);
-
-    const fetchClips = useCallback(async () => {
-        setLoading(true);
-        setError(null);
-        try {
-            const { data, error } = await supabase.from('hazard_clips').select('*').order('id', { ascending: true });
-            if (error) throw error;
-            setClips((data || []).map(mapClipToCamelCase));
-        } catch (err: any) {
-            setError(err.message);
-            showToast(`Error fetching clips: ${err.message}`, 'error');
-        } finally {
-            setLoading(false);
-        }
-    }, [supabase, showToast]);
-
-    useEffect(() => {
-        fetchClips();
-    }, [fetchClips]);
-
-    const handleSave = async (clipData: Omit<HazardPerceptionClip, 'id'> | HazardPerceptionClip) => {
-        try {
-            const snakeCaseData = mapClipToSnakeCase(clipData);
-            const { error } = await supabase.from('hazard_clips').upsert(snakeCaseData);
-            if (error) throw error;
-            showToast('Hazard clip saved successfully!');
-            setIsModalOpen(false);
-            setEditingClip(null);
-            fetchClips();
-        } catch (err: any) {
-            showToast(`Error saving clip: ${err.message}`, 'error');
-        }
-    };
-
-    const handleDelete = async (clipId: number) => {
-        if (window.confirm('Are you sure you want to delete this hazard clip?')) {
-            try {
-                const { error } = await supabase.from('hazard_clips').delete().eq('id', clipId);
-                if (error) throw error;
-                showToast('Hazard clip deleted successfully.');
-                fetchClips();
-            } catch (err: any) {
-                showToast(`Error deleting clip: ${err.message}`, 'error');
-            }
-        }
-    };
-
-    if (loading) return <div className="text-center p-8">Loading hazard clips...</div>;
-    if (error) return <div className="text-center p-8 text-red-500">Error: {error}</div>;
-
-    return (
-        <div>
-            {isModalOpen && <HazardClipForm clip={editingClip} onSave={handleSave} onClose={() => { setIsModalOpen(false); setEditingClip(null); }} />}
-            <div className="flex justify-between items-center mb-4">
-                 <h2 className="text-2xl font-bold text-gray-900 dark:text-white">Manage Hazard Clips</h2>
-                <Button onClick={() => { setEditingClip(null); setIsModalOpen(true); }}>Add New Clip</Button>
-            </div>
-            <div className="bg-white dark:bg-slate-800 rounded-lg border border-gray-200 dark:border-slate-700 overflow-hidden">
-                <div className="overflow-x-auto">
-                    <table className="w-full text-sm text-left">
-                         <thead className="text-xs text-gray-700 uppercase bg-gray-50 dark:bg-slate-700 dark:text-gray-400 tracking-wider">
-                             <tr>
-                                 <th className="px-6 py-3 w-32">Preview</th>
-                                 <th className="px-6 py-3">Description</th>
-                                 <th className="px-6 py-3">Duration</th>
-                                 <th className="px-6 py-3">Window</th>
-                                 <th className="px-6 py-3 text-right">Actions</th>
-                             </tr>
-                         </thead>
-                         <tbody>
-                            {clips.map(clip => (
-                                <tr key={clip.id} className="border-b dark:border-slate-700">
-                                    <td className="px-6 py-2">
-                                        <video src={clip.videoUrl} className="w-28 h-16 bg-black rounded" muted />
-                                    </td>
-                                    <td className="px-6 py-4 font-normal text-gray-900 dark:text-white max-w-sm truncate">{clip.description}</td>
-                                    <td className="px-6 py-4 text-gray-600 dark:text-gray-400">{clip.duration}s</td>
-                                    <td className="px-6 py-4 text-gray-600 dark:text-gray-400">{clip.hazardWindowStart}% - {clip.hazardWindowEnd}%</td>
-                                    <td className="px-6 py-4 flex justify-end gap-2">
-                                        <Button variant="secondary" onClick={() => { setEditingClip(clip); setIsModalOpen(true); }}>Edit</Button>
-                                        <Button variant="danger" onClick={() => handleDelete(clip.id)}>Delete</Button>
-                                    </td>
-                                </tr>
-                            ))}
-                         </tbody>
-                    </table>
-                     {clips.length === 0 && <p className="p-8 text-center text-gray-500 dark:text-gray-400">No hazard clips found.</p>}
-                </div>
-            </div>
-        </div>
-    );
-};
-
-// Case Study Manager Components
-const DEFAULT_CASE_STUDY: Omit<CaseStudy, 'id'> = {
-    title: '',
-    scenario: '',
-    scenario_image: '',
-    question_ids: [],
-};
-
-const CaseStudyForm: React.FC<{ study: CaseStudy | null; onSave: (studyData: Omit<CaseStudy, 'id'> | CaseStudy) => Promise<void>; onClose: () => void; }> = ({ study, onSave, onClose }) => {
-    const { supabase } = useApp();
-    const [formData, setFormData] = useState(study || DEFAULT_CASE_STUDY);
-    const [isSaving, setIsSaving] = useState(false);
-    const [allQuestions, setAllQuestions] = useState<Question[]>([]);
-    const [questionSearch, setQuestionSearch] = useState('');
-    const debouncedSearch = useDebounce(questionSearch, 300);
-
-    useEffect(() => {
-        supabase.from('questions').select('id, question, category').then(({ data }) => {
-            if (data) setAllQuestions(data);
-        });
-    }, [supabase]);
-
-    const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
-        const { name, value } = e.target;
-        setFormData(prev => ({ ...prev, [name]: value }));
-    };
-
-    const handleQuestionToggle = (questionId: string) => {
-        setFormData(prev => {
-            const newIds = prev.question_ids.includes(questionId)
-                ? prev.question_ids.filter(id => id !== questionId)
-                : [...prev.question_ids, questionId];
-            return { ...prev, question_ids: newIds };
-        });
-    };
-
-    const handleSubmit = async (e: React.FormEvent) => {
-        e.preventDefault();
-        setIsSaving(true);
-        await onSave(formData);
-        setIsSaving(false);
-    };
-
-    const filteredQuestions = useMemo(() => {
-        return allQuestions.filter(q => q.question.toLowerCase().includes(debouncedSearch.toLowerCase()));
-    }, [allQuestions, debouncedSearch]);
-
-    return (
-        <Modal title={study ? 'Edit Case Study' : 'Add New Case Study'} onClose={onClose} size="3xl">
-            <form onSubmit={handleSubmit}>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <div className="space-y-4">
-                        <FormRow>
-                            <Label htmlFor="title">Title</Label>
-                            <Input id="title" name="title" value={formData.title} onChange={handleInputChange} required />
-                        </FormRow>
-                        <FormRow>
-                            <Label htmlFor="scenario">Scenario</Label>
-                            <Textarea id="scenario" name="scenario" value={formData.scenario} onChange={handleInputChange} required rows={6} />
-                        </FormRow>
-                        <FormRow>
-                            <Label htmlFor="scenario_image">Scenario Image URL (Optional)</Label>
-                            <Input id="scenario_image" name="scenario_image" value={formData.scenario_image || ''} onChange={handleInputChange} />
-                        </FormRow>
-                    </div>
-                    <div>
-                        <Label>Associated Questions ({formData.question_ids.length} selected)</Label>
-                        <Input type="search" placeholder="Search questions..." className="mb-2" value={questionSearch} onChange={e => setQuestionSearch(e.target.value)} />
-                        <div className="h-64 overflow-y-auto border border-gray-300 dark:border-slate-600 rounded-md p-2 space-y-2">
-                            {filteredQuestions.map(q => (
-                                <label key={q.id} className="flex items-center p-2 bg-gray-50 dark:bg-slate-700/50 rounded-md cursor-pointer">
-                                    <input
-                                        type="checkbox"
-                                        checked={formData.question_ids.includes(q.id)}
-                                        onChange={() => handleQuestionToggle(q.id)}
-                                        className="h-4 w-4 rounded border-gray-300 text-teal-600 focus:ring-teal-500"
-                                    />
-                                    <span className="ml-3 text-sm text-gray-700 dark:text-gray-300 truncate">{q.question}</span>
-                                </label>
-                            ))}
-                        </div>
-                    </div>
-                </div>
-                <div className="flex justify-end gap-3 mt-6">
-                    <Button type="button" variant="secondary" onClick={onClose} disabled={isSaving}>Cancel</Button>
-                    <Button type="submit" variant="primary" disabled={isSaving}>{isSaving ? 'Saving...' : 'Save Case Study'}</Button>
-                </div>
-            </form>
-        </Modal>
-    );
-};
-
-const CaseStudyManager: React.FC<{ showToast: (msg: string, type?: 'success' | 'error') => void; }> = ({ showToast }) => {
-    const { supabase } = useApp();
-    const [studies, setStudies] = useState<CaseStudy[]>([]);
-    const [loading, setLoading] = useState(true);
-    const [error, setError] = useState<string | null>(null);
-    const [isModalOpen, setIsModalOpen] = useState(false);
-    const [editingStudy, setEditingStudy] = useState<CaseStudy | null>(null);
-
-    const fetchStudies = useCallback(async () => {
-        setLoading(true);
-        try {
-            const { data, error } = await supabase.from('case_studies').select('*').order('title');
-            if (error) throw error;
-            setStudies(data || []);
-        } catch (err: any) {
-            setError(err.message);
-        } finally {
-            setLoading(false);
-        }
-    }, [supabase]);
-
-    useEffect(() => { fetchStudies() }, [fetchStudies]);
-
-    const handleSave = async (studyData: Omit<CaseStudy, 'id'> | CaseStudy) => {
-        try {
-            const { error } = await supabase.from('case_studies').upsert(studyData);
-            if (error) throw error;
-            showToast('Case study saved!');
-            setIsModalOpen(false);
-            fetchStudies();
-        } catch (err: any) {
-            showToast(`Error: ${err.message}`, 'error');
-        }
-    };
-
-    const handleDelete = async (id: string) => {
-        if (window.confirm('Delete this case study?')) {
-            try {
-                const { error } = await supabase.from('case_studies').delete().eq('id', id);
-                if (error) throw error;
-                showToast('Case study deleted.');
-                fetchStudies();
-            } catch (err: any) {
-                showToast(`Error: ${err.message}`, 'error');
-            }
-        }
-    };
-    
-    if (loading) return <p>Loading case studies...</p>;
-    if (error) return <p className="text-red-500">Error: {error}</p>;
-
-    return (
-        <div>
-            {isModalOpen && <CaseStudyForm study={editingStudy} onSave={handleSave} onClose={() => setIsModalOpen(false)} />}
-            <div className="flex justify-between items-center mb-4">
-                <h2 className="text-2xl font-bold text-gray-900 dark:text-white">Manage Case Studies</h2>
-                <Button onClick={() => { setEditingStudy(null); setIsModalOpen(true); }}>Add New</Button>
-            </div>
-            <div className="bg-white dark:bg-slate-800 rounded-lg border border-gray-200 dark:border-slate-700 overflow-hidden">
-                <table className="w-full text-sm text-left">
-                    <thead className="text-xs text-gray-700 uppercase bg-gray-50 dark:bg-slate-700 dark:text-gray-400 tracking-wider">
-                        <tr>
-                            <th className="px-6 py-3">Title</th>
-                            <th className="px-6 py-3"># Questions</th>
-                            <th className="px-6 py-3 text-right">Actions</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {studies.map(s => (
-                            <tr key={s.id} className="border-b dark:border-slate-700">
-                                <td className="px-6 py-4 font-semibold text-gray-900 dark:text-white">{s.title}</td>
-                                <td className="px-6 py-4">{s.question_ids.length}</td>
-                                <td className="px-6 py-4 flex justify-end gap-2">
-                                    <Button variant="secondary" onClick={() => { setEditingStudy(s); setIsModalOpen(true); }}>Edit</Button>
-                                    <Button variant="danger" onClick={() => handleDelete(s.id)}>Delete</Button>
-                                </td>
-                            </tr>
-                        ))}
-                    </tbody>
-                </table>
-            </div>
-        </div>
-    );
-};
-
 // Highway Code Manager Components
 const HighwayCodeForm: React.FC<{ rule: HighwayCodeRule | null; onSave: (data: any) => Promise<void>; onClose: () => void; }> = ({ rule, onSave, onClose }) => {
     const [formData, setFormData] = useState(rule || { rule_number: '', title: '', content: '', category: '' });
@@ -1775,9 +1365,7 @@ const AdminPage: React.FC<AdminPageProps> = ({ navigateTo, appAssets, onAssetsUp
         { id: 'categories', name: 'Question Categories' },
         { id: 'road_signs', name: 'Road Signs' },
         { id: 'road_sign_categories', name: 'Sign Categories' },
-        { id: 'hazard', name: 'Hazard Perception' },
         { id: 'highway_code', name: 'Highway Code' },
-        { id: 'case_studies', name: 'Case Studies' },
     ];
 
     const renderContent = () => {
@@ -1790,41 +1378,49 @@ const AdminPage: React.FC<AdminPageProps> = ({ navigateTo, appAssets, onAssetsUp
             case 'categories': return <CategoryManager showToast={showToastInternal} />;
             case 'road_signs': return <RoadSignManager showToast={showToastInternal} />;
             case 'road_sign_categories': return <RoadSignCategoryManager showToast={showToastInternal} />;
-            case 'hazard': return <HazardClipManager showToast={showToastInternal} />;
-            case 'case_studies': return <CaseStudyManager showToast={showToastInternal} />;
             case 'highway_code': return <HighwayCodeManager showToast={showToastInternal} />;
             default: return <div>Select a tab</div>;
         }
     };
 
     return (
-        <div className="p-4 sm:p-6 lg:p-8 max-w-screen-2xl mx-auto">
+        <div className="p-4 sm:p-6 lg:p-8 max-w-screen-xl mx-auto">
             {toast && <Toast message={toast.message} type={toast.type} onDismiss={() => setToast(null)} />}
             <div className="flex flex-col md:flex-row gap-8">
-                <aside className="w-full md:w-64">
-                    <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-4">Admin Sections</h2>
-                    <nav className="space-y-2">
-                        {Object.keys(sidebarItems).map((key) => {
-                             const item = sidebarItems[key as keyof typeof sidebarItems];
-                             return (
+                <aside className="w-full md:w-64 flex-shrink-0">
+                    <div className="sticky top-24">
+                        <div className="flex items-center justify-between mb-4">
+                            <h2 className="text-xl font-bold text-gray-900 dark:text-white">Admin Panel</h2>
+                        </div>
+                        <nav className="space-y-1">
+                            {Object.entries(sidebarItems).map(([key, item]) => (
                                 <button
                                     key={key}
                                     onClick={() => setActiveSection(key as AdminSection)}
-                                    className={`w-full flex items-center p-3 rounded-lg transition-colors ${activeSection === key ? 'bg-teal-100 dark:bg-teal-500/20 text-teal-700 dark:text-teal-400' : 'text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-slate-700'}`}
+                                    className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg text-left text-sm font-medium transition-colors ${activeSection === key ? 'bg-teal-100 dark:bg-teal-500/20 text-teal-700 dark:text-teal-500' : 'text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-slate-700'}`}
                                 >
-                                    <DynamicAsset asset={appAssets[item.icon]} className="h-5 w-5 mr-3" />
-                                    <span className="font-semibold">{item.name}</span>
+                                    <DynamicAsset asset={appAssets[item.icon]} className="h-5 w-5" />
+                                    <span>{item.name}</span>
                                 </button>
-                             );
-                        })}
-                    </nav>
-                </aside>
-                <main className="flex-1">
-                    {activeSection === 'content' && (
-                        <div className="mb-6 flex items-center gap-2 border-b border-gray-200 dark:border-slate-700 overflow-x-auto">
-                            {contentTabs.map(tab => (
-                                 <button key={tab.id} onClick={() => setActiveTab(tab.id)} className={`px-4 py-2 font-semibold border-b-2 transition-colors whitespace-nowrap ${activeTab === tab.id ? 'border-teal-500 text-teal-600 dark:text-teal-400' : 'border-transparent text-gray-500'}`}>{tab.name}</button>
                             ))}
+                        </nav>
+                    </div>
+                </aside>
+
+                <main className="flex-1 min-w-0">
+                    {activeSection === 'content' && (
+                        <div className="mb-6 border-b border-gray-200 dark:border-slate-700">
+                            <nav className="-mb-px flex space-x-4 overflow-x-auto" aria-label="Tabs">
+                                {contentTabs.map(tab => (
+                                    <button
+                                        key={tab.id}
+                                        onClick={() => setActiveTab(tab.id)}
+                                        className={`whitespace-nowrap py-3 px-1 border-b-2 font-medium text-sm transition-colors ${activeTab === tab.id ? 'border-teal-500 text-teal-600 dark:text-teal-400' : 'border-transparent text-gray-500 hover:text-gray-700 dark:hover:text-gray-300'}`}
+                                    >
+                                        {tab.name}
+                                    </button>
+                                ))}
+                            </nav>
                         </div>
                     )}
                     {renderContent()}

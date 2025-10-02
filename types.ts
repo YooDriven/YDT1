@@ -12,8 +12,6 @@ export enum Page {
   Matchmaking,
   BattleGround,
   BattleResults,
-  HazardPerception,
-  HazardPerceptionResults,
   Review,
   RoadSigns,
   StudyHub,
@@ -21,8 +19,6 @@ export enum Page {
   Study,
   BookmarkedQuestions,
   HighwayCode,
-  CaseStudySelection,
-  CaseStudy,
   Profile,
   Settings,
   Admin,
@@ -30,11 +26,10 @@ export enum Page {
   Friends,
   Achievements,
   Statistics,
-  VoicePractice,
 }
 
 export type AdminSection = 'content' | 'appearance';
-export type ContentTab = 'dashboard' | 'questions' | 'categories' | 'road_signs' | 'road_sign_categories' | 'hazard' | 'highway_code' | 'case_studies';
+export type ContentTab = 'dashboard' | 'questions' | 'categories' | 'road_signs' | 'road_sign_categories' | 'highway_code';
 
 
 export interface TestCardData {
@@ -76,15 +71,6 @@ export interface LeaderboardEntry {
   region?: string;
   isUser?: boolean;
   avatarUrl: string;
-}
-
-export interface HazardPerceptionClip {
-  id: number;
-  description: string;
-  duration: number; // in seconds
-  videoUrl: string;
-  hazardWindowStart: number; // percentage of duration
-  hazardWindowEnd: number; // percentage of duration;
 }
 
 export interface ChatMessage {
@@ -201,14 +187,6 @@ export interface HighwayCodeRule {
   category: string;
 }
 
-export interface CaseStudy {
-  id: string;
-  title: string;
-  scenario: string;
-  scenario_image?: string;
-  question_ids: string[];
-}
-
 export interface AppAsset {
   value: string;
   mimeType: string;
@@ -253,7 +231,6 @@ export interface GlobalState {
   testResult: { score: number; total: number };
   reviewData: { questions: Question[]; userAnswers: (number | null)[] };
   battleResult: { playerScore: number; opponentScore: number; total: number; opponentName: string };
-  hazardPerceptionResult: { scores: number[]; totalScore: number; maxScore: number };
   customTest: Question[] | null;
   currentTestId?: string;
   timeLimit?: number;
@@ -261,7 +238,6 @@ export interface GlobalState {
   currentMode: 'test' | 'study';
   duelOpponent: Opponent | null;
   currentBattleId: string | null;
-  selectedCaseStudy: CaseStudy | null;
 }
 
 export interface GlobalContextType extends GlobalState {
@@ -272,9 +248,7 @@ export interface GlobalContextType extends GlobalState {
   handleTestComplete: (score: number, questions: Question[], userAnswers: (number | null)[], topic?: string, testId?: string) => Promise<void>;
   handleBattleComplete: (playerScore: number, opponentScore: number, total: number, opponent: Opponent) => Promise<void>;
   handleRematch: () => void;
-  handleHazardPerceptionComplete: (scores: number[], totalClips: number) => void;
   handleTopicSelect: (topic: string) => void;
-  handleCaseStudySelect: (caseStudy: CaseStudy) => void;
   handleToggleBookmark: (questionId: string) => Promise<void>;
   markOnboardingComplete: () => Promise<void>;
   handleProfileUpdate: (name: string) => void;

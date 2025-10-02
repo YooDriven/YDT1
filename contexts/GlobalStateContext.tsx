@@ -1,7 +1,7 @@
 
 import React, { createContext, useContext, useReducer, useEffect, useCallback, ReactNode, useState } from 'react';
-import { GlobalState, GlobalContextType, Page, Session, UserProfile, Friend, Notification, Achievement, Question, TestAttempt, CaseStudy, Opponent, TestCardData, LeaderboardEntry, AchievementId, AchievementStatus } from '../types';
-import { DAILY_GOAL_TARGET, ACHIEVEMENTS, MAX_SCORE_PER_CLIP } from '../constants';
+import { GlobalState, GlobalContextType, Page, Session, UserProfile, Friend, Notification, Achievement, Question, TestAttempt, Opponent, TestCardData, LeaderboardEntry, AchievementId, AchievementStatus } from '../types';
+import { DAILY_GOAL_TARGET, ACHIEVEMENTS } from '../constants';
 import { useApp } from './AppContext';
 
 const GlobalStateContext = createContext<GlobalContextType | undefined>(undefined);
@@ -16,7 +16,6 @@ const initialState: GlobalState = {
     testResult: { score: 0, total: 0 },
     reviewData: { questions: [], userAnswers: [] },
     battleResult: { playerScore: 0, opponentScore: 0, total: 0, opponentName: '' },
-    hazardPerceptionResult: { scores: [], totalScore: 0, maxScore: 0 },
     customTest: null,
     currentTestId: undefined,
     timeLimit: undefined,
@@ -24,7 +23,6 @@ const initialState: GlobalState = {
     currentMode: 'test',
     duelOpponent: null,
     currentBattleId: null,
-    selectedCaseStudy: null,
 };
 
 type Action =
@@ -37,8 +35,7 @@ type Action =
     | { type: 'GRANT_ACHIEVEMENT'; payload: AchievementId }
     | { type: 'SET_GAMEPLAY_STATE'; payload: Partial<GlobalState> }
     | { type: 'TEST_COMPLETE'; payload: { score: number; total: number; questions: Question[]; userAnswers: (number | null)[]; updatedProfile: Partial<UserProfile> } }
-    | { type: 'BATTLE_COMPLETE'; payload: { playerScore: number; opponentScore: number; total: number; opponentName: string, updatedHistory: any } }
-    | { type: 'HAZARD_COMPLETE'; payload: { scores: number[]; totalScore: number; maxScore: number } };
+    | { type: 'BATTLE_COMPLETE'; payload: { playerScore: number; opponentScore: number; total: number; opponentName: string, updatedHistory: any } };
 
 const globalStateReducer = (state: GlobalState, action: Action): GlobalState => {
     switch (action.type) {
@@ -63,7 +60,6 @@ const globalStateReducer = (state: GlobalState, action: Action): GlobalState => 
             battleResult: { playerScore: action.payload.playerScore, opponentScore: action.payload.opponentScore, total: action.payload.total, opponentName: action.payload.opponentName },
             userProfile: state.userProfile ? { ...state.userProfile, battleHistory: [action.payload.updatedHistory, ...state.userProfile.battleHistory] } : null
         };
-        case 'HAZARD_COMPLETE': return { ...state, hazardPerceptionResult: action.payload };
         default: return state;
     }
 };
@@ -278,16 +274,6 @@ export const GlobalStateProvider: React.FC<{ children: ReactNode }> = ({ childre
             navigateTo(Page.Matchmaking);
         }
     };
-    const handleHazardPerceptionComplete = (scores: number[], totalClips: number) => {
-        const totalScore = scores.reduce((sum, s) => sum + s, 0);
-        const maxScore = totalClips * MAX_SCORE_PER_CLIP;
-        dispatch({ type: 'HAZARD_COMPLETE', payload: { scores, totalScore, maxScore } });
-        navigateTo(Page.HazardPerceptionResults);
-    };
-    const handleCaseStudySelect = (caseStudy: CaseStudy) => {
-        dispatch({ type: 'SET_GAMEPLAY_STATE', payload: { selectedCaseStudy: caseStudy }});
-        navigateTo(Page.CaseStudy);
-    };
     const handleToggleBookmark = async (questionId: string) => {
         if (!state.userProfile) return;
         const isBookmarked = state.userProfile.bookmarkedQuestions.includes(questionId);
@@ -353,7 +339,7 @@ export const GlobalStateProvider: React.FC<{ children: ReactNode }> = ({ childre
     
     const contextValue: GlobalContextType = {
         ...state,
-        handleCardClick, handleDuel, handleMatchFound, handleTestComplete, handleBattleComplete, handleRematch, handleHazardPerceptionComplete, handleTopicSelect, handleCaseStudySelect, handleToggleBookmark,
+        handleCardClick, handleDuel, handleMatchFound, handleTestComplete, handleBattleComplete, handleRematch, handleTopicSelect, handleToggleBookmark,
         markOnboardingComplete, handleProfileUpdate,
         sendFriendRequest, acceptFriendRequest, declineFriendRequest, removeFriend, markNotificationAsRead, sendChallenge, acceptChallenge,
     };

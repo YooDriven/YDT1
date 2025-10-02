@@ -10,8 +10,6 @@ interface State {
 }
 
 class ErrorBoundary extends Component<Props, State> {
-  public state: State;
-
   constructor(props: Props) {
     super(props);
     this.state = {
