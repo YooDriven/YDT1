@@ -1,0 +1,51 @@
+# ------------------------------------
+# 1. DEPENDENCIES AND ARTIFACTS
+# ------------------------------------
+# Node dependencies folder
+/node_modules
+
+# Build output directories
+/dist
+/out
+/build
+.vite # Vite's internal cache folder
+.vercel # Vercel's local configuration/cache (created when using 'vercel dev')
+
+# Dependency lock files (Keep ONLY one of these if you use multiple package managers)
+# package-lock.json # If you use NPM, keep this
+# yarn.lock
+# pnpm-lock.yaml
+
+
+# ------------------------------------
+# 2. SENSITIVE / ENVIRONMENT FILES
+# ------------------------------------
+# IMPORTANT: This prevents your API keys and secrets from being committed.
+.env
+.env.local
+.env.*.local
+.env.development.local
+.env.production.local
+
+
+# ------------------------------------
+# 3. LOGS, CACHES, AND TEMP FILES
+# ------------------------------------
+# Logs
+npm-debug.log
+yarn-debug.log
+.eslintcache
+*.log
+*.tsbuildinfo # TypeScript build info
+
+# VS Code and IDE files
+.vscode/*
+!.vscode/settings.json # Optional: Keep to share basic settings
+!.vscode/tasks.json
+!.vscode/launch.json
+!.vscode/extensions.json
+.idea/
+
+# OS Generated Files
+.DS_Store # macOS
+Thumbs.db # Windows
